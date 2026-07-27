@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/server/db/client';
 import { cohorts, cohortMemberships } from '$lib/server/db/schema/cohorts.schema';
 import { notifications } from '$lib/server/db/schema/notifications.schema';
-import { outbox } from '$lib/server/db/schema/outbox.schema';
+import { eventOutbox } from '$lib/server/db/schema/outbox.schema';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
@@ -58,9 +58,9 @@ export const actions: Actions = {
 		}
 
 		// 3. Queue emails via Outbox pattern
-		await db.insert(outbox).values({
+		await db.insert(eventOutbox).values({
 			id: randomUUID(),
-			type: 'email_blast',
+			eventType: 'email_blast',
 			payload: {
 				userIds: members.map(m => m.userId),
 				subject,

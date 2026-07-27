@@ -7,7 +7,7 @@
 
 	let { data, form }: { data: PageData, form: ActionData } = $props();
 
-	const item = data.asset;
+	let item = $derived(data.asset);
 	let couponCode = $state('');
 	
 	let discountAmount = $state(0);
