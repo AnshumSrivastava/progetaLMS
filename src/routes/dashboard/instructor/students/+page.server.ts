@@ -92,14 +92,10 @@ export const actions: Actions = {
 					role: 'student' as const
 				}));
 
-				// Wait, there might be conflicts if they are already in the cohort.
-				// In a real app we would check this or use ON CONFLICT DO NOTHING
-				for (const membership of membershipsToInsert) {
-					try {
-						await db.insert(cohortMemberships).values(membership);
-					} catch (e) {
-						// Ignore unique constraint violation
-					}
+				if (membershipsToInsert.length > 0) {
+					await db.insert(cohortMemberships)
+						.values(membershipsToInsert)
+						.onConflictDoNothing();
 				}
 			}
 

@@ -44,9 +44,14 @@ export const actions: Actions = {
 		const ownerId = locals.user?.id || 'demo-instructor-id';
 
 		try {
+			// Generate slug from title (e.g. "My Course" -> "my-course-abc12")
+			const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+			const uniqueSuffix = Math.random().toString(36).substring(2, 7);
+			const slug = baseSlug ? `${baseSlug}-${uniqueSuffix}` : createId();
+
 			await db.insert(assets).values({
 				id: createId(),
-				slug: createId(),
+				slug: slug,
 				title,
 				type: 'html',
 				ownerId,
