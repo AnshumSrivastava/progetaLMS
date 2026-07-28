@@ -1,7 +1,8 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db/client';
-import { platformSettings, emailTemplates } from '$lib/server/db/schema/platform.schema';
+import { platformSettings } from '$lib/server/db/schema/platform.schema';
+import { emailTemplates } from '$lib/server/db/schema/notifications.schema';
 import { users } from '$lib/server/db/schema/identity.schema';
 import { eq } from 'drizzle-orm';
 
@@ -31,8 +32,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (templates.length === 0) {
 		const defaultTemp = await db.insert(emailTemplates).values({
 			id: 'welcome',
+			name: 'Welcome Template',
 			subject: 'Welcome to ProgetaLMS',
-			body: 'Hello!\n\nWelcome to your new course.'
+			body: 'Hello!\n\nWelcome to your new course.',
+			instructorId: locals.user!.id
 		}).returning();
 		templates.push(defaultTemp[0]);
 	}
@@ -98,9 +101,9 @@ export const actions: Actions = {
 		// Upsert logic (Insert or Update if exists)
 		const existing = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
 		if (existing.length > 0) {
-			await db.update(emailTemplates).set({ subject, body, updatedAt: new Date() }).where(eq(emailTemplates.id, id));
+			await db.update(emailTemplates).set({ subject, body, name: id }).where(eq(emailTemplates.id, id));
 		} else {
-			await db.insert(emailTemplates).values({ id, subject, body });
+			await db.insert(emailTemplates).values({ id, subject, body, name: id, instructorId: locals.user!.id });
 		}
 
 		return { success: true };

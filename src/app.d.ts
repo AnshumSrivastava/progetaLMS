@@ -10,6 +10,7 @@ declare global {
 		interface Locals {
 			user: AuthUser | null;
 			session: AuthSession | null;
+			isImpersonating?: boolean;
 		}
 
 		// interface PageData {}

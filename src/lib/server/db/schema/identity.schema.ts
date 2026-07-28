@@ -29,7 +29,8 @@ export const users = pgTable('users', {
 	role:          text('role').notNull().default('student'),
 	banned:        boolean('banned').notNull().default(false),
 	banReason:     text('ban_reason'),
-	banExpires:    timestamp('ban_expires', { withTimezone: true })
+	banExpires:    timestamp('ban_expires', { withTimezone: true }),
+	mustChangePassword: boolean('must_change_password').notNull().default(false)
 });
 
 /** Better Auth — sessions */

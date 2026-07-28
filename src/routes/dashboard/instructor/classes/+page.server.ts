@@ -1,14 +1,13 @@
 import { db } from '$lib/server/db/client';
 import { cohorts, cohortMemberships, assets } from '$lib/server/db/schema';
-import { eq, count } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// For demo purposes we are fetching all cohorts, 
-	// normally you'd filter by instructorId: eq(cohorts.instructorId, locals.user.id)
-	
+	if (!locals.user) throw redirect(302, '/sign-in');
+	const instructorId = locals.user.id;
 	const allCohorts = await db
 		.select({
 			id: cohorts.id,
@@ -20,6 +19,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.from(cohorts)
 		.leftJoin(assets, eq(cohorts.courseId, assets.id))
 		.leftJoin(cohortMemberships, eq(cohorts.id, cohortMemberships.cohortId))
+		.where(eq(cohorts.instructorId, instructorId))
 		.groupBy(cohorts.id, assets.title);
 
 	const mappedClasses = allCohorts.map(c => ({
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const availableCourses = await db.select({
 		id: assets.id,
 		title: assets.title
-	}).from(assets).where(eq(assets.type, 'html')); // Assuming html/markdown is the main course type
+	}).from(assets).where(and(eq(assets.type, 'html'), eq(assets.ownerId, instructorId))); // Assuming html/markdown is the main course type
 
 	return {
 		classes: mappedClasses,
@@ -51,8 +51,8 @@ export const actions: Actions = {
 			return fail(400, { error: 'Missing name or course' });
 		}
 
-		// Use a fallback instructor for the demo if user is not fully mocked
-		const instructorId = locals.user?.id || 'demo-instructor-id';
+		if (!locals.user) throw redirect(302, '/sign-in');
+		const instructorId = locals.user.id;
 
 		try {
 			await db.insert(cohorts).values({

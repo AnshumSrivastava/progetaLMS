@@ -4,7 +4,9 @@
 	import { Users2, CheckCircle2, ArrowLeft } from 'lucide-svelte';
 	import { signIn } from '$lib/auth-client';
 	import { addToast } from '$lib/stores/toast';
-
+	import type { PageData, ActionData } from './$types';
+	let { data, form } = $props<{ data: PageData, form: ActionData }>();
+	
 	let classId = $page.params.classId;
 	
 	// Form state
@@ -20,11 +22,10 @@
 	let authProvider = $state('');
 	let isAuthenticating = $state(false);
 
-	// Mock data lookup based on classId
 	const classDetails = {
-		name: 'Fall 2026 Cohort',
-		course: 'Cybersecurity Fundamentals',
-		instructor: 'Demo Instructor'
+		name: data.cohort.name,
+		course: data.cohort.courseTitle,
+		instructor: data.cohort.instructorName
 	};
 
 	async function requestOTP(e: Event) {
@@ -67,11 +68,22 @@
 		e.preventDefault();
 		if (fullName && phoneNumber && organization && qualification) {
 			isAuthenticating = true;
-			// Here we would call our backend API to save these details and link to the class
-			setTimeout(() => {
-				step = 'success';
+			try {
+				const response = await fetch('?/enroll', {
+					method: 'POST',
+					body: new FormData(e.target as HTMLFormElement)
+				});
+				if (response.ok) {
+					step = 'success';
+				} else {
+					addToast('Failed to enroll', 'error');
+				}
+			} catch (err) {
+				console.error(err);
+				addToast('Enrollment failed', 'error');
+			} finally {
 				isAuthenticating = false;
-			}, 1000);
+			}
 		}
 	}
 

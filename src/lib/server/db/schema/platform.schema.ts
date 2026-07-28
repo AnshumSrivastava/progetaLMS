@@ -13,12 +13,7 @@ export const platformSettings = pgTable('platform_settings', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
-export const emailTemplates = pgTable('email_templates', {
-	id: text('id').primaryKey(),
-	subject: text('subject').notNull(),
-	body: text('body').notNull(), // Supports simple Markdown
-	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-});
+
 
 export const events = pgTable('events', {
 	id: text('id').primaryKey(),
@@ -39,7 +34,6 @@ export const eventAttendees = pgTable('event_attendees', {
 });
 
 export type PlatformSettings = typeof platformSettings.$inferSelect;
-export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
 export type EventAttendee = typeof eventAttendees.$inferSelect;

@@ -5,6 +5,7 @@ import { users } from '$lib/server/db/schema/identity.schema';
 import { platformSettings } from '$lib/server/db/schema/platform.schema';
 import { eq } from 'drizzle-orm';
 import { processOutbox } from '$lib/server/events/outbox.processor';
+import { randomBytes } from 'node:crypto';
 
 let appInitialized = false;
 
@@ -15,19 +16,24 @@ async function initializeApp() {
 		// Register event handlers
 		registerEventHandlers();
 		const existingAdmin = await db.select().from(users).where(eq(users.role, 'admin')).limit(1);
-		if (existingAdmin.length === 0) {
-			console.log('🌱 No admin found, creating default Super Admin...');
+		const existingOwner = await db.select().from(users).where(eq(users.role, 'owner')).limit(1);
+		if (existingAdmin.length === 0 && existingOwner.length === 0) {
+			console.log('🌱 No admin/owner found, creating default Super Admin...');
+			const tempPassword = 'Admin@12345';
 			const result = await auth.api.signUpEmail({
 				headers: new Headers(),
 				body: {
 					email: 'admin@progetalms.com',
-					password: 'changeme123',
+					password: tempPassword,
 					name: 'Super Admin'
 				}
 			});
 			if (result?.user) {
-				await db.update(users).set({ role: 'admin' }).where(eq(users.id, result.user.id));
-				console.log('✅ Super Admin created: admin@progetalms.com / changeme123');
+				await db.update(users)
+					.set({ role: 'owner', mustChangePassword: true })
+					.where(eq(users.id, result.user.id));
+				console.log('✅ Super Admin created: admin@progetalms.com (Owner)');
+				console.log('⚠️ TEMP PASSWORD:', tempPassword, '— Change this immediately!');
 			}
 		}
 		appInitialized = true;
@@ -71,9 +77,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;
 
 	// Enforce Admin password change (ignore if impersonating so we don't break their testing)
-	if (session && session.user.email === 'admin@progetalms.com' && !event.locals.isImpersonating) {
-		const hasChanged = event.cookies.get('admin_pwd_changed');
-		if (!hasChanged && !path.startsWith('/dashboard/change-password') && !path.startsWith('/api/auth')) {
+	if (session && !event.locals.isImpersonating) {
+		const [freshUser] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+		if (freshUser?.mustChangePassword && !path.startsWith('/dashboard/change-password') && !path.startsWith('/api/auth')) {
 			throw redirect(302, '/dashboard/change-password');
 		}
 	}
@@ -94,17 +100,20 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// Basic Route Protection
-	if (path.startsWith('/dashboard/instructor')) {
-		if (!session) {
-			throw redirect(302, '/login');
-		}
-		// For demo, assume any logged in user can be instructor if they have that role.
-		// In a real app, you'd check session.user.role
+	// Route Protection
+	const INSTRUCTOR_ROLES = ['instructor', 'admin', 'owner'];
+	const ADMIN_ROLES = ['admin', 'owner'];
+	
+	if (path.startsWith('/dashboard/admin')) {
+		if (!session) throw redirect(302, '/sign-in');
+		const role = session.user.role as string;
+		if (!ADMIN_ROLES.includes(role)) throw redirect(302, '/dashboard');
+	} else if (path.startsWith('/dashboard/instructor')) {
+		if (!session) throw redirect(302, '/sign-in');
+		const role = session.user.role as string;
+		if (!INSTRUCTOR_ROLES.includes(role)) throw redirect(302, '/dashboard');
 	} else if (path.startsWith('/dashboard')) {
-		if (!session) {
-			throw redirect(302, '/login');
-		}
+		if (!session) throw redirect(302, '/sign-in');
 	}
 
 	return resolve(event);

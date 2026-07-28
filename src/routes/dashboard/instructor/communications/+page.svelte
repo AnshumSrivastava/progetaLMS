@@ -59,8 +59,18 @@
 						</label>
 						<label class="attach-checkbox">
 							<input type="checkbox" name="includeCoupon" bind:checked={includeCoupon} />
-							<Ticket size={16} /> Include 50% Coupon Code (STUDENT50)
+							<Ticket size={16} /> Include Coupon Code
 						</label>
+						{#if includeCoupon}
+							<div class="ml-6 mt-2">
+								<select name="couponCode" class="form-input text-sm py-1">
+									<option value="">Select a Coupon...</option>
+									{#each data.coupons as coupon}
+										<option value={coupon.code}>{coupon.code} ({coupon.type === 'percent' ? coupon.value + '%' : '$' + (coupon.value / 100).toFixed(2)} OFF)</option>
+									{/each}
+								</select>
+							</div>
+						{/if}
 					</div>
 				</div>
 

@@ -17,9 +17,20 @@
 	
 	{#if form?.success}
 		<div class="bg-green-50 text-green-600 p-3 rounded-md mb-4 text-sm">
-			Role updated successfully.
+			Action completed successfully.
 		</div>
 	{/if}
+
+	<div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
+		<div>
+			<h2 class="text-sm font-semibold text-gray-800">Invite Admin</h2>
+			<p class="text-xs text-gray-500">Invite a new administrator to the platform via email.</p>
+		</div>
+		<form method="POST" action="?/inviteAdmin" use:enhance class="flex gap-2">
+			<input type="email" name="email" placeholder="admin@example.com" required class="border border-gray-300 rounded px-3 py-2 text-sm bg-white min-w-[250px]" />
+			<button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 transition">Send Invite</button>
+		</form>
+	</div>
 
 	<div class="overflow-x-auto">
 		<table class="w-full text-left border-collapse">
@@ -66,12 +77,20 @@
 									</form>
 									
 									{#if data.currentUserRole === 'owner'}
-										<form method="POST" action="?/transferOwnership" use:enhance onsubmit={() => confirm('Are you sure you want to transfer ownership? You will be demoted to Admin.')}>
-											<input type="hidden" name="userId" value={user.id} />
-											<button type="submit" class="text-xs text-yellow-600 hover:text-yellow-800 underline">
-												Transfer Ownership
-											</button>
-										</form>
+										<div class="flex gap-3 text-xs mt-1">
+											<form method="POST" action="?/transferOwnership" use:enhance onsubmit={() => confirm('Are you sure you want to transfer ownership? You will be demoted to Admin.')}>
+												<input type="hidden" name="userId" value={user.id} />
+												<button type="submit" class="text-yellow-600 hover:text-yellow-800 underline">
+													Transfer Ownership
+												</button>
+											</form>
+											<form method="POST" action="?/deleteUser" use:enhance onsubmit={() => confirm('Are you sure you want to delete this user? This action cannot be undone.')}>
+												<input type="hidden" name="userId" value={user.id} />
+												<button type="submit" class="text-red-600 hover:text-red-800 underline">
+													Delete User
+												</button>
+											</form>
+										</div>
 									{/if}
 								</div>
 							{/if}

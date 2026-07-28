@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db/client';
 import { users, cohortMemberships, cohorts } from '$lib/server/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
 import { Resend } from 'resend';
 import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
@@ -10,7 +10,9 @@ import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
 const resend = new Resend(RESEND_API_KEY);
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const myCohorts = await db.select().from(cohorts).where(eq(cohorts.instructorId, locals.user?.id || ''));
+	if (!locals.user) throw redirect(302, '/sign-in');
+	const instructorId = locals.user.id;
+	const myCohorts = await db.select().from(cohorts).where(eq(cohorts.instructorId, instructorId));
 	const myCohortIds = myCohorts.map(c => c.id);
 
 	const members = myCohortIds.length > 0
@@ -40,7 +42,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		id: cohorts.id,
 		name: cohorts.name
 	}).from(cohorts)
-	.where(eq(cohorts.instructorId, locals.user?.id || ''));
+	.where(eq(cohorts.instructorId, instructorId));
 
 	return {
 		students: mappedStudents,
@@ -63,6 +65,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'No valid emails found' });
 		}
 
+		if (!locals.user) throw redirect(302, '/sign-in');
+		const instructorId = locals.user.id;
+
 		try {
 			// Find existing users
 			const existingUsers = await db.select().from(users).where(inArray(users.email, emails));
@@ -82,6 +87,10 @@ export const actions: Actions = {
 			}
 
 			if (cohortId) {
+				const [ownedCohort] = await db.select().from(cohorts)
+					.where(and(eq(cohorts.id, cohortId), eq(cohorts.instructorId, instructorId)));
+				if (!ownedCohort) return fail(403, { error: 'You do not own this class' });
+
 				const allUsers = [...existingUsers, ...newUsers];
 				
 				// Create memberships

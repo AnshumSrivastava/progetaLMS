@@ -1,8 +1,8 @@
 import { db } from '$lib/server/db/client';
 import { commerceCoupons, cohorts } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -18,7 +18,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			isActive: commerceCoupons.isActive
 		})
 		.from(commerceCoupons)
-		.leftJoin(cohorts, eq(commerceCoupons.cohortId, cohorts.id));
+		.leftJoin(cohorts, eq(commerceCoupons.cohortId, cohorts.id))
+		.where(eq(commerceCoupons.createdBy, locals.user!.id));
 
 	const mappedCoupons = allCoupons.map(c => {
 		let discount = '';
@@ -44,7 +45,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const availableClasses = await db.select({
 		id: cohorts.id,
 		name: cohorts.name
-	}).from(cohorts);
+	}).from(cohorts).where(eq(cohorts.instructorId, locals.user!.id));
 
 	return {
 		coupons: mappedCoupons,
@@ -73,7 +74,7 @@ export const actions: Actions = {
 		const cohortId = cohortIdStr === 'all' ? null : cohortIdStr;
 		const maxUses = limitStr ? parseInt(limitStr, 10) : null;
 		
-		const createdBy = locals.user?.id || 'demo-instructor-id';
+		const createdBy = locals.user!.id;
 
 		try {
 			await db.insert(commerceCoupons).values({

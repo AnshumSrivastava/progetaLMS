@@ -121,13 +121,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				}
 			});
 
-			// Queue email outbox
+			// Queue certificate email via Outbox
 			await db.insert(eventOutbox).values({
 				id: randomUUID(),
-				eventType: 'certificate_issued',
+				eventType: 'CERTIFICATE_ISSUED',
 				payload: {
-					userId: user.id,
-					certificateId
+					studentName: user.name || 'Student',
+					studentEmail: user.email,
+					className: asset?.title || test.title,
+					certUrl: `${new URL(request.url).origin}/certificates/${certificateId}`
 				}
 			});
 		}

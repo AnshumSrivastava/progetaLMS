@@ -2,32 +2,18 @@
 	import { APP_NAME } from '$lib/shared/constants';
 	import { Calendar, Clock } from 'lucide-svelte';
 
-	const mentors = [
-		{
-			id: 1,
-			name: 'Arjun Sharma',
-			role: 'Staff Engineer, Fintech',
-			expertise: ['System Design', 'Distributed Systems', 'Go'],
-			rate: '₹1,200 / 30 min',
-			available: 'Next slot: Monday',
-		},
-		{
-			id: 2,
-			name: 'Priya Nair',
-			role: 'Product Manager, SaaS',
-			expertise: ['Product Strategy', 'User Research', 'Roadmapping'],
-			rate: '₹1,000 / 30 min',
-			available: 'Next slot: Tuesday',
-		},
-		{
-			id: 3,
-			name: 'Rohan Mehta',
-			role: 'Senior Frontend Engineer',
-			expertise: ['React', 'Performance', 'Accessibility'],
-			rate: '₹900 / 30 min',
-			available: 'Next slot: Today',
-		},
-	];
+	import type { PageData } from './$types';
+	let { data } = $props<{ data: PageData }>();
+
+	const mentors = $derived(data.mentors.map(m => ({
+		id: m.id,
+		name: m.name || 'Unknown Mentor',
+		role: m.bio?.substring(0, 40) || 'Instructor',
+		expertise: ['ProgetaLMS Instructor'],
+		rate: '₹1,000 / 30 min',
+		available: 'Next slot: Today',
+		avatarUrl: m.avatarUrl
+	})));
 </script>
 
 <svelte:head>
@@ -55,10 +41,14 @@
 				role="article"
 			>
 				<!-- Avatar placeholder -->
-				<div style="width: 40px; height: 40px; border-radius: 9999px; background: var(--bg-elevated); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;">
-					<span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">
-						{mentor.name.split(' ').map(n => n[0]).join('')}
-					</span>
+				<div style="width: 40px; height: 40px; border-radius: 9999px; background: var(--bg-elevated); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+					{#if mentor.avatarUrl}
+						<img src={mentor.avatarUrl} alt={mentor.name} style="width: 100%; height: 100%; object-fit: cover;" />
+					{:else}
+						<span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">
+							{mentor.name.split(' ').map(n => n[0]).join('')}
+						</span>
+					{/if}
 				</div>
 
 				<div>

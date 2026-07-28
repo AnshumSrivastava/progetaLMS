@@ -79,9 +79,10 @@
 			<!-- Grid -->
 			<div class="item-grid" class:course-grid={activeTab === 'courses'}>
 				{#if activeTab === 'courses'}
-					{#each data.courses as course}
+					{#each data.courses as course, i}
 						<a href={`/catalog/${course.id}`} class="course-card">
-							<div class="course-img" style="background-image: url({course.thumbnail || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80'})">
+							<div class="course-img-wrapper" style="position: relative; width: 100%; height: 160px; overflow: hidden; border-bottom: 1px solid var(--border);">
+								<img src={course.thumbnail || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80'} alt={course.title} fetchpriority={i === 0 ? "high" : "auto"} loading={i === 0 ? "eager" : "lazy"} style="width: 100%; height: 100%; object-fit: cover;" />
 								<span class="level-badge">{course.metadata?.level || 'Beginner'}</span>
 							</div>
 							<div class="course-content">
@@ -320,14 +321,10 @@
 		transform: translateY(-4px);
 		box-shadow: var(--shadow-lg);
 	}
-	.course-card:hover .course-img {
+	.course-card:hover img {
 		transform: scale(1.05);
 	}
-	.course-img {
-		height: 160px;
-		background-size: cover;
-		background-position: center;
-		position: relative;
+	.course-img-wrapper img {
 		transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 	.level-badge {

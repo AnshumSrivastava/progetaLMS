@@ -2,8 +2,7 @@ import PDFDocument from 'pdfkit';
 import SVGtoPDF from 'svg-to-pdfkit';
 import { getCertificateSVG } from './template';
 import QRCode from 'qrcode';
-import fs from 'fs';
-import path from 'path';
+import { logoBase64 } from './logo-base64';
 
 export async function generateCertificatePDF(studentName: string, testName: string, date: string, certId: string): Promise<Buffer> {
 	return new Promise((resolve, reject) => {
@@ -27,16 +26,14 @@ export async function generateCertificatePDF(studentName: string, testName: stri
 			});
 			doc.on('error', reject);
 
-			// We need to resolve QR code and Logo to Base64 for the SVG
+			// We need to resolve QR code to Base64 for the SVG
 			Promise.all([
 				QRCode.toDataURL(`http://localhost:5173/certificates/verify/${certId}`, {
 					width: 150,
 					margin: 1,
 					color: { dark: '#0f172a', light: '#ffffff' }
-				}),
-				fs.promises.readFile(path.resolve(process.cwd(), 'static/progeta-logo.png'))
-			]).then(([qrCodeBase64, logoBuffer]) => {
-				const logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+				})
+			]).then(([qrCodeBase64]) => {
 				const svgString = getCertificateSVG(studentName, testName, date, certId, logoBase64, qrCodeBase64);
 
 				SVGtoPDF(doc, svgString, 0, 0, {

@@ -4,6 +4,9 @@ import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
 import { APP_NAME } from '$shared/constants';
 import Handlebars from 'handlebars';
 import { generateCertificatePDF } from '../pdf/certificate';
+import { db } from '../db/client';
+import { users } from '../db/schema/identity.schema';
+import { inArray } from 'drizzle-orm';
 
 const resend = new Resend(RESEND_API_KEY);
 
@@ -145,6 +148,29 @@ export function registerEventHandlers() {
 			to: payload.studentEmail,
 			subject: `Invitation to join ${payload.className}`,
 			html
+		});
+	});
+
+	eventBus.on('EMAIL_BLAST', async (payload: any, meta) => {
+		// Fetch emails for userIds
+		const targetUsers = await db.select({ email: users.email }).from(users).where(inArray(users.id, payload.userIds));
+		const emails = targetUsers.map(u => u.email).filter(Boolean);
+
+		if (emails.length === 0) return;
+
+		if (!RESEND_API_KEY || RESEND_API_KEY.startsWith('re_123456')) {
+			console.log(`[LOCAL RESEND] Email Blast to ${emails.length} users`);
+			console.log('[LOCAL RESEND] Subject:', payload.subject);
+			return;
+		}
+
+		// Resend allows batch sending to max 50 recipients per API call (or we can use BCC for a single call if it's less than 50)
+		// For simplicity, we'll send individually or BCC if small. We'll use BCC for now.
+		await resend.emails.send({
+			from: RESEND_FROM_ADDRESS,
+			bcc: emails,
+			subject: payload.subject,
+			html: `<div style="font-family:system-ui,sans-serif;padding:32px">${payload.body.replace(/\\n/g, '<br>')}</div>`
 		});
 	});
 }

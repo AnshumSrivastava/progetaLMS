@@ -13,10 +13,22 @@ const S3 = new S3Client({
 	}
 });
 
+const ALLOWED_MIME_TYPES = new Set([
+	'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+	'video/mp4', 'video/webm',
+	'application/pdf',
+	'text/plain', 'text/markdown',
+]);
+const INSTRUCTOR_ROLES = ['instructor', 'admin', 'owner'];
+
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const user = locals.user;
 	if (!user) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
+	}
+
+	if (!INSTRUCTOR_ROLES.includes(user.role as string)) {
+		return json({ error: 'Forbidden: only instructors can upload files' }, { status: 403 });
 	}
 
 	try {
@@ -24,6 +36,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		if (!filename || !contentType) {
 			return json({ error: 'Missing filename or contentType' }, { status: 400 });
+		}
+
+		if (!ALLOWED_MIME_TYPES.has(contentType)) {
+			return json({ error: `File type '${contentType}' is not allowed` }, { status: 400 });
 		}
 
 		// Sanitize filename and create unique key
