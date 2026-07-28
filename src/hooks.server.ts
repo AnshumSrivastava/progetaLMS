@@ -6,7 +6,7 @@ import { platformSettings } from '$lib/server/db/schema/platform.schema';
 import { eq } from 'drizzle-orm';
 import { processOutbox } from '$lib/server/events/outbox.processor';
 import { randomBytes } from 'node:crypto';
-
+import { registerEventHandlers } from '$lib/server/events/handlers';
 let appInitialized = false;
 
 async function initializeApp() {
