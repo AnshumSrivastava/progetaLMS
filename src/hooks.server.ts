@@ -42,6 +42,7 @@ async function initializeApp() {
 	}
 }
 
+// Trigger manual deployment refresh
 export const handle: Handle = async ({ event, resolve }) => {
 	await initializeApp();
 
