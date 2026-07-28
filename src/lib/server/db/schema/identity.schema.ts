@@ -84,6 +84,7 @@ export const identityProfiles = pgTable('identity_profiles', {
 	bio:         text('bio'),
 	avatarUrl:   text('avatar_url'),
 	timezone:    text('timezone').notNull().default('Asia/Kolkata'),
+	loginPreference: text('login_preference', { enum: ['otp', 'password'] }).notNull().default('otp'),
 	createdAt:   timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt:   timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });

@@ -42,6 +42,12 @@
 			<button class="nav-item" class:active={activeTab === 'certs'} onclick={() => activeTab = 'certs'}>
 				<FileBadge2 size={18} /> <span>My Certifications</span>
 			</button>
+			
+			<div class="sidebar-spacer" style="flex: 1;"></div>
+			
+			<a href="/dashboard/settings" class="nav-item" style="text-decoration: none; color: inherit;">
+				<Settings size={18} /> <span>Settings</span>
+			</a>
 		</nav>
 	</aside>
 

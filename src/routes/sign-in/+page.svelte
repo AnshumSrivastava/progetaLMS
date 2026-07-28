@@ -26,7 +26,17 @@
 		sending = true;
 		error   = '';
 		try {
-			if (password) {
+			// Check user preference
+			const prefRes = await fetch('/api/auth/preference', {
+				method: 'POST',
+				body: JSON.stringify({ email }),
+				headers: { 'Content-Type': 'application/json' }
+			});
+			const prefData = await prefRes.json();
+			const isPasswordPref = prefData.preference === 'password';
+
+			// If they prefer password AND provided one, sign in with password
+			if (password && isPasswordPref) {
 				const res = await authClient.signIn.email({ email, password });
 				if (res.error) {
 					error = res.error.message || 'Invalid credentials.';
@@ -38,13 +48,16 @@
 				return;
 			}
 
+			// Otherwise, ignore the password and send OTP
 			await authClient.emailOtp.sendVerificationOtp({
 				email,
 				type: 'sign-in'
 			});
+			// Clear password just in case it was ignored
+			password = '';
 			step = 'otp';
 		} catch (e) {
-			error = 'Failed to send code. Try again.';
+			error = 'Failed to process. Try again.';
 		} finally {
 			sending = false;
 		}
