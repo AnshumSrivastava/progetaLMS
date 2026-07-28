@@ -50,7 +50,9 @@ export const assets = pgTable('assets', {
 }, (t) => [
 	index('assets_owner_idx').on(t.ownerId),
 	index('assets_type_idx').on(t.type),
-	index('assets_status_idx').on(t.status)
+	index('assets_status_idx').on(t.status),
+	index('assets_visibility_idx').on(t.visibility),
+	index('assets_deleted_idx').on(t.deletedAt)
 ]);
 
 export const assetContent = pgTable('asset_content', {
@@ -59,7 +61,7 @@ export const assetContent = pgTable('asset_content', {
 	version:     integer('version').notNull().default(1),
 	content:     text('content').notNull(),   // raw content: HTML, Markdown, URL, or storage key
 	contentType: text('content_type', {
-		enum: ['html', 'markdown', 'url', 'storage_key']
+		enum: ['html', 'markdown', 'url', 'storage_key', 'video', 'slides', 'test', 'reading']
 	}).notNull(),
 	isCurrent:   boolean('is_current').notNull().default(true),
 	createdAt:   timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -84,9 +86,26 @@ export const assetOwnership = pgTable('asset_ownership', {
 	unique('asset_ownership_unique').on(t.ownerId, t.assetId)
 ]);
 
+export const assetProgress = pgTable('asset_progress', {
+	id:              text('id').primaryKey(),
+	userId:          text('user_id').notNull().references(() => users.id),
+	assetId:         text('asset_id').notNull().references(() => assets.id, { onDelete: 'cascade' }),
+	lessonId:        text('lesson_id').notNull(), // points to asset_content.id or module internal id
+	completed:       boolean('completed').notNull().default(false),
+	progressPercent: integer('progress_percent').notNull().default(0),
+	lastAccessedAt:  timestamp('last_accessed_at', { withTimezone: true }).notNull().defaultNow(),
+	completedAt:     timestamp('completed_at', { withTimezone: true })
+}, (t) => [
+	index('asset_progress_user_idx').on(t.userId),
+	index('asset_progress_asset_idx').on(t.assetId),
+	unique('asset_progress_unique').on(t.userId, t.assetId, t.lessonId)
+]);
+
 export type Asset = typeof assets.$inferSelect;
 export type NewAsset = typeof assets.$inferInsert;
 export type AssetContent = typeof assetContent.$inferSelect;
 export type NewAssetContent = typeof assetContent.$inferInsert;
 export type AssetOwnership = typeof assetOwnership.$inferSelect;
 export type NewAssetOwnership = typeof assetOwnership.$inferInsert;
+export type AssetProgress = typeof assetProgress.$inferSelect;
+export type NewAssetProgress = typeof assetProgress.$inferInsert;

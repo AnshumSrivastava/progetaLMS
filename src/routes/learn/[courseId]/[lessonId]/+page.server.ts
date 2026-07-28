@@ -16,8 +16,16 @@ export const load: PageServerLoad = async ({ params }) => {
 		throw error(404, 'Lesson not found');
 	}
 
+	let parsedContent;
+	try {
+		parsedContent = JSON.parse(content.content);
+	} catch {
+		parsedContent = content.content; // fallback to string for html/reading
+	}
+
 	return {
 		lesson: content,
+		parsedContent,
 		contentType: content.contentType
 	};
 };

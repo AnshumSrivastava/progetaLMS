@@ -1,27 +1,20 @@
 <script lang="ts">
 	import { Plus, GripVertical, FileText, PlaySquare, CheckSquare, Presentation, Edit2, Trash2 } from 'lucide-svelte';
 
-	// Mock curriculum structure
-	let modules = [
-		{
-			id: 'm1',
-			title: 'Module 1: Threat Landscape',
-			lessons: [
-				{ id: 'l1', title: 'Introduction to Cybersecurity', type: 'video', icon: PlaySquare },
-				{ id: 'l2', title: 'Common Attack Vectors', type: 'reading', icon: FileText },
-				{ id: 'l3', title: 'Threat Actors and Motivations', type: 'slides', icon: Presentation },
-				{ id: 'l4', title: 'Module 1 Quiz', type: 'quiz', icon: CheckSquare },
-			]
-		},
-		{
-			id: 'm2',
-			title: 'Module 2: Network Defense',
-			lessons: [
-				{ id: 'l5', title: 'Firewalls and IDS/IPS', type: 'video', icon: PlaySquare },
-				{ id: 'l6', title: 'Network Segmentation', type: 'reading', icon: FileText },
-			]
-		}
-	];
+	let { data, form } = $props();
+
+	// Initialize from DB or use empty if not set
+	let modules = $state(data.course?.metadata?.curriculum || []);
+	
+	function addModule() {
+		modules = [...modules, { id: 'm_' + Math.random().toString(36).substr(2, 9), title: 'New Module', lessons: [] }];
+	}
+	
+	function addLesson(modIndex) {
+		const newLesson = { id: 'l_' + Math.random().toString(36).substr(2, 9), title: 'New Lesson', type: 'video', icon: PlaySquare };
+		modules[modIndex].lessons = [...modules[modIndex].lessons, newLesson];
+		modules = [...modules];
+	}
 </script>
 
 <svelte:head>
@@ -33,9 +26,15 @@
 		<h1>Curriculum</h1>
 		<p>Organize your course into modules and lessons.</p>
 	</div>
-	<button class="primary-btn">
-		<Plus size={16} /> Add Module
-	</button>
+	<div style="display: flex; gap: 10px;">
+		<button class="secondary-btn" onclick={addModule}>
+			<Plus size={16} /> Add Module
+		</button>
+		<form method="POST" action="?/save">
+			<input type="hidden" name="curriculum" value={JSON.stringify(modules)} />
+			<button class="primary-btn" type="submit">Save Curriculum</button>
+		</form>
+	</div>
 </div>
 
 <div class="curriculum-builder">
@@ -46,23 +45,23 @@
 				<h2>{mod.title}</h2>
 				<div class="module-actions">
 					<button class="icon-btn" title="Edit Title"><Edit2 size={14} /></button>
-					<button class="icon-btn text-error" title="Delete Module"><Trash2 size={14} /></button>
+					<button class="icon-btn text-error" title="Delete Module" onclick={() => { modules = modules.filter(m => m.id !== mod.id); }}><Trash2 size={14} /></button>
 				</div>
 			</div>
 
 			<div class="lesson-list">
 				{#each mod.lessons as lesson}
-					<a href="/dashboard/instructor/courses/demo-course/editor/{lesson.type}" class="lesson-item">
+					<a href="/dashboard/instructor/courses/{data.course.id}/editor/{lesson.type}?lessonId={lesson.id}" class="lesson-item">
 						<div class="drag-handle"><GripVertical size={14} /></div>
 						<div class="lesson-icon">
-							<lesson.icon size={16} />
+							{#if lesson.type === 'video'}<PlaySquare size={16} />{:else if lesson.type === 'reading'}<FileText size={16} />{:else if lesson.type === 'slides'}<Presentation size={16} />{:else}<CheckSquare size={16} />{/if}
 						</div>
 						<span class="lesson-title">{lesson.title}</span>
 						<div class="lesson-type-badge">{lesson.type}</div>
 					</a>
 				{/each}
 				
-				<button class="add-lesson-btn">
+				<button class="add-lesson-btn" onclick={() => addLesson(modules.indexOf(mod))}>
 					<Plus size={14} /> Add Lesson
 				</button>
 			</div>
@@ -103,6 +102,23 @@
 	}
 	.primary-btn:hover {
 		opacity: 0.9;
+	}
+
+	.secondary-btn {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		background: transparent;
+		color: var(--text-primary);
+		border: 1px solid var(--border);
+		padding: 8px 16px;
+		border-radius: 6px;
+		font-weight: 600;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+	.secondary-btn:hover {
+		background: var(--bg-elevated);
 	}
 
 	.curriculum-builder {

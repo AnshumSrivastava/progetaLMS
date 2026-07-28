@@ -79,7 +79,7 @@ export class OrderService {
 				customer_phone: customerDetails.phone || '9999999999'
 			},
 			order_meta: {
-				return_url: `${PUBLIC_APP_URL}/dashboard?order_id=${cashfreeOrderId}`,
+				return_url: `${PUBLIC_APP_URL}/dashboard?order_id={order_id}`,
 				notify_url: `${PUBLIC_APP_URL}/api/webhooks/cashfree`
 			}
 		};

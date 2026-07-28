@@ -43,14 +43,19 @@
 					addToast('[Mock Mode] Your .env is missing Cashfree keys! Bypassing actual payment gateway UI and returning you to dashboard. Wait for Webhook to mock processing.', 'info');
 					goto('/dashboard');
 				} else {
-					// @ts-ignore
-					const cashfree = window.Cashfree({
-						mode: data.cashfreeEnv // or production based on your environment
-					});
-					cashfree.checkout({
-						paymentSessionId: form.paymentSessionId,
-						redirectTarget: '_self' // Redirects the entire page to Cashfree
-					});
+					try {
+						// @ts-ignore
+						const cashfree = window.Cashfree({
+							mode: data.cashfreeEnv // or production based on your environment
+						});
+						cashfree.checkout({
+							paymentSessionId: form.paymentSessionId,
+							redirectTarget: '_self' // Redirects the entire page to Cashfree
+						});
+					} catch (err) {
+						addToast('Failed to initialize payment gateway. Please try again or contact support.', 'error');
+						console.error(err);
+					}
 				}
 			}
 		} else if (form?.checkoutError) {

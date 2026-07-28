@@ -5,7 +5,6 @@
 	import VideoPlayer from '$lib/components/learning/VideoPlayer.svelte';
 	import ReadingView from '$lib/components/learning/ReadingView.svelte';
 	import { layoutMode } from '$lib/stores/layoutMode';
-	import { slideData, quizData, readingMock, videoMock } from '$lib/data/mockCourseData';
 
 	let { data } = $props();
 
@@ -22,23 +21,23 @@
 {#if data.contentType === 'slides'}
 	<!-- ── IMMERSIVE SLIDE VIEWER ──────────────────────────────── -->
 	<div class="slides-wrap">
-		<SlideViewer slides={slideData} />
+		<SlideViewer slides={data.parsedContent} />
 	</div>
 
 {:else if data.contentType === 'test'}
 	<!-- ── EXAM / ASSESSMENT ────────────────────────────────────── -->
 	<div class="exam-wrap">
-		<QuizEngine questions={quizData} />
+		<QuizEngine questions={data.parsedContent} />
 	</div>
 
 {:else if data.contentType === 'video'}
 	<!-- ── VIDEO LESSON ─────────────────────────────────────────── -->
-	<VideoPlayer videoData={videoMock} />
+	<VideoPlayer videoData={data.parsedContent} />
 
 {:else if data.contentType === 'html' || data.contentType === 'reading'}
 	<!-- ── HTML / READING MATERIAL ─────────────────────────────────────── -->
 	<div style="padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-		{@html data.lesson.content}
+		{@html data.parsedContent}
 	</div>
 
 {:else}
