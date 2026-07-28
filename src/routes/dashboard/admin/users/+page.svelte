@@ -34,28 +34,46 @@
 			<tbody class="divide-y divide-gray-100">
 				{#each data.allUsers as user}
 					<tr class="hover:bg-gray-50 transition-colors">
-						<td class="py-3 px-4 font-medium text-gray-800">{user.name || 'Unnamed'}</td>
+						<td class="py-3 px-4 font-medium text-gray-800">
+							{user.name || 'Unnamed'}
+							{#if user.role === 'owner'}
+								<span class="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold uppercase">Owner</span>
+							{/if}
+						</td>
 						<td class="py-3 px-4 text-gray-600">{user.email}</td>
 						<td class="py-3 px-4">
-							<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium uppercase tracking-wider">
-								{user.role}
-							</span>
+							{#if user.role !== 'owner'}
+								<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium uppercase tracking-wider">
+									{user.role}
+								</span>
+							{/if}
 						</td>
 						<td class="py-3 px-4 text-right">
-							{#if user.email !== 'admin@progetalms.com'}
-								<form method="POST" action="?/updateRole" use:enhance class="flex justify-end items-center gap-2">
-									<input type="hidden" name="userId" value={user.id} />
-									<select name="role" class="border border-gray-300 rounded px-2 py-1 text-sm bg-white">
-										<option value="student" selected={user.role === 'student'}>Student</option>
-										<option value="instructor" selected={user.role === 'instructor'}>Instructor</option>
-										<option value="admin" selected={user.role === 'admin'}>Admin</option>
-									</select>
-									<button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
-										Update
-									</button>
-								</form>
+							{#if user.role === 'owner'}
+								<span class="text-xs text-gray-400 italic">Cannot modify owner</span>
 							{:else}
-								<span class="text-xs text-gray-400 italic">Cannot modify Super Admin</span>
+								<div class="flex flex-col items-end gap-2">
+									<form method="POST" action="?/updateRole" use:enhance class="flex items-center gap-2">
+										<input type="hidden" name="userId" value={user.id} />
+										<select name="role" class="border border-gray-300 rounded px-2 py-1 text-sm bg-white">
+											<option value="student" selected={user.role === 'student'}>Student</option>
+											<option value="instructor" selected={user.role === 'instructor'}>Instructor</option>
+											<option value="admin" selected={user.role === 'admin'}>Admin</option>
+										</select>
+										<button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
+											Update
+										</button>
+									</form>
+									
+									{#if data.currentUserRole === 'owner'}
+										<form method="POST" action="?/transferOwnership" use:enhance onsubmit={() => confirm('Are you sure you want to transfer ownership? You will be demoted to Admin.')}>
+											<input type="hidden" name="userId" value={user.id} />
+											<button type="submit" class="text-xs text-yellow-600 hover:text-yellow-800 underline">
+												Transfer Ownership
+											</button>
+										</form>
+									{/if}
+								</div>
 							{/if}
 						</td>
 					</tr>

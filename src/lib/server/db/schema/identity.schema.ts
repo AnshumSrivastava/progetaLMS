@@ -87,8 +87,20 @@ export const identityProfiles = pgTable('identity_profiles', {
 	updatedAt:   timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+export const auditLogs = pgTable('audit_logs', {
+	id:        text('id').primaryKey(),
+	actorId:   text('actor_id').notNull().references(() => users.id), // Who did it
+	action:    text('action').notNull(), // e.g., 'role_change', 'transfer_ownership', 'ban_user'
+	entityId:  text('entity_id'), // The ID of the thing they acted upon
+	entityType:text('entity_type'), // e.g., 'user', 'course'
+	details:   text('details'), // JSON string or text describing the change
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type IdentityProfile = typeof identityProfiles.$inferSelect;
 export type NewIdentityProfile = typeof identityProfiles.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;
