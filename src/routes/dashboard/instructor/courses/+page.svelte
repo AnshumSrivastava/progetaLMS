@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { BookOpen, Search, Filter, MoreHorizontal, Edit, Tag, Power } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
@@ -13,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Courses — Instructor Portal</title>
+	<title>Courses — {APP_NAME} Instructor</title>
 </svelte:head>
 
 <div class="page-content">

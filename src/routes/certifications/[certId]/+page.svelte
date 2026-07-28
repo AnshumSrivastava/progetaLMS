@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { page } from '$app/stores';
 	import { CheckCircle2, AlertTriangle, ShieldCheck, Clock, BookOpen, GraduationCap } from 'lucide-svelte';
 
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.cert.title} — Launchpad Certifications</title>
+	<title>{data.cert.title} — {APP_NAME} Certifications</title>
 </svelte:head>
 
 <div class="cert-page">

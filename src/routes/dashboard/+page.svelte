@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { authClient } from '$lib/auth.client';
 	import { goto } from '$app/navigation';
 	import { BookOpen, FileBadge2, Calendar, Download, Play, Trophy, Clock, ArrowRight, Plus } from 'lucide-svelte';
@@ -10,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>Student Dashboard — Launchpad</title>
+	<title>Student Dashboard — {APP_NAME}</title>
 </svelte:head>
 
 <!-- ── DASHBOARD LAYOUT ── -->
@@ -33,9 +34,7 @@
 			<button class="nav-item" class:active={activeTab === 'resources'} onclick={() => activeTab = 'resources'}>
 				<Download size={18} /> <span>My Resources</span>
 			</button>
-			<button class="nav-item" class:active={activeTab === 'events'} onclick={() => activeTab = 'events'}>
-				<Calendar size={18} /> <span>My Events</span>
-			</button>
+
 			<button class="nav-item" class:active={activeTab === 'certs'} onclick={() => activeTab = 'certs'}>
 				<FileBadge2 size={18} /> <span>My Certifications</span>
 			</button>
@@ -83,14 +82,23 @@
 								</button>
 							</div>
 						</div>
+					{:else}
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-subtle);">
+							<BookOpen size={48} style="opacity: 0.5;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No courses yet</h3>
+							<p>Browse the catalog to find your first course.</p>
+							<a href="/catalog" class="action-btn" style="text-decoration:none; padding: 10px 16px; background: var(--text-primary); color: var(--bg); border-radius: 6px;">Browse Catalog →</a>
+						</div>
 					{/each}
 
-					<!-- Browse More Card -->
-					<a href="/catalog" class="browse-card">
-						<div class="browse-icon"><Plus size={24} /></div>
-						<h4>Browse Courses</h4>
-						<p>Discover new skills in the catalog</p>
-					</a>
+					{#if data.ownedCourses.length > 0}
+						<!-- Browse More Card -->
+						<a href="/catalog" class="browse-card">
+							<div class="browse-icon"><Plus size={24} /></div>
+							<h4>Browse Courses</h4>
+							<p>Discover new skills in the catalog</p>
+						</a>
+					{/if}
 				</div>
 
 			{:else if activeTab === 'resources'}
@@ -109,37 +117,24 @@
 							</div>
 							<a href={`/learn/${item.id}`} class="action-btn outline" style="text-decoration:none;">View</a>
 						</div>
-					{/each}
-
-					<a href="/catalog" class="browse-card small">
-						<div class="browse-icon"><Plus size={20} /></div>
-						<h4>Find More Resources</h4>
-					</a>
-				</div>
-
-			{:else if activeTab === 'events'}
-				<!-- EVENTS TAB -->
-				<div class="section-header">
-					<h3>My Upcoming Events</h3>
-				</div>
-				
-				<div class="generic-grid">
-					{#each [] as item}
-						<div class="item-card">
-							<div class="icon-wrap"><Calendar size={24} /></div>
-							<div class="item-info">
-								<h4>{item.title}</h4>
-								<p>{item.date} at {item.time}</p>
-							</div>
-							<button class="action-btn">Join Link</button>
+					{:else}
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-subtle);">
+							<Download size={48} style="opacity: 0.5;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No resources yet</h3>
+							<p>Browse the catalog to find digital resources.</p>
+							<a href="/catalog" class="action-btn" style="text-decoration:none; padding: 10px 16px; background: var(--text-primary); color: var(--bg); border-radius: 6px;">Browse Catalog →</a>
 						</div>
 					{/each}
 
-					<a href="/catalog" class="browse-card small">
-						<div class="browse-icon"><Plus size={20} /></div>
-						<h4>Register for Events</h4>
-					</a>
+					{#if data.ownedResources.length > 0}
+						<a href="/catalog" class="browse-card small">
+							<div class="browse-icon"><Plus size={20} /></div>
+							<h4>Find More Resources</h4>
+						</a>
+					{/if}
 				</div>
+
+
 
 			{:else if activeTab === 'certs'}
 				<!-- CERTIFICATIONS TAB -->

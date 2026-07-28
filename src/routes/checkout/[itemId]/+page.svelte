@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { enhance } from '$app/forms';
+	import { addToast } from '$lib/stores/toast';
 	import { ShieldCheck, Tag, ArrowRight, CreditCard, CheckCircle2 } from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 
@@ -28,22 +30,22 @@
 		} else if (form?.couponError) {
 			discountApplied = false;
 			discountAmount = 0;
-			alert(form.couponError);
+			addToast(form.couponError, 'error');
 		}
 
 		if (form?.success) {
 			if (form.isFree || form.isMockMode) {
-				alert('Payment Successful! Your new resource is now available in your dashboard.');
+				addToast('Payment Successful! Your new resource is now available in your dashboard.', 'success');
 				goto('/dashboard');
 			} else if (form.paymentSessionId) {
 				// Initialize Cashfree
 				if (form.paymentSessionId === 'mock_session_id_no_keys_provided') {
-					alert('[Mock Mode] Your .env is missing Cashfree keys! Bypassing actual payment gateway UI and returning you to dashboard. Wait for Webhook to mock processing.');
+					addToast('[Mock Mode] Your .env is missing Cashfree keys! Bypassing actual payment gateway UI and returning you to dashboard. Wait for Webhook to mock processing.', 'info');
 					goto('/dashboard');
 				} else {
 					// @ts-ignore
 					const cashfree = window.Cashfree({
-						mode: 'sandbox' // or production based on your environment
+						mode: data.cashfreeEnv // or production based on your environment
 					});
 					cashfree.checkout({
 						paymentSessionId: form.paymentSessionId,
@@ -52,13 +54,13 @@
 				}
 			}
 		} else if (form?.checkoutError) {
-			alert('Checkout error: ' + form.checkoutError);
+			addToast('Checkout error: ' + form.checkoutError, 'error');
 		}
 	});
 </script>
 
 <svelte:head>
-	<title>Checkout — Launchpad</title>
+	<title>Checkout — {APP_NAME}</title>
 	<script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 </svelte:head>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { Search, Filter, BookOpen, Calendar, FileBadge2, Download, Star, Clock } from 'lucide-svelte';
 	
 	let { data } = $props();
@@ -10,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>Catalog — Launchpad</title>
+	<title>Catalog — {APP_NAME}</title>
 </svelte:head>
 
 <div class="catalog-page">
@@ -20,10 +21,13 @@
 			<h1 class="page-title">Discover Your Next Skill</h1>
 			<p class="page-subtitle">Browse world-class courses, resources, events, and certifications.</p>
 			
-			<div class="search-wrapper">
+			<form method="GET" action="/catalog" class="search-wrapper">
 				<Search size={20} class="search-icon" />
-				<input type="text" placeholder="What do you want to learn today?" />
-			</div>
+				<input type="text" name="q" value={data.search} placeholder="What do you want to learn today?" />
+				{#if data.search}
+					<a href="/catalog" class="clear-search" style="margin-left: auto; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500;">Clear</a>
+				{/if}
+			</form>
 
 			<!-- Horizontal Pill Navigation -->
 			<div class="pill-nav">
@@ -52,20 +56,23 @@
 				</h2>
 				
 				{#if activeTab === 'courses'}
-					<div class="inline-filters">
-						<select class="filter-dropdown">
+					<form method="GET" action="/catalog" class="inline-filters">
+						{#if data.search}
+							<input type="hidden" name="q" value={data.search} />
+						{/if}
+						<select name="category" class="filter-dropdown" value={data.category || ""} onchange={(e) => e.currentTarget.form.submit()}>
 							<option value="">All Categories</option>
 							{#each categories as cat}
 								{#if cat !== 'All'}<option value={cat}>{cat}</option>{/if}
 							{/each}
 						</select>
-						<select class="filter-dropdown">
+						<select name="level" class="filter-dropdown" value={data.level || ""} onchange={(e) => e.currentTarget.form.submit()}>
 							<option value="">All Levels</option>
 							{#each levels as lvl}
 								<option value={lvl}>{lvl}</option>
 							{/each}
 						</select>
-					</div>
+					</form>
 				{/if}
 			</div>
 
@@ -96,8 +103,10 @@
 							</div>
 						</a>
 					{:else}
-						<div style="padding: 3rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1;">
-							No courses found.
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+							<BookOpen size={48} style="opacity: 0.5;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No courses found</h3>
+							<p>Try adjusting your search or filters.</p>
 						</div>
 					{/each}
 				{:else if activeTab === 'resources'}
@@ -114,8 +123,10 @@
 							</div>
 						</div>
 					{:else}
-						<div style="padding: 3rem; text-align: center; color: var(--text-muted);">
-							No resources found.
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+							<Download size={48} style="opacity: 0.5;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No resources found</h3>
+							<p>Try adjusting your search or filters.</p>
 						</div>
 					{/each}
 				{:else}
@@ -132,8 +143,10 @@
 							</div>
 						</div>
 					{:else}
-						<div style="padding: 3rem; text-align: center; color: var(--text-muted);">
-							No certifications found.
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+							<FileBadge2 size={48} style="opacity: 0.5;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No certifications found</h3>
+							<p>Try adjusting your search or filters.</p>
 						</div>
 					{/each}
 				{/if}

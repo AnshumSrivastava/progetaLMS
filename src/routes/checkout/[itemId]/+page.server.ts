@@ -5,6 +5,7 @@ import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { commerceCoupons } from '$lib/server/db/schema/commerce.schema';
 import { eq, and } from 'drizzle-orm';
 import { OrderService } from '$lib/server/commerce/OrderService';
+import { CASHFREE_ENV } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const user = locals.user;
@@ -25,7 +26,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				type: 'Certification Exam',
 				pricePaise: 15000 // $150.00
 			},
-			alreadyOwned: false
+			alreadyOwned: false,
+			cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
 		};
 	}
 
@@ -35,7 +37,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	return {
 		asset,
-		alreadyOwned: !!ownership
+		alreadyOwned: !!ownership,
+		cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
 	};
 };
 

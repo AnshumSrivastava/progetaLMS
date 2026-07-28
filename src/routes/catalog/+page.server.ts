@@ -5,6 +5,8 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const search = url.searchParams.get('q')?.toLowerCase() ?? '';
+	const category = url.searchParams.get('category') ?? '';
+	const level = url.searchParams.get('level') ?? '';
 
 	const published = await db
 		.select({
@@ -28,13 +30,20 @@ export const load: PageServerLoad = async ({ url }) => {
 		.orderBy(assets.sortOrder);
 
 	// Filter by search client-side (simple approach for now)
-	const filtered = search
+	let filtered = search
 		? published.filter(a => a.title.toLowerCase().includes(search) || (a.description ?? '').toLowerCase().includes(search))
 		: published;
+
+	if (category && category !== 'All') {
+		filtered = filtered.filter(a => (a.metadata as any)?.category === category);
+	}
+	if (level && level !== 'All') {
+		filtered = filtered.filter(a => (a.metadata as any)?.level === level);
+	}
 
 	const courses = filtered.filter(a => ['html', 'markdown', 'pdf'].includes(a.type));
 	const resources = filtered.filter(a => ['download', 'external'].includes(a.type));
 	const certifications = filtered.filter(a => a.type === 'cert_test');
 
-	return { courses, resources, certifications, search };
+	return { courses, resources, certifications, search, category, level };
 };

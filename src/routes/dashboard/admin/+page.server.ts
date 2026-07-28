@@ -73,7 +73,7 @@ export const actions: Actions = {
 			cookies.set('impersonate_role', role, {
 				path: '/',
 				httpOnly: true,
-				secure: process.env.NODE_ENV === 'production',
+				secure: true,
 				sameSite: 'lax'
 			});
 			// Redirect them to their impersonated dashboard

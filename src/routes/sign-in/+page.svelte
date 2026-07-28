@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { authClient } from '$lib/auth.client';
 	import { goto, invalidateAll } from '$app/navigation';
 
@@ -78,7 +79,7 @@
 </script>
 
 <svelte:head>
-	<title>Sign in — Launchpad</title>
+	<title>Sign in — {APP_NAME}</title>
 </svelte:head>
 
 <div style="min-height: calc(100vh - var(--nav-h)); display: flex; align-items: center; justify-content: center; padding: 40px 24px;">

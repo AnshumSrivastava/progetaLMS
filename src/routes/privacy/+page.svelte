@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import LegalPage from '$lib/components/ui/LegalPage.svelte';
 </script>
 
 <svelte:head>
-	<title>Privacy Policy — Launchpad</title>
+	<title>Privacy Policy — {APP_NAME}</title>
 </svelte:head>
 
 <LegalPage label="Legal" title="Privacy Policy" updated="July 2025">

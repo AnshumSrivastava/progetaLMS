@@ -10,16 +10,21 @@ import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
 const resend = new Resend(RESEND_API_KEY);
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// For demo, fetch all students
-	const members = await db
-		.select({
-			id: users.id,
-			name: users.name,
-			email: users.email,
-			joinedAt: cohortMemberships.joinedAt
-		})
-		.from(cohortMemberships)
-		.innerJoin(users, eq(cohortMemberships.userId, users.id));
+	const myCohorts = await db.select().from(cohorts).where(eq(cohorts.instructorId, locals.user?.id || ''));
+	const myCohortIds = myCohorts.map(c => c.id);
+
+	const members = myCohortIds.length > 0
+		? await db
+			.select({
+				id: users.id,
+				name: users.name,
+				email: users.email,
+				joinedAt: cohortMemberships.joinedAt
+			})
+			.from(cohortMemberships)
+			.innerJoin(users, eq(cohortMemberships.userId, users.id))
+			.where(inArray(cohortMemberships.cohortId, myCohortIds))
+		: [];
 
 	const mappedStudents = members.map(m => ({
 		id: m.id,
@@ -34,7 +39,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const availableClasses = await db.select({
 		id: cohorts.id,
 		name: cohorts.name
-	}).from(cohorts);
+	}).from(cohorts)
+	.where(eq(cohorts.instructorId, locals.user?.id || ''));
 
 	return {
 		students: mappedStudents,
@@ -103,8 +109,8 @@ export const actions: Actions = {
 					await resend.emails.send({
 						from: RESEND_FROM_ADDRESS,
 						to: email,
-						subject: `You've been invited to Launchpad`,
-						html: `You have been granted access. <a href="http://localhost:5173/login">Click here to log in</a>.`
+						subject: `You've been invited to Progeta LMS`,
+						html: `<p>You have been invited to join Progeta LMS.</p><a href="https://lms.progeta.in/sign-in" style="display:inline-block;padding:12px 24px;background:#1a1a2e;color:white;border-radius:8px;text-decoration:none;font-weight:600;">Sign In Now</a>`
 					});
 				}
 			}

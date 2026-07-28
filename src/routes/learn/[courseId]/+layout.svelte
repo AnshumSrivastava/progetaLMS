@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { page } from '$app/stores';
 	import { theme } from '$lib/stores/theme';
 	import { layoutMode } from '$lib/stores/layoutMode';
@@ -29,7 +30,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.course.title} - Launchpad</title>
+	<title>{data.course.title} - {APP_NAME}</title>
 </svelte:head>
 
 <div class="shell" class:shell-immersive={isImmersive} class:shell-exam={isExam}>

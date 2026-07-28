@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	// Settings placeholder
 </script>
 
 <svelte:head>
-	<title>Settings — Instructor Portal</title>
+	<title>Settings — {APP_NAME} Instructor</title>
 </svelte:head>
 
 <div class="page-content">

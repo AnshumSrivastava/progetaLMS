@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { ArrowRight, BookOpen, FileBadge2, Users } from 'lucide-svelte';
 
@@ -22,7 +23,7 @@
 </script>
 
 <svelte:head>
-	<title>Launchpad — Own Your Learning</title>
+	<title>{APP_NAME} — Own Your Learning</title>
 	<meta name="description" content="A modern platform for owning digital learning assets, earning verifiable certifications, and accessing expert mentorship." />
 </svelte:head>
 
@@ -98,7 +99,9 @@
 				<h2 style="font-size: clamp(1.25rem, 2.5vw, 1.75rem); margin-bottom: 8px;">Ready to start?</h2>
 				<p style="font-size: 0.9375rem;">No credit card required. Start for free.</p>
 			</div>
-			<Button variant="primary" size="lg">Create account</Button>
+			<Button variant="primary" size="lg">
+				<a href="/sign-in" style="color: inherit;">Create account</a>
+			</Button>
 		</div>
 	</div>
 </section>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { Calendar, Clock } from 'lucide-svelte';
 
 	const mentors = [
@@ -30,7 +31,7 @@
 </script>
 
 <svelte:head>
-	<title>Mentoring — Launchpad</title>
+	<title>Mentoring — {APP_NAME}</title>
 	<meta name="description" content="Book 1-on-1 sessions with industry experts." />
 </svelte:head>
 

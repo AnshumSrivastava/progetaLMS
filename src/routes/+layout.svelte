@@ -3,6 +3,7 @@
 	import Navbar from '$lib/components/ui/Navbar.svelte';
 	import Footer from '$lib/components/ui/Footer.svelte';
 	import MobileTabBar from '$lib/components/ui/MobileTabBar.svelte';
+	import ToastProvider from '$lib/components/ui/ToastProvider.svelte';
 	import { page } from '$app/stores';
 
 	let { children, data } = $props();
@@ -10,6 +11,8 @@
 	// Don't show layout elements on specific routes
 	let isAuthRoute = $derived($page.url.pathname.startsWith('/join'));
 </script>
+
+<ToastProvider />
 
 <div class="app-layout" class:is-auth={isAuthRoute}>
 	{#if !isAuthRoute}

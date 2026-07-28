@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { PlaySquare, FileText, CheckSquare, Presentation, Star, Clock, Globe, Shield, User } from 'lucide-svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -37,7 +38,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.asset.title} — Launchpad</title>
+	<title>{data.asset.title} — {APP_NAME}</title>
 </svelte:head>
 
 <!-- Hero Section -->

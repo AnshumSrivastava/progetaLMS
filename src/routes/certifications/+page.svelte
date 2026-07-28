@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { CheckCircle2 } from 'lucide-svelte';
 
 	let { data } = $props();
@@ -16,7 +17,7 @@
 </script>
 
 <svelte:head>
-	<title>Certifications — Launchpad</title>
+	<title>Certifications — {APP_NAME}</title>
 	<meta name="description" content="Earn verifiable certifications by passing rigorous assessments." />
 </svelte:head>
 

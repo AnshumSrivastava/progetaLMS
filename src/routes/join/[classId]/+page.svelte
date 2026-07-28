@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { page } from '$app/stores';
 	import { Users2, CheckCircle2, ArrowLeft } from 'lucide-svelte';
 	import { signIn } from '$lib/auth-client';
+	import { addToast } from '$lib/stores/toast';
 
 	let classId = $page.params.classId;
 	
@@ -34,7 +36,7 @@
 				step = 'otp_verification';
 			} catch (err) {
 				console.error(err);
-				alert('Failed to send OTP.');
+				addToast('Failed to send OTP.', 'error');
 			} finally {
 				isAuthenticating = false;
 			}
@@ -54,7 +56,7 @@
 				step = 'profile_details';
 			} catch (err) {
 				console.error(err);
-				alert('Invalid OTP code.');
+				addToast('Invalid OTP code.', 'error');
 			} finally {
 				isAuthenticating = false;
 			}
@@ -96,7 +98,7 @@
 </script>
 
 <svelte:head>
-	<title>Join {classDetails.name} — Launchpad</title>
+	<title>Join {classDetails.name} — {APP_NAME}</title>
 </svelte:head>
 
 <div class="split-layout">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { Send, Link2, Ticket } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
@@ -13,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Communications — Instructor Portal</title>
+	<title>Communications — {APP_NAME} Instructor</title>
 </svelte:head>
 
 <div class="page-content">

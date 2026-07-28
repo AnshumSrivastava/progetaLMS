@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { Save, Image as ImageIcon, DollarSign, Globe, Lock } from 'lucide-svelte';
+	import { enhance } from '$app/forms';
+	import type { PageData, ActionData } from './$types';
+	import FileUpload from '$lib/components/ui/FileUpload.svelte';
 
-	let courseTitle = 'Cybersecurity Fundamentals';
-	let courseDesc = 'Learn the core concepts of information security and network defense.';
-	let pricingType = 'paid';
-	let price = '49';
-	let accessType = 'public';
+	let { data, form }: { data: PageData, form: ActionData } = $props();
+
+	let courseTitle = $state(data.course.title);
+	let courseDesc = $state(data.course.description || '');
+	let thumbnailUrl = $state(data.course.thumbnail || '');
+	let pricingType = $state(data.course.pricePaise === 0 ? 'free' : 'paid');
+	let price = $state(data.course.pricePaise > 0 ? (data.course.pricePaise / 100).toString() : '');
+	let accessType = $state(data.course.visibility);
+	
+	let isSaving = $state(false);
 </script>
 
 <svelte:head>
@@ -19,25 +27,39 @@
 	</div>
 </div>
 
-<div class="settings-layout">
+<form method="POST" action="?/save" class="settings-layout" use:enhance={() => { isSaving = true; return async ({ update }) => { isSaving = false; update(); }; }}>
+	{#if form?.success}
+		<div style="padding: 12px; background: rgba(16,185,129,0.1); color: #10b981; border-radius: 8px;">Settings saved successfully.</div>
+	{:else if form?.error}
+		<div style="padding: 12px; background: rgba(239,68,68,0.1); color: #ef4444; border-radius: 8px;">{form.error}</div>
+	{/if}
+	
 	<!-- Basic Info -->
 	<section class="settings-section">
 		<h2>Basic Information</h2>
 		<div class="form-group">
 			<label>Course Title</label>
-			<input type="text" bind:value={courseTitle} class="input-field" />
+			<input type="text" name="title" bind:value={courseTitle} class="input-field" required />
 		</div>
 		<div class="form-group">
 			<label>Description</label>
-			<textarea bind:value={courseDesc} class="textarea-field" rows="3"></textarea>
+			<textarea name="description" bind:value={courseDesc} class="textarea-field" rows="3"></textarea>
 		</div>
 		<div class="form-group">
 			<label>Thumbnail Image</label>
-			<div class="image-upload">
-				<ImageIcon size={32} class="text-muted" />
-				<p>Drag and drop or click to upload</p>
-				<span>1280x720 recommended</span>
-			</div>
+			{#if thumbnailUrl}
+				<div style="margin-bottom: 12px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
+					<img src={thumbnailUrl} alt="Thumbnail preview" style="width: 100%; height: auto; max-height: 200px; object-fit: cover;" />
+				</div>
+			{/if}
+			<FileUpload 
+				accept="image/jpeg, image/png, image/webp"
+				maxSizeMb={5}
+				label="Upload Course Thumbnail"
+				description="1280x720 recommended (JPG, PNG, WebP)"
+				onUploadSuccess={(url) => { thumbnailUrl = url; }}
+			/>
+			<input type="hidden" name="thumbnail" value={thumbnailUrl} />
 		</div>
 	</section>
 
@@ -59,14 +81,16 @@
 					<span>Students pay once for lifetime access.</span>
 				</div>
 			</label>
+			<input type="hidden" name="pricingType" value={pricingType} />
+			<input type="hidden" name="accessType" value={accessType} />
 		</div>
 
 		{#if pricingType === 'paid'}
 			<div class="form-group mt-4">
-				<label>Price (USD)</label>
+				<label>Price (₹ INR)</label>
 				<div class="input-with-icon">
 					<DollarSign size={16} class="icon" />
-					<input type="number" bind:value={price} class="input-field pl-9" />
+					<input type="number" name="price" bind:value={price} placeholder="0.00" min="0" step="0.01" class="input-field pl-9" />
 				</div>
 			</div>
 		{/if}
@@ -98,7 +122,13 @@
 			</label>
 		</div>
 	</section>
-</div>
+
+	<div style="display: flex; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border);">
+		<button type="submit" disabled={isSaving} style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--text-primary); color: var(--bg); border: none; border-radius: 8px; font-weight: 500; cursor: pointer; opacity: {isSaving ? 0.7 : 1};">
+			<Save size={18} /> {isSaving ? 'Saving...' : 'Save Settings'}
+		</button>
+	</div>
+</form>
 
 <style>
 	.workspace-header {

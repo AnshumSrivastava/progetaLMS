@@ -1,6 +1,9 @@
 <script lang="ts">
-	import { Settings, Users, Layers, Activity, Eye, Mail } from 'lucide-svelte';
+	import { APP_NAME } from '$lib/shared/constants';
+	import { Users, Layers, Activity, Settings, Eye, Mail, Image as ImageIcon } from 'lucide-svelte';
 	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
+	import FileUpload from '$lib/components/ui/FileUpload.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -8,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin Hub — ProgetaLMS</title>
+	<title>Admin Hub — {APP_NAME}</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto mt-8 px-4 sm:px-6 lg:px-8 pb-12">
@@ -148,5 +151,27 @@
 				Save Template
 			</button>
 		</form>
+	</section>
+
+	<!-- Asset Library -->
+	<section class="mt-8 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+		<div class="flex items-center mb-6">
+			<ImageIcon class="text-slate-400 mr-2" size={20} />
+			<h2 class="text-xl font-bold text-slate-900">Asset Library (R2)</h2>
+		</div>
+
+		<div class="max-w-3xl">
+			<p class="text-slate-500 text-sm mb-6">Upload public images, PDFs, and other assets directly to your Cloudflare R2 bucket.</p>
+			<FileUpload 
+				accept="*/*"
+				maxSizeMb={50}
+				label="Upload to Asset Library"
+				description="Any file up to 50MB"
+				onUploadSuccess={(url) => {
+					// The toast notification will handle the success message
+					console.log("Uploaded to:", url);
+				}}
+			/>
+		</div>
 	</section>
 </div>

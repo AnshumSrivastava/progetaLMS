@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { APP_NAME } from '$lib/shared/constants';
 	import { Users, BookOpen, GraduationCap, TrendingUp, Plus, MoreHorizontal } from 'lucide-svelte';
 
 	let { data } = $props();
@@ -20,7 +21,7 @@
 </script>
 
 <svelte:head>
-	<title>Overview — Instructor Portal</title>
+	<title>Overview — {APP_NAME} Instructor</title>
 </svelte:head>
 
 <div class="page-content">
