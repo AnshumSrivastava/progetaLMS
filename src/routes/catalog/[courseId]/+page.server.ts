@@ -45,9 +45,22 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		alreadyOwned = ownership.length > 0;
 	}
 
+	// Load public cohorts
+	const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
+	const availableCohorts = await db
+		.select()
+		.from(cohorts)
+		.where(
+			and(
+				eq(cohorts.courseId, courseId),
+				eq(cohorts.isActive, true)
+			)
+		);
+
 	return {
 		asset: record.asset,
 		instructorName: record.instructor?.name || 'Instructor',
-		alreadyOwned
+		alreadyOwned,
+		cohorts: availableCohorts
 	};
 };

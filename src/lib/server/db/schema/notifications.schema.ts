@@ -26,5 +26,15 @@ export const notifications = pgTable('notifications', {
 	index('notifications_read_idx').on(t.userId, t.isRead)
 ]);
 
+export const emailTemplates = pgTable('email_templates', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	subject: text('subject').notNull(),
+	body: text('body').notNull(),
+	instructorId: text('instructor_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;

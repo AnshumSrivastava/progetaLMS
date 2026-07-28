@@ -35,6 +35,10 @@
 				<Download size={18} /> <span>My Resources</span>
 			</button>
 
+			<button class="nav-item" class:active={activeTab === 'events'} onclick={() => activeTab = 'events'}>
+				<Calendar size={18} /> <span>Events</span>
+			</button>
+
 			<button class="nav-item" class:active={activeTab === 'certs'} onclick={() => activeTab = 'certs'}>
 				<FileBadge2 size={18} /> <span>My Certifications</span>
 			</button>
@@ -143,6 +147,20 @@
 				</div>
 				
 				<div class="generic-grid">
+					{#each data.issuedCertificates as cert}
+						<div class="item-card">
+							<div class="icon-wrap" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+								<FileBadge2 size={24} />
+							</div>
+							<div class="item-info">
+								<h4>{cert.metadata.testName || 'Certificate'}</h4>
+								<p>Score: <strong>{cert.metadata.score || 'Pass'}</strong> 
+								</p>
+							</div>
+							<a href={`/certificates/${cert.id}.pdf`} target="_blank" class="action-btn outline" style="text-decoration:none;">Download PDF</a>
+						</div>
+					{/each}
+
 					{#each data.ownedCerts as item}
 						<div class="item-card">
 							<div class="icon-wrap">
@@ -161,6 +179,40 @@
 						<div class="browse-icon"><Plus size={20} /></div>
 						<h4>Browse Certifications</h4>
 					</a>
+				</div>
+
+			{:else if activeTab === 'events'}
+				<!-- EVENTS TAB -->
+				<div class="section-header">
+					<h3>Upcoming Events</h3>
+				</div>
+				
+				<div class="generic-grid">
+					{#each data.upcomingEvents as ev}
+						<div class="item-card">
+							<div class="icon-wrap" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+								<Calendar size={24} />
+							</div>
+							<div class="item-info">
+								<h4>{ev.title}</h4>
+								<p>{new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+							</div>
+							{#if data.registeredEventIds.includes(ev.id)}
+								<a href={ev.link || '#'} target="_blank" class="action-btn outline" style="text-decoration:none;">Join Event</a>
+							{:else}
+								<form method="POST" action="?/registerEvent">
+									<input type="hidden" name="eventId" value={ev.id} />
+									<button type="submit" class="action-btn">Register</button>
+								</form>
+							{/if}
+						</div>
+					{:else}
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-subtle);">
+							<Calendar size={48} style="opacity: 0.5;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No upcoming events</h3>
+							<p>Check back later for webinars and live Q&A sessions.</p>
+						</div>
+					{/each}
 				</div>
 			{/if}
 		</div>

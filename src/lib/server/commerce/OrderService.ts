@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { commerceOrders, commerceCoupons, commerceCouponUses } from '$lib/server/db/schema/commerce.schema';
+import { cohorts, cohortMemberships } from '$lib/server/db/schema/cohorts.schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV } from '$env/static/private';
@@ -15,7 +16,7 @@ export class OrderService {
 	/**
 	 * Creates a pending order in the database and generates a Cashfree payment session.
 	 */
-	static async createOrder(assetId: string, userId: string, customerDetails: { name: string, email: string, phone: string }, couponCode?: string) {
+	static async createOrder(assetId: string, userId: string, customerDetails: { name: string, email: string, phone: string }, couponCode?: string, cohortId?: string) {
 		// 1. Fetch the asset
 		const [asset] = await db.select().from(assets).where(eq(assets.id, assetId));
 		if (!asset) throw new Error('Asset not found');
@@ -52,10 +53,14 @@ export class OrderService {
 				discountPaise,
 				couponId: appliedCouponId,
 				status: 'paid',
-				paidAt: new Date()
+				paidAt: new Date(),
+				metadata: cohortId ? { cohortId } : {}
 			});
 			
 			await this.grantAccess(orderId, assetId, userId, couponCode ? 'coupon' : 'free');
+			if (cohortId) {
+				await this.grantCohortAccess(cohortId, userId);
+			}
 			
 			return { 
 				isFree: true, 
@@ -123,11 +128,15 @@ export class OrderService {
 			discountPaise,
 			couponId: appliedCouponId,
 			status: isMockMode ? 'paid' : 'pending',
-			paidAt: isMockMode ? new Date() : null
+			paidAt: isMockMode ? new Date() : null,
+			metadata: cohortId ? { cohortId } : {}
 		});
 
 		if (isMockMode) {
 			await this.grantAccess(internalOrderId, assetId, userId, 'purchase');
+			if (cohortId) {
+				await this.grantCohortAccess(cohortId, userId);
+			}
 			if (appliedCouponId) {
 				await db.insert(commerceCouponUses).values({
 					id: randomUUID(),
@@ -181,6 +190,11 @@ export class OrderService {
 		// 3. Grant Access to Asset
 		await this.grantAccess(order.id, order.assetId, order.userId, 'purchase');
 		
+		const metadata = order.metadata as { cohortId?: string };
+		if (metadata?.cohortId) {
+			await this.grantCohortAccess(metadata.cohortId, order.userId);
+		}
+		
 		console.log(`[OrderService] Successfully processed payment and unlocked asset for order ${cashfreeOrderId}`);
 	}
 
@@ -196,6 +210,20 @@ export class OrderService {
 				ownerId: userId,
 				source,
 				orderId
+			});
+		}
+	}
+
+	private static async grantCohortAccess(cohortId: string, userId: string) {
+		const [existing] = await db.select().from(cohortMemberships)
+			.where(and(eq(cohortMemberships.cohortId, cohortId), eq(cohortMemberships.userId, userId)));
+		
+		if (!existing) {
+			await db.insert(cohortMemberships).values({
+				id: randomUUID(),
+				cohortId,
+				userId,
+				role: 'student'
 			});
 		}
 	}

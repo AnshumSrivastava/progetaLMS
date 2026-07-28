@@ -28,11 +28,15 @@
 		}
 	];
 
+	let selectedCohortId = $state(data.cohorts && data.cohorts.length > 0 ? data.cohorts[0].id : '');
+
 	function enroll() {
 		if (data.alreadyOwned) {
 			goto(`/learn/${data.asset.id}`);
 		} else {
-			goto(`/checkout/${data.asset.id}`);
+			if (selectedCohortId) {
+				goto(`/checkout/${selectedCohortId}`);
+			}
 		}
 	}
 </script>
@@ -73,9 +77,34 @@
 				<div class="card-img" style="background-image: url({data.asset.thumbnail || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80'})"></div>
 				<div class="card-body">
 					<div class="price-val">{data.asset.pricePaise === 0 ? 'Free' : `₹${(data.asset.pricePaise / 100).toFixed(2)}`}</div>
-					<button class="enroll-btn" onclick={enroll}>
-						{data.alreadyOwned ? 'Go to Course' : 'Enroll Now'}
-					</button>
+					
+					{#if data.alreadyOwned}
+						<button class="enroll-btn" onclick={enroll}>
+							Go to Course
+						</button>
+					{:else}
+						{#if data.cohorts && data.cohorts.length > 0}
+							<div class="mt-4 mb-4">
+								<label for="cohort-select" class="block text-sm font-medium text-gray-700 mb-1">Select Batch:</label>
+								<select id="cohort-select" class="form-input w-full" bind:value={selectedCohortId}>
+									{#each data.cohorts as cohort}
+										<option value={cohort.id}>{cohort.name}</option>
+									{/each}
+								</select>
+							</div>
+							<button class="enroll-btn" onclick={enroll}>
+								Enroll Now
+							</button>
+						{:else}
+							<div class="p-3 bg-yellow-50 text-yellow-800 text-sm rounded-md mb-4 border border-yellow-200">
+								No active public batches available for this course. Please contact the instructor.
+							</div>
+							<button class="enroll-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
+								Enroll Now
+							</button>
+						{/if}
+					{/if}
+
 					<p class="guarantee">30-Day Money-Back Guarantee</p>
 					
 					<ul class="includes-list">

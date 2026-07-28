@@ -1,5 +1,7 @@
 <script lang="ts">
 	export let questions: { id: string; question: string; options: string[]; answer?: string }[] = [];
+	export let testId: string = '';
+	export let onsubmit: ((answers: Record<string, string>) => void) | undefined = undefined;
 
 	let currentQuestionIndex = 0;
 	let answers: Record<string, string> = {};
@@ -32,6 +34,9 @@
 	function submitQuiz() {
 		if (answeredCount >= questions.length) {
 			isSubmitted = true;
+			if (onsubmit) {
+				onsubmit(answers);
+			}
 		}
 	}
 

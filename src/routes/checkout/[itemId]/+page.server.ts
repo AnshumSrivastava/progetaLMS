@@ -13,9 +13,23 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw redirect(302, '/sign-in');
 	}
 
-	// Wait, the params might be UUID or slug. For now we use slug/id.
 	const itemId = params.itemId;
-	const [asset] = await db.select().from(assets).where(eq(assets.id, itemId));
+	let asset: any = null;
+	let cohort: any = null;
+
+	// First try to find a cohort
+	const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
+	const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
+	
+	if (foundCohort) {
+		cohort = foundCohort;
+		const [foundAsset] = await db.select().from(assets).where(eq(assets.id, cohort.courseId));
+		asset = foundAsset;
+	} else {
+		// Fallback to searching for the asset directly
+		const [foundAsset] = await db.select().from(assets).where(eq(assets.id, itemId));
+		asset = foundAsset;
+	}
 
 	if (!asset) {
 		// Mock asset if not found (so UI doesn't crash while testing)
@@ -26,6 +40,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 				type: 'Certification Exam',
 				pricePaise: 15000 // $150.00
 			},
+			cohort,
 			alreadyOwned: false,
 			cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
 		};
@@ -37,6 +52,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	return {
 		asset,
+		cohort,
 		alreadyOwned: !!ownership,
 		cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
 	};
@@ -71,9 +87,19 @@ export const actions: Actions = {
 		const email = data.get('email') as string;
 		
 		const itemId = params.itemId;
+		
+		let assetId = itemId;
+		let cohortId: string | undefined = undefined;
+
+		const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
+		const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
+		if (foundCohort) {
+			cohortId = foundCohort.id;
+			assetId = foundCohort.courseId;
+		}
 
 		try {
-			const result = await OrderService.createOrder(itemId, user.id, { name, email, phone: '9999999999' }, couponCode);
+			const result = await OrderService.createOrder(assetId, user.id, { name, email, phone: '9999999999' }, couponCode, cohortId);
 			return { success: true, paymentSessionId: result.paymentSessionId, isFree: result.isFree, isMockMode: result.isMockMode };
 		} catch (e: any) {
 			return fail(500, { checkoutError: e.message });

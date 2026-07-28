@@ -16,6 +16,27 @@
 	});
 
 	onDestroy(() => layoutMode.set('default'));
+
+	async function handleQuizSubmit(answers: Record<string, string>) {
+		try {
+			// Submits the test for automated evaluation and certificate generation
+			const res = await fetch('/api/assessments/submit', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					testId: data.lesson.id,
+					answers
+				})
+			});
+			const result = await res.json();
+			if (result.success && result.certificateId) {
+				// We can optionally show a toast or redirect, but QuizEngine shows "Assessment Submitted" UI.
+				// The email with cert link is sent asynchronously.
+			}
+		} catch (e) {
+			console.error('Failed to submit quiz', e);
+		}
+	}
 </script>
 
 {#if data.contentType === 'slides'}
@@ -27,7 +48,7 @@
 {:else if data.contentType === 'test'}
 	<!-- ── EXAM / ASSESSMENT ────────────────────────────────────── -->
 	<div class="exam-wrap">
-		<QuizEngine questions={data.parsedContent} />
+		<QuizEngine questions={data.parsedContent} testId={data.lesson.id} onsubmit={handleQuizSubmit} />
 	</div>
 
 {:else if data.contentType === 'video'}
