@@ -14,6 +14,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		throw redirect(302, '/sign-in');
 	}
+	
+	if (locals.user.role === 'admin' || locals.user.role === 'owner') {
+		throw redirect(302, '/dashboard/settings');
+	}
 
 	const owned = await db
 		.select({
