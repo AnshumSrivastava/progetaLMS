@@ -68,7 +68,7 @@ export const actions: Actions = {
 	updatePrice: async ({ request, locals }) => {
 		const user = locals.user;
 		if (!user) throw redirect(302, '/sign-in');
-		if (user.role !== 'instructor' && user.role !== 'admin') {
+		if (user.role !== 'teacher' && user.role !== 'admin') {
 			throw redirect(302, '/dashboard');
 		}
 

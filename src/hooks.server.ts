@@ -102,7 +102,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Route Protection
-	const INSTRUCTOR_ROLES = ['instructor', 'admin', 'owner'];
+	const INSTRUCTOR_ROLES = ['teacher', 'admin', 'owner'];
 	const ADMIN_ROLES = ['admin', 'owner'];
 	
 	if (path.startsWith('/dashboard/admin')) {
