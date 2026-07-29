@@ -11,6 +11,7 @@
 	let showPriceModal = $state(false);
 	let selectedCourseId = $state('');
 	let selectedCoursePrice = $state(0);
+	let selectedCourseCurrency = $state('INR');
 	let isSubmitting = $state(false);
 </script>
 
@@ -64,9 +65,17 @@
 				};
 			}}>
 				<h3>Edit Course Price</h3>
-				<p>Set the price for this course in Rupee/Dollars (internally stored as paise/cents). Minimum is 0.</p>
+				<p>Set the price for this course. Minimum is 0.</p>
 				<input type="hidden" name="courseId" value={selectedCourseId} />
-				<input type="number" name="price" class="modal-input" placeholder="e.g. 1" min="0" step="1" required bind:value={selectedCoursePrice} />
+				<div style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
+					<select name="currency" class="modal-input" style="width: 100px; margin-bottom: 0;" bind:value={selectedCourseCurrency}>
+						<option value="INR">INR</option>
+						<option value="USD">USD</option>
+						<option value="EUR">EUR</option>
+						<option value="GBP">GBP</option>
+					</select>
+					<input type="number" name="price" class="modal-input" style="flex: 1; margin-bottom: 0;" placeholder="e.g. 1500" min="0" step="0.01" required bind:value={selectedCoursePrice} />
+				</div>
 				<div class="modal-actions">
 					<button type="button" class="action-btn" onclick={() => showPriceModal = false}>Cancel</button>
 					<button type="submit" class="create-btn" disabled={isSubmitting}>
@@ -121,17 +130,19 @@
 						<td>{course.students}</td>
 						<td>{course.rating > 0 ? `★ ${course.rating}` : '-'}</td>
 						<td class="col-actions">
-							<button class="action-btn" title="Edit Content"><Edit size={16} /></button>
+							<a href={`/dashboard/instructor/courses/${course.id}/curriculum`} class="action-btn" title="Edit Content" style="display: inline-flex; align-items: center; justify-content: center;"><Edit size={16} /></a>
 							<button class="action-btn" title="Edit Price" onclick={() => {
 								selectedCourseId = course.id;
-								// Extract numeric value from string like "₹1.00" or "$150.00"
-								const rawVal = course.price.replace(/[^0-9.-]+/g, "");
-								selectedCoursePrice = parseFloat(rawVal) || 0;
+								selectedCourseCurrency = course.rawCurrency;
+								selectedCoursePrice = course.rawPrice;
 								showPriceModal = true;
 							}}><Tag size={16} /></button>
-							<button class="action-btn" title={course.status === 'Published' ? 'Unpublish' : 'Publish'}>
-								<Power size={16} />
-							</button>
+							<form method="POST" action="?/togglePublish" use:enhance style="display: inline;">
+								<input type="hidden" name="courseId" value={course.id} />
+								<button class="action-btn" title={course.status === 'Published' ? 'Unpublish' : 'Publish'}>
+									<Power size={16} />
+								</button>
+							</form>
 							<button class="action-btn" title="More Options"><MoreHorizontal size={16} /></button>
 						</td>
 					</tr>

@@ -41,6 +41,7 @@ export const assets = pgTable('assets', {
 	status:      text('status', { enum: ['draft', 'published', 'archived'] }).notNull().default('draft'),
 	visibility:  text('visibility', { enum: ['public', 'private', 'unlisted'] }).notNull().default('private'),
 	ownerId:     text('owner_id').notNull().references(() => users.id),
+	currency:    text('currency').notNull().default('INR'),
 	pricePaise:  integer('price_paise').notNull().default(0),
 	metadata:    jsonb('metadata').notNull().default({}),
 	sortOrder:   integer('sort_order').notNull().default(0),

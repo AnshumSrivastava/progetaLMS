@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Award, Plus, FileText, LayoutList } from 'lucide-svelte';
+	import { Award, Plus, FileText, LayoutList, Tag, Power } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -8,6 +8,10 @@
 	let { data } = $props<{ data: PageData }>();
 
 	let showCreateModal = $state(false);
+	let showPriceModal = $state(false);
+	let selectedCertId = $state('');
+	let selectedCertPrice = $state(0);
+	let selectedCertCurrency = $state('INR');
 	let isSubmitting = $state(false);
 </script>
 
@@ -50,6 +54,38 @@
 		</div>
 	{/if}
 
+	{#if showPriceModal}
+		<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showPriceModal = false; }}>
+			<form class="modal-content" method="POST" action="?/updatePrice" use:enhance={() => {
+				isSubmitting = true;
+				return async ({ update }) => {
+					await update();
+					isSubmitting = false;
+					showPriceModal = false;
+				};
+			}}>
+				<h3>Edit Certification Price</h3>
+				<p>Set the price for this certification. Minimum is 0.</p>
+				<input type="hidden" name="certId" value={selectedCertId} />
+				<div style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
+					<select name="currency" class="modal-input" style="width: 100px; margin-bottom: 0;" bind:value={selectedCertCurrency}>
+						<option value="INR">INR</option>
+						<option value="USD">USD</option>
+						<option value="EUR">EUR</option>
+						<option value="GBP">GBP</option>
+					</select>
+					<input type="number" name="price" class="modal-input" style="flex: 1; margin-bottom: 0;" placeholder="e.g. 1500" min="0" step="0.01" required bind:value={selectedCertPrice} />
+				</div>
+				<div class="modal-actions">
+					<button type="button" class="action-btn" onclick={() => showPriceModal = false}>Cancel</button>
+					<button type="submit" class="create-btn" disabled={isSubmitting}>
+						{isSubmitting ? 'Updating...' : 'Update Price'}
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
 	<div class="table-container">
 		<table class="data-table">
 			<thead>
@@ -72,13 +108,27 @@
 								{cert.status}
 							</span>
 						</td>
-						<td>{cert.pricePaise === 0 ? 'Free' : `$${(cert.pricePaise / 100).toFixed(2)}`}</td>
+						<td>{cert.price}</td>
 						<td>{cert.passingPercent}%</td>
 						<td>
 							<div class="action-buttons">
 								<a href="/dashboard/instructor/certifications/{cert.id}/questions" class="icon-btn" title="Manage Questions">
-									<LayoutList size={16} /> Edit Questions
+									<LayoutList size={16} /> Edit
 								</a>
+								<button class="icon-btn" title="Edit Price" onclick={() => {
+									selectedCertId = cert.id;
+									selectedCertCurrency = cert.rawCurrency;
+									selectedCertPrice = cert.rawPrice;
+									showPriceModal = true;
+								}}>
+									<Tag size={16} /> Price
+								</button>
+								<form method="POST" action="?/togglePublish" use:enhance style="display: inline;">
+									<input type="hidden" name="certId" value={cert.id} />
+									<button class="icon-btn" title={cert.status === 'Published' ? 'Unpublish' : 'Publish'}>
+										<Power size={16} /> {cert.status === 'Published' ? 'Unpublish' : 'Publish'}
+									</button>
+								</form>
 							</div>
 						</td>
 					</tr>

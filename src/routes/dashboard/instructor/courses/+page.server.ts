@@ -10,7 +10,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		id: assets.id,
 		title: assets.title,
 		status: assets.status,
-		pricePaise: assets.pricePaise
+		pricePaise: assets.pricePaise,
+		currency: assets.currency
 	})
 	.from(assets)
 	.where(and(eq(assets.type, 'html'), eq(assets.ownerId, locals.user!.id)));
@@ -18,14 +19,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Calculate student count (dummy approximation: count cohorts and multiply or fetch real)
 	// In a real system, course students = sum of students in all cohorts of this course
 	
-	const courses = allAssets.map(a => ({
-		id: a.id,
-		title: a.title,
-		status: a.status === 'published' ? 'Published' : (a.status === 'draft' ? 'Draft' : 'Unpublished'),
-		students: 0, // Mock for now, requires complex join or subquery
-		price: a.pricePaise === 0 ? 'Free' : `$${(a.pricePaise / 100).toFixed(2)}`,
-		rating: 0
-	}));
+	const courses = allAssets.map(a => {
+		let formattedPrice = 'Free';
+		if (a.pricePaise > 0) {
+			const val = (a.pricePaise / 100).toFixed(2);
+			formattedPrice = a.currency === 'USD' ? `$${val}` : `${a.currency} ${val}`;
+		}
+		
+		return {
+			id: a.id,
+			title: a.title,
+			status: a.status === 'published' ? 'Published' : (a.status === 'draft' ? 'Draft' : 'Unpublished'),
+			students: 0, // Mock for now, requires complex join or subquery
+			price: formattedPrice,
+			rawCurrency: a.currency,
+			rawPrice: a.pricePaise / 100,
+			rating: 0
+		};
+	});
 
 	return {
 		courses
@@ -75,6 +86,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const courseId = data.get('courseId') as string;
 		const price = parseFloat(data.get('price') as string) || 0;
+		const currency = data.get('currency')?.toString() || 'INR';
 
 		const pricePaise = Math.floor(price * 100);
 
@@ -85,12 +97,33 @@ export const actions: Actions = {
 			if (!course) return fail(403, { error: 'Unauthorized' });
 
 			await db.update(assets)
-				.set({ pricePaise })
+				.set({ pricePaise, currency })
 				.where(eq(assets.id, courseId));
 			
 			return { success: true };
 		} catch (e) {
 			return fail(500, { error: 'Failed to update price' });
+		}
+	},
+	
+	togglePublish: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const courseId = data.get('courseId') as string;
+		
+		try {
+			const [course] = await db.select().from(assets)
+				.where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+			if (!course) return fail(403, { error: 'Unauthorized' });
+
+			const newStatus = course.status === 'published' ? 'draft' : 'published';
+			await db.update(assets).set({ status: newStatus }).where(eq(assets.id, courseId));
+			
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to toggle status' });
 		}
 	}
 };

@@ -60,6 +60,28 @@ const joinTemplate = Handlebars.compile(`
 </div>
 `);
 
+const welcomeTemplate = Handlebars.compile(`
+<div style="font-family:system-ui,sans-serif;padding:32px">
+	<h2>Welcome to ${APP_NAME}!</h2>
+	<p>Hi {{studentName}},</p>
+	<p>We are excited to have you on board. Start exploring courses and certifications today.</p>
+	<a href="{{loginUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+		Log In
+	</a>
+</div>
+`);
+
+const enrollmentTemplate = Handlebars.compile(`
+<div style="font-family:system-ui,sans-serif;padding:32px">
+	<h2>Enrollment Confirmed</h2>
+	<p>Hi {{studentName}},</p>
+	<p>You have successfully enrolled in <strong>{{courseName}}</strong>.</p>
+	<a href="{{courseUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+		Start Learning
+	</a>
+</div>
+`);
+
 export function registerEventHandlers() {
 	eventBus.on('RESOURCE_MAIL_SENT', async (payload: any, meta) => {
 		const html = resourceTemplate(payload);
@@ -171,6 +193,38 @@ export function registerEventHandlers() {
 			bcc: emails,
 			subject: payload.subject,
 			html: `<div style="font-family:system-ui,sans-serif;padding:32px">${payload.body.replace(/\\n/g, '<br>')}</div>`
+		});
+	});
+
+	eventBus.on('USER_CREATED', async (payload: any, meta) => {
+		const html = welcomeTemplate(payload);
+		
+		if (!RESEND_API_KEY || RESEND_API_KEY.startsWith('re_123456')) {
+			console.log('[LOCAL RESEND] Welcome Mail to:', payload.studentEmail);
+			return;
+		}
+
+		await resend.emails.send({
+			from: RESEND_FROM_ADDRESS,
+			to: payload.studentEmail,
+			subject: `Welcome to ${APP_NAME}!`,
+			html
+		});
+	});
+
+	eventBus.on('COURSE_ENROLLED', async (payload: any, meta) => {
+		const html = enrollmentTemplate(payload);
+		
+		if (!RESEND_API_KEY || RESEND_API_KEY.startsWith('re_123456')) {
+			console.log('[LOCAL RESEND] Enrollment Mail to:', payload.studentEmail);
+			return;
+		}
+
+		await resend.emails.send({
+			from: RESEND_FROM_ADDRESS,
+			to: payload.studentEmail,
+			subject: `You are enrolled in ${payload.courseName}`,
+			html
 		});
 	});
 }

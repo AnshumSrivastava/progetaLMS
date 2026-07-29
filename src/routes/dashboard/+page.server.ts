@@ -8,7 +8,11 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
+import { certificates } from '$lib/server/db/schema/certificates.schema';
+import { events, eventAttendees } from '$lib/server/db/schema/platform.schema';
+import { cohorts, cohortMemberships, cohortSuggestedAssets } from '$lib/server/db/schema/cohorts.schema';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -49,18 +53,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const ownedCerts = owned.filter(a => a.type === 'cert_test');
 
 	// Also load issued certificates
-	const { certificates } = await import('$lib/server/db/schema/certificates.schema');
 	const issuedCertificates = await db.select().from(certificates).where(eq(certificates.userId, locals.user.id));
 
 	// Load upcoming events
-	const { events } = await import('$lib/server/db/schema/platform.schema');
-	const { eventAttendees } = await import('$lib/server/db/schema/platform.schema');
 	const upcomingEvents = await db.select().from(events);
 	const myAttendees = await db.select().from(eventAttendees).where(eq(eventAttendees.userId, locals.user.id));
 	const registeredEventIds = new Set(myAttendees.map(a => a.eventId));
 
 	// Load student cohorts (Classes)
-	const { cohorts, cohortMemberships, cohortSuggestedAssets } = await import('$lib/server/db/schema/cohorts.schema');
 	
 	const myCohortMemberships = await db.select({
 		cohortId: cohortMemberships.cohortId,
@@ -113,10 +113,6 @@ export const actions = {
 		const eventId = data.get('eventId') as string;
 		if (!eventId) return { success: false, error: 'Event ID required' };
 		
-		const { eventAttendees } = await import('$lib/server/db/schema/platform.schema');
-		const { randomUUID } = await import('node:crypto');
-		const { db } = await import('$lib/server/db/client');
-		const { eq, and } = await import('drizzle-orm');
 		
 		const [existing] = await db.select().from(eventAttendees)
 			.where(and(eq(eventAttendees.eventId, eventId), eq(eventAttendees.userId, locals.user.id)));

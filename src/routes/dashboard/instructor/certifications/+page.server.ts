@@ -15,6 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		title: assets.title,
 		status: assets.status,
 		pricePaise: assets.pricePaise,
+		currency: assets.currency,
 		testId: assessmentTests.id,
 		passingPercent: assessmentTests.passingPercent,
 		createdAt: assessmentTests.createdAt
@@ -23,8 +24,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 	.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
 	.where(and(eq(assets.type, 'cert_test'), eq(assets.ownerId, instructorId)));
 
+	const certifications = certAssets.map(c => {
+		let formattedPrice = 'Free';
+		if (c.pricePaise > 0) {
+			const val = (c.pricePaise / 100).toFixed(2);
+			formattedPrice = c.currency === 'USD' ? `$${val}` : `${c.currency} ${val}`;
+		}
+		return {
+			...c,
+			price: formattedPrice,
+			rawCurrency: c.currency,
+			rawPrice: c.pricePaise / 100
+		};
+	});
+
 	return {
-		certifications: certAssets
+		certifications
 	};
 };
 
@@ -71,6 +86,47 @@ export const actions: Actions = {
 		} catch (e) {
 			console.error(e);
 			return fail(500, { error: 'Failed to create certification' });
+		}
+	},
+	updatePrice: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+		const price = parseFloat(data.get('price') as string) || 0;
+		const currency = data.get('currency')?.toString() || 'INR';
+		const pricePaise = Math.floor(price * 100);
+
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, user.id)));
+			if (!cert) return fail(403, { error: 'Unauthorized' });
+
+			await db.update(assets).set({ pricePaise, currency }).where(eq(assets.id, certId));
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update price' });
+		}
+	},
+	togglePublish: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+		
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, user.id)));
+			if (!cert) return fail(403, { error: 'Unauthorized' });
+
+			const newStatus = cert.status === 'published' ? 'draft' : 'published';
+			await db.update(assets).set({ status: newStatus }).where(eq(assets.id, certId));
+			
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to toggle status' });
 		}
 	}
 };
