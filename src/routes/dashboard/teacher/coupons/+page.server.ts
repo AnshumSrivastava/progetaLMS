@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db/client';
 import { commerceCoupons } from '$lib/server/db/schema/commerce.schema';
-import { cohorts } from '$lib/server/db/schema/cohorts.schema';
+import { assets } from '$lib/server/db/schema/assets.schema';
 import { eq, and } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
@@ -15,11 +15,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 			value: commerceCoupons.value,
 			uses: commerceCoupons.usesCount,
 			limit: commerceCoupons.maxUses,
-			cohortName: cohorts.name,
+			assetTitle: assets.title,
 			isActive: commerceCoupons.isActive
 		})
 		.from(commerceCoupons)
-		.leftJoin(cohorts, eq(commerceCoupons.cohortId, cohorts.id))
+		.leftJoin(assets, eq(commerceCoupons.assetId, assets.id))
 		.where(eq(commerceCoupons.createdBy, locals.user!.id));
 
 	const mappedCoupons = allCoupons.map(c => {
@@ -35,22 +35,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 			id: c.id,
 			code: c.code,
 			discount,
-			course: c.cohortName || 'All Classes',
+			course: c.assetTitle || 'All Resources',
 			uses: c.uses,
 			limit: c.limit,
 			status
 		};
 	});
 
-	// Get available classes for the select dropdown
-	const availableClasses = await db.select({
-		id: cohorts.id,
-		name: cohorts.name
-	}).from(cohorts).where(eq(cohorts.instructorId, locals.user!.id));
+	// Get available resources for the select dropdown
+	const availableResources = await db.select({
+		id: assets.id,
+		name: assets.title
+	}).from(assets).where(eq(assets.ownerId, locals.user!.id));
 
 	return {
 		coupons: mappedCoupons,
-		availableClasses
+		availableResources
 	};
 };
 
@@ -60,7 +60,7 @@ export const actions: Actions = {
 		const code = data.get('code')?.toString().toUpperCase();
 		const type = data.get('type')?.toString() as 'percent' | 'flat';
 		const valueStr = data.get('value')?.toString();
-		const cohortIdStr = data.get('cohortId')?.toString();
+		const assetIdStr = data.get('assetId')?.toString();
 		const limitStr = data.get('limit')?.toString();
 
 		if (!code || !type || !valueStr) {
@@ -72,7 +72,7 @@ export const actions: Actions = {
 			value = value * 100; // convert dollars to paise
 		}
 
-		const cohortId = cohortIdStr === 'all' ? null : cohortIdStr;
+		const assetId = assetIdStr === 'all' ? null : assetIdStr;
 		const maxUses = limitStr ? parseInt(limitStr, 10) : null;
 		
 		const createdBy = locals.user!.id;
@@ -83,7 +83,7 @@ export const actions: Actions = {
 				code,
 				type,
 				value,
-				cohortId,
+				assetId,
 				maxUses,
 				createdBy
 			});

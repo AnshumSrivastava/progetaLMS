@@ -9,9 +9,11 @@
 
 	let showCreateModal = $state(false);
 	let showPriceModal = $state(false);
+	let showEmailModal = $state(false);
 	let selectedCertId = $state('');
 	let selectedCertPrice = $state(0);
 	let selectedCertCurrency = $state('INR');
+	let selectedCertEmailTemplate = $state('');
 	let isSubmitting = $state(false);
 </script>
 
@@ -86,6 +88,30 @@
 		</div>
 	{/if}
 
+	{#if showEmailModal}
+		<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showEmailModal = false; }}>
+			<form class="modal-content" method="POST" action="?/updateEmailTemplate" style="max-width: 600px;" use:enhance={() => {
+				isSubmitting = true;
+				return async ({ update }) => {
+					await update();
+					isSubmitting = false;
+					showEmailModal = false;
+				};
+			}}>
+				<h3>Automated Completion Email</h3>
+				<p>Customize the email sent when a student passes. <br>Variables: <code>&#123;&#123;studentName&#125;&#125;</code>, <code>&#123;&#123;testName&#125;&#125;</code>. <br>The PDF certificate will be attached automatically.</p>
+				<input type="hidden" name="certId" value={selectedCertId} />
+				<textarea name="certEmailTemplate" class="modal-input" style="min-height: 200px; resize: vertical;" placeholder="<h2>Congratulations, &#123;&#123;studentName&#125;&#125;!</h2>&#10;<p>You passed &#123;&#123;testName&#125;&#125;.</p>" bind:value={selectedCertEmailTemplate}></textarea>
+				<div class="modal-actions">
+					<button type="button" class="action-btn" onclick={() => showEmailModal = false}>Cancel</button>
+					<button type="submit" class="create-btn" disabled={isSubmitting}>
+						{isSubmitting ? 'Saving...' : 'Save Email'}
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
 	<div class="table-container">
 		<table class="data-table">
 			<thead>
@@ -122,6 +148,13 @@
 									showPriceModal = true;
 								}}>
 									<Tag size={16} /> Price
+								</button>
+								<button class="icon-btn" title="Edit Email" onclick={() => {
+									selectedCertId = cert.id;
+									selectedCertEmailTemplate = cert.certEmailTemplate;
+									showEmailModal = true;
+								}}>
+									<FileText size={16} /> Email
 								</button>
 								<form method="POST" action="?/togglePublish" use:enhance style="display: inline;">
 									<input type="hidden" name="certId" value={cert.id} />

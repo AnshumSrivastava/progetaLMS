@@ -7,7 +7,13 @@
 	let { data } = $props();
 
 	// Student Dashboard state
-	let activeTab = $state('courses');
+	let activeTab = $state(
+		data.ownedCourses.length > 0 ? 'courses' : 
+		data.ownedCerts.length > 0 ? 'certs' : 
+		data.cohorts && data.cohorts.length > 0 ? 'classes' : 
+		data.ownedResources.length > 0 ? 'resources' : 
+		'courses'
+	);
 </script>
 
 <svelte:head>

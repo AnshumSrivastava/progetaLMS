@@ -29,6 +29,9 @@ export class OrderService {
 		if (couponCode) {
 			const [coupon] = await db.select().from(commerceCoupons).where(eq(commerceCoupons.code, couponCode.toUpperCase()));
 			if (coupon && coupon.isActive) {
+				if (coupon.assetId && coupon.assetId !== assetId) {
+					throw new Error('Coupon not valid for this item');
+				}
 				if (coupon.type === 'percent') {
 					discountPaise = Math.floor((amountPaise * coupon.value) / 100);
 				} else {

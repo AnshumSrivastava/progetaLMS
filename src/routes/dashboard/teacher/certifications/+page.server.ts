@@ -18,7 +18,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		currency: assets.currency,
 		testId: assessmentTests.id,
 		passingPercent: assessmentTests.passingPercent,
-		createdAt: assessmentTests.createdAt
+		createdAt: assessmentTests.createdAt,
+		metadata: assets.metadata
 	})
 	.from(assets)
 	.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
@@ -34,7 +35,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			...c,
 			price: formattedPrice,
 			rawCurrency: c.currency,
-			rawPrice: c.pricePaise / 100
+			rawPrice: c.pricePaise / 100,
+			certEmailTemplate: (c.metadata as any)?.certEmailTemplate || ''
 		};
 	});
 
@@ -127,6 +129,30 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (e) {
 			return fail(500, { error: 'Failed to toggle status' });
+		}
+	},
+	updateEmailTemplate: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+		const certEmailTemplate = data.get('certEmailTemplate') as string;
+
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, user.id)));
+			if (!cert) return fail(403, { error: 'Unauthorized' });
+
+			const newMetadata = {
+				...((cert.metadata as any) || {}),
+				certEmailTemplate
+			};
+
+			await db.update(assets).set({ metadata: newMetadata }).where(eq(assets.id, certId));
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update email template' });
 		}
 	}
 };

@@ -129,7 +129,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					studentName: user.name || 'Student',
 					studentEmail: user.email,
 					className: asset?.title || test.title,
-					certUrl: `${new URL(request.url).origin}/certificates/${certificateId}`
+					certUrl: `${new URL(request.url).origin}/certificates/${certificateId}`,
+					customTemplate: (asset?.metadata as any)?.certEmailTemplate || null
 				}
 			});
 		}

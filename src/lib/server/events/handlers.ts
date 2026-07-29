@@ -117,7 +117,21 @@ export function registerEventHandlers() {
 	});
 
 	eventBus.on('CERTIFICATE_ISSUED', async (payload: any, meta) => {
-		const html = certTemplate(payload);
+		let html = '';
+		if (payload.customTemplate) {
+			const customCompiled = Handlebars.compile(`
+<div style="font-family:system-ui,sans-serif;padding:32px">
+	${payload.customTemplate.replace(/\n/g, '<br>')}
+	<br><br>
+	<a href="{{certUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+		View Certificate
+	</a>
+</div>
+`);
+			html = customCompiled(payload);
+		} else {
+			html = certTemplate(payload);
+		}
 		
 		const certIdMatch = payload.certUrl.match(/certificates\/([a-z0-9]+)/i);
 		const certId = certIdMatch ? certIdMatch[1].toUpperCase() : 'UNKNOWN';

@@ -69,6 +69,19 @@ export const actions: Actions = {
 			return fail(400, { couponError: 'Invalid or expired coupon' });
 		}
 
+		const itemId = params.itemId;
+		let assetId = itemId;
+
+		const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
+		const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
+		if (foundCohort) {
+			assetId = foundCohort.courseId;
+		}
+
+		if (coupon.assetId && coupon.assetId !== assetId) {
+			return fail(400, { couponError: 'Coupon not valid for this item' });
+		}
+
 		return {
 			couponValid: true,
 			couponValue: coupon.value,

@@ -64,11 +64,11 @@
 				</div>
 
 				<div style="margin-bottom: 1.5rem;">
-					<label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Applies To Class</label>
-					<select name="cohortId" class="modal-input" required style="margin-bottom: 0;">
-						<option value="all">All Classes</option>
-						{#each data.availableClasses as cls}
-							<option value={cls.id}>{cls.name}</option>
+					<label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Applies To Resource</label>
+					<select name="assetId" class="modal-input" required style="margin-bottom: 0;">
+						<option value="all">All Resources</option>
+						{#each data.availableResources as resource}
+							<option value={resource.id}>{resource.name}</option>
 						{/each}
 					</select>
 				</div>

@@ -56,7 +56,7 @@ export const commerceCoupons = pgTable('commerce_coupons', {
 	minAmountPaise:  integer('min_amount_paise').notNull().default(0),
 	validFrom:       timestamp('valid_from', { withTimezone: true }).notNull().defaultNow(),
 	validUntil:      timestamp('valid_until', { withTimezone: true }),
-	cohortId:        text('cohort_id'), // NULL = global
+	assetId:         text('asset_id'), // NULL = global, otherwise restricts to specific asset
 	createdBy:       text('created_by').notNull().references(() => users.id),
 	isActive:        boolean('is_active').notNull().default(true),
 	createdAt:       timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
