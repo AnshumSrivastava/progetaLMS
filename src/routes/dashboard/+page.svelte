@@ -2,7 +2,7 @@
 	import { APP_NAME } from '$lib/shared/constants';
 	import { authClient } from '$lib/auth.client';
 	import { goto } from '$app/navigation';
-	import { BookOpen, FileBadge2, Calendar, Download, Play, Trophy, Clock, ArrowRight, Plus } from 'lucide-svelte';
+	import { BookOpen, FileBadge2, Calendar, Download, Play, Trophy, Clock, ArrowRight, Plus, Settings } from 'lucide-svelte';
 
 	let { data } = $props();
 

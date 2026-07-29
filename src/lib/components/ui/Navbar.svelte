@@ -2,7 +2,7 @@
 	import { Menu, X } from 'lucide-svelte';
 	import Button from './Button.svelte';
 	import { authClient } from '$lib/auth.client';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import type { AuthUser } from '$lib/server/auth/auth.types';
 
 	let { user }: { user: AuthUser | null } = $props();
@@ -23,6 +23,7 @@
 
 	async function handleSignOut() {
 		await authClient.signOut();
+		await invalidateAll();
 		goto('/');
 	}
 </script>
@@ -62,7 +63,7 @@
 		<div class="hidden md:flex items-center gap-2">
 			{#if user}
 				<a
-					href="/dashboard"
+					href={user.role === 'admin' || user.role === 'owner' ? '/dashboard/settings' : '/dashboard'}
 					style="display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border-radius: 6px; transition: background 120ms ease; text-decoration: none;"
 					onmouseenter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'}
 					onmouseleave={(e) => (e.currentTarget as HTMLElement).style.background = 'transparent'}

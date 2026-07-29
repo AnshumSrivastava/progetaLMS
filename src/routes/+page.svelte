@@ -1,107 +1,144 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { ArrowRight, BookOpen, FileBadge2, Users } from 'lucide-svelte';
-
-	const features = [
-		{
-			icon: BookOpen,
-			title: 'Digital Assets',
-			desc: 'Purchase and permanently own PDFs, guides, templates, and premium resources. No subscriptions, no expiring access.',
-		},
-		{
-			icon: FileBadge2,
-			title: 'Certifications',
-			desc: 'Pass rigorous assessments to earn verifiable certificates. Prove your expertise with a permanent public link.',
-		},
-		{
-			icon: Users,
-			title: 'Expert Mentorship',
-			desc: 'Book 1-on-1 sessions with industry professionals. Get code reviews, guidance, and accountability.',
-		},
-	];
+	import { ArrowRight, BookOpen, GraduationCap, LayoutDashboard, Users } from 'lucide-svelte';
 </script>
 
 <svelte:head>
-	<title>{APP_NAME} — Own Your Learning</title>
-	<meta name="description" content="A modern platform for owning digital learning assets, earning verifiable certifications, and accessing expert mentorship." />
+	<title>{APP_NAME} — Learn & Teach on Your Terms</title>
+	<meta name="description" content="A premium learning management platform tailored for both instructors sharing expertise and students mastering new skills." />
 </svelte:head>
 
-<!-- Hero -->
-<section style="padding: 96px 0 80px; border-bottom: 1px solid var(--border);">
-	<div class="container">
-		<div style="max-width: 640px;" class="animate-fade-up">
-			<div class="chip" style="margin-bottom: 32px;">
-				Currently in early access
-			</div>
-
-			<h1 style="margin-bottom: 20px;">
-				Own Your<br>Learning Journey
-			</h1>
-
-			<p style="font-size: 1.0625rem; max-width: 480px; margin-bottom: 36px;">
-				Move beyond video subscriptions. Collect digital assets, earn verifiable certifications, and learn from experts — permanently.
-			</p>
-
-			<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-				<Button variant="primary" size="lg">
-					<a href="/catalog" style="color: inherit; display: flex; align-items: center; gap: 6px;">
-						Browse catalog <ArrowRight size={15} />
-					</a>
-				</Button>
-				<Button variant="secondary" size="lg">
-					<a href="/certifications" style="color: inherit;">
-						View certifications
-					</a>
-				</Button>
-			</div>
+<!-- Minimal Hero -->
+<section style="padding: 120px 24px 100px; display: flex; flex-direction: column; align-items: center; text-align: center; background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 70%);">
+	<div class="container" style="max-width: 800px;">
+		<div class="chip animate-fade-up" style="margin-bottom: 24px;">
+			Welcome to the future of learning
 		</div>
+		
+		<h1 class="animate-fade-up delay-100" style="margin-bottom: 24px; font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: -0.03em; line-height: 1.1;">
+			The intelligent platform for <br />
+			<span style="color: var(--primary);">Educators</span> and <span style="color: var(--primary);">Learners</span>
+		</h1>
+		
+		<p class="animate-fade-up delay-200" style="font-size: 1.125rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 48px; line-height: 1.6;">
+			Whether you're looking to master a new skill with verifiable credentials or you're an instructor aiming to share your expertise with the world, {APP_NAME} provides the perfect environment.
+		</p>
 	</div>
 </section>
 
-<!-- Features -->
-<section style="padding: 80px 0;">
-	<div class="container">
-		<div style="margin-bottom: 48px;" class="animate-fade-up">
-			<p style="font-size: 0.75rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px;">
-				What we offer
-			</p>
-			<h2 style="max-width: 400px;">Three pillars of lasting knowledge</h2>
-		</div>
-
-		<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--border);">
-			{#each features as feat, i}
-				<div
-					class="animate-fade-up delay-{(i + 1) * 100}"
-					style="background: var(--bg); padding: 32px; transition: background var(--t-fast);"
-					onmouseenter={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--bg-subtle)'}
-					onmouseleave={(e) => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
-					role="presentation"
-				>
-					<svelte:component
-						this={feat.icon}
-						size={20}
-						style="color: var(--text-secondary); margin-bottom: 20px;"
-					/>
-					<h3 style="margin-bottom: 10px; font-size: 1rem;">{feat.title}</h3>
-					<p style="font-size: 0.875rem; line-height: 1.65;">{feat.desc}</p>
+<!-- Dual Value Proposition Section -->
+<section style="padding: 0 24px 120px;">
+	<div class="container" style="max-width: 1000px;">
+		<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+			
+			<!-- For Students -->
+			<div class="role-card animate-fade-up delay-300">
+				<div class="role-icon" style="background: rgba(37, 99, 235, 0.1); color: #3b82f6;">
+					<GraduationCap size={28} />
 				</div>
-			{/each}
+				<h2>For Students</h2>
+				<p>Access high-quality digital assets, take rigorous assessments, and earn cryptographic verifiable certificates. Learn at your own pace and own your learning journey permanently.</p>
+				
+				<ul class="feature-list">
+					<li><ArrowRight size={16} /> Lifetime access to purchased resources</li>
+					<li><ArrowRight size={16} /> Publicly verifiable certification pages</li>
+					<li><ArrowRight size={16} /> 1-on-1 mentorship sessions</li>
+				</ul>
+				
+				<div style="margin-top: auto; padding-top: 32px;">
+					<Button variant="primary" size="lg" style="width: 100%; justify-content: center;">
+						<a href="/sign-in?role=student" style="color: inherit; width: 100%;">Join as Student</a>
+					</Button>
+				</div>
+			</div>
+
+			<!-- For Teachers -->
+			<div class="role-card animate-fade-up delay-400">
+				<div class="role-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+					<LayoutDashboard size={28} />
+				</div>
+				<h2>For Instructors</h2>
+				<p>Build your brand and monetize your knowledge. Create robust courses, issue recognized certificates, and manage a thriving community of dedicated learners.</p>
+				
+				<ul class="feature-list">
+					<li><ArrowRight size={16} /> Sell digital assets & courses securely</li>
+					<li><ArrowRight size={16} /> Automated certificate generation</li>
+					<li><ArrowRight size={16} /> Comprehensive student analytics</li>
+				</ul>
+				
+				<div style="margin-top: auto; padding-top: 32px;">
+					<Button variant="secondary" size="lg" style="width: 100%; justify-content: center;">
+						<a href="/sign-in?role=teacher" style="color: inherit; width: 100%;">Join as Instructor</a>
+					</Button>
+				</div>
+			</div>
+
 		</div>
 	</div>
 </section>
 
-<!-- CTA strip -->
-<section style="padding: 80px 0; border-top: 1px solid var(--border);">
-	<div class="container">
-		<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 24px;" class="animate-fade-up">
-			<div>
-				<h2 style="font-size: clamp(1.25rem, 2.5vw, 1.75rem); margin-bottom: 8px;">Ready to start?</h2>
-				<p style="font-size: 0.9375rem;">No credit card required. Start for free.</p>
-			</div>
-			<Button variant="primary" size="lg">
-				<a href="/sign-in" style="color: inherit;">Create account</a>
-			</Button>
-		</div>
-	</div>
-</section>
+<style>
+	.role-card {
+		display: flex;
+		flex-direction: column;
+		background: var(--bg-elevated);
+		border: 1px solid var(--border);
+		border-radius: 16px;
+		padding: 40px;
+		transition: all var(--t-fast);
+		position: relative;
+		overflow: hidden;
+	}
+	
+	.role-card:hover {
+		border-color: var(--border-strong);
+		transform: translateY(-4px);
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+	}
+	
+	.role-icon {
+		width: 56px;
+		height: 56px;
+		border-radius: 12px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 24px;
+	}
+	
+	.role-card h2 {
+		font-size: 1.5rem;
+		margin-bottom: 16px;
+		font-weight: 600;
+	}
+	
+	.role-card p {
+		color: var(--text-secondary);
+		line-height: 1.6;
+		margin-bottom: 24px;
+		font-size: 0.9375rem;
+	}
+	
+	.feature-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	
+	.feature-list li {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 0.875rem;
+		color: var(--text-primary);
+		font-weight: 500;
+	}
+	
+	.feature-list li :global(svg) {
+		color: var(--text-muted);
+	}
+</style>
