@@ -1,8 +1,9 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db/client';
-import { identityProfiles } from '$lib/server/db/schema/identity.schema';
-import { eq } from 'drizzle-orm';
+import { identityProfiles, users } from '$lib/server/db/schema/identity.schema';
+import { platformSettings } from '$lib/server/db/schema/platform.schema';
+import { eq, not } from 'drizzle-orm';
 import { auth } from '$lib/server/auth/auth.config';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -14,9 +15,31 @@ export const load: PageServerLoad = async ({ locals }) => {
 		where: eq(identityProfiles.userId, locals.user.id)
 	});
 
+	let settings = await db.query.platformSettings.findFirst({
+		where: eq(platformSettings.id, 'default')
+	});
+	if (!settings) {
+		const [newSettings] = await db.insert(platformSettings).values({ id: 'default' }).returning();
+		settings = newSettings;
+	}
+
+	let allUsers = [];
+	if (locals.user.role === 'admin' || locals.user.role === 'owner') {
+		allUsers = await db.select({
+			id: users.id,
+			name: users.name,
+			email: users.email,
+			role: users.role,
+			banned: users.banned,
+			createdAt: users.createdAt
+		}).from(users).where(not(eq(users.id, locals.user.id)));
+	}
+
 	return {
 		profile,
-		user: locals.user
+		user: locals.user,
+		platformSettings: settings,
+		allUsers
 	};
 };
 
@@ -68,6 +91,79 @@ export const actions: Actions = {
 			return { success: true, message: 'Password set successfully. Your login preference has been updated to Password.' };
 		} catch (e: any) {
 			return fail(500, { error: e.message || 'Failed to update password.' });
+		}
+	},
+
+	updatePlatformSettings: async ({ request, locals }) => {
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
+			return fail(403, { error: 'Forbidden' });
+		}
+		
+		const data = await request.formData();
+		const enableCatalog = data.get('enableCatalog') === 'true';
+		const enableMentoring = data.get('enableMentoring') === 'true';
+		const enableCertifications = data.get('enableCertifications') === 'true';
+
+		try {
+			await db.update(platformSettings).set({
+				enableCatalog,
+				enableMentoring,
+				enableCertifications,
+				updatedAt: new Date()
+			}).where(eq(platformSettings.id, 'default'));
+			return { success: true, message: 'Platform settings updated.' };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update settings.' });
+		}
+	},
+
+	updateUserRole: async ({ request, locals }) => {
+		if (!locals.user || (locals.user.role !== 'owner' && locals.user.role !== 'admin')) {
+			return fail(403, { error: 'Forbidden' });
+		}
+
+		const data = await request.formData();
+		const targetUserId = data.get('userId') as string;
+		const newRole = data.get('role') as string;
+
+		if (!targetUserId || !newRole) return fail(400, { error: 'Missing fields' });
+
+		// Admins can only elevate to teacher/student, Owners can do all
+		if (locals.user.role === 'admin') {
+			if (newRole !== 'student' && newRole !== 'teacher') {
+				return fail(403, { error: 'Admins can only assign teacher or student roles.' });
+			}
+		}
+
+		try {
+			// Using better auth's user update, but we need to update our DB for the role
+			await db.update(users).set({ role: newRole }).where(eq(users.id, targetUserId));
+			return { success: true, message: 'User role updated.' };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update user role.' });
+		}
+	},
+
+	toggleUserBan: async ({ request, locals }) => {
+		if (!locals.user || (locals.user.role !== 'owner' && locals.user.role !== 'admin')) {
+			return fail(403, { error: 'Forbidden' });
+		}
+
+		const data = await request.formData();
+		const targetUserId = data.get('userId') as string;
+		const action = data.get('action') as 'ban' | 'unban';
+
+		if (!targetUserId) return fail(400, { error: 'Missing user ID' });
+
+		try {
+			if (action === 'ban') {
+				await auth.api.banUser({ headers: new Headers(), body: { userId: targetUserId } });
+			} else {
+				await auth.api.unbanUser({ headers: new Headers(), body: { userId: targetUserId } });
+			}
+			return { success: true, message: \`User successfully \${action}ned.\` };
+		} catch (e) {
+			return fail(500, { error: 'Failed to toggle ban status.' });
 		}
 	}
 };
