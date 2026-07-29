@@ -237,7 +237,7 @@
 								<p>Status: <strong>Available</strong> 
 								</p>
 							</div>
-							<a href={`/learn/${item.id}`} class="action-btn" style="text-decoration:none;">Take Exam</a>
+							<a href={`/certifications/${item.id}/exam`} class="action-btn" style="text-decoration:none;">Take Exam</a>
 						</div>
 					{/each}
 
