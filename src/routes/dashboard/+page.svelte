@@ -2,7 +2,7 @@
 	import { APP_NAME } from '$lib/shared/constants';
 	import { authClient } from '$lib/auth.client';
 	import { goto } from '$app/navigation';
-	import { BookOpen, FileBadge2, Calendar, Download, Play, Trophy, Clock, ArrowRight, Plus, Settings } from 'lucide-svelte';
+	import { BookOpen, FileBadge2, Calendar, Download, Play, Trophy, Clock, ArrowRight, Plus, Settings, Users2 } from 'lucide-svelte';
 
 	let { data } = $props();
 
@@ -37,6 +37,10 @@
 
 			<button class="nav-item" class:active={activeTab === 'events'} onclick={() => activeTab = 'events'}>
 				<Calendar size={18} /> <span>Events</span>
+			</button>
+
+			<button class="nav-item" class:active={activeTab === 'classes'} onclick={() => activeTab = 'classes'}>
+				<Users2 size={18} /> <span>My Classes</span>
 			</button>
 
 			<button class="nav-item" class:active={activeTab === 'certs'} onclick={() => activeTab = 'certs'}>
@@ -145,6 +149,56 @@
 				</div>
 
 
+
+			{:else if activeTab === 'classes'}
+				<!-- CLASSES TAB -->
+				<div class="section-header">
+					<h3>My Classes</h3>
+					<p style="color: var(--text-muted); font-size: 0.95rem;">Cohorts and study groups you are a part of.</p>
+				</div>
+				
+				<div class="events-grid" style="display: flex; flex-direction: column; gap: 2rem;">
+					{#each data.cohorts as cls}
+						<div class="class-card" style="background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+							<div class="class-header" style="padding: 1.5rem; background: var(--bg); border-bottom: 1px solid var(--border);">
+								<h4 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">{cls.name}</h4>
+								<p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">Joined cohort</p>
+							</div>
+							
+							{#if cls.suggestedAssets && cls.suggestedAssets.length > 0}
+								<div class="suggested-materials" style="padding: 1.5rem; background: linear-gradient(to right, rgba(99, 102, 241, 0.05), transparent);">
+									<h5 style="margin: 0 0 1rem 0; font-size: 0.95rem; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;">
+										<span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); border-radius: 50%;"></span>
+										Teacher's Suggested Materials
+									</h5>
+									
+									<div class="suggestions-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+										{#each cls.suggestedAssets as asset}
+											<div class="suggestion-card" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
+												<div>
+													<h6 style="margin: 0 0 0.25rem 0; font-size: 1rem;">{asset.title}</h6>
+													<span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">{asset.type.replace('_', ' ')}</span>
+												</div>
+												<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+													<span style="font-weight: 600; color: var(--text-primary);">
+														{asset.pricePaise === 0 ? 'Free' : `$${(asset.pricePaise / 100).toFixed(2)}`}
+													</span>
+													<a href="/catalog/course/{asset.id}" style="text-decoration: none; font-size: 0.85rem; font-weight: 600; color: var(--accent);">View Details →</a>
+												</div>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); border: 1px solid var(--border); border-radius: 8px; background: var(--bg-subtle);">
+							<Users2 size={48} style="opacity: 0.5; margin-bottom: 12px;" />
+							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No Classes</h3>
+							<p>You haven't been added to any classes yet.</p>
+						</div>
+					{/each}
+				</div>
 
 			{:else if activeTab === 'certs'}
 				<!-- CERTIFICATIONS TAB -->

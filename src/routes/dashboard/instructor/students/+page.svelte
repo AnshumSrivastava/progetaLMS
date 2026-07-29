@@ -7,6 +7,8 @@
 	let { data, form } = $props<{ data: PageData, form: ActionData }>();
 
 	let isSubmitting = $state(false);
+	let isSubmittingCoupon = $state(false);
+	let showCouponModal = $state(false);
 </script>
 
 <svelte:head>
@@ -19,10 +21,62 @@
 			<h1 class="page-title">Students</h1>
 			<p class="page-subtitle">View enrolled students, track progress, and manage access.</p>
 		</div>
-		<button class="create-btn">
-			<ShieldCheck size={16} /> Grant Access
+		<button class="create-btn" onclick={() => showCouponModal = true}>
+			<ShieldCheck size={16} /> Invite with Coupon
 		</button>
 	</header>
+
+	{#if showCouponModal}
+		<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showCouponModal = false; }}>
+			<form class="modal-content" method="POST" action="?/inviteWithCoupon" use:enhance={() => {
+				isSubmittingCoupon = true;
+				return async ({ update }) => {
+					await update();
+					isSubmittingCoupon = false;
+					showCouponModal = false;
+				};
+			}}>
+				<h3>Invite Student with Unique Coupon</h3>
+				<p>Send an exclusive, one-time-use coupon to a single student.</p>
+				
+				<div class="form-group" style="margin-bottom: 1rem;">
+					<label class="form-label">Student Email</label>
+					<input type="email" name="email" class="modal-input" placeholder="student@example.com" required style="margin-bottom: 0;" />
+				</div>
+
+				<div class="form-group" style="margin-bottom: 1rem;">
+					<label class="form-label">Assign to Class</label>
+					<select name="cohortId" class="modal-input" required style="margin-bottom: 0;">
+						<option value="">Select a Class...</option>
+						{#each data.availableClasses as cls}
+							<option value={cls.id}>{cls.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div class="form-row" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+					<div style="flex: 1;">
+						<label class="form-label" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Discount Type</label>
+						<select name="discountType" class="modal-input" required style="margin-bottom: 0;">
+							<option value="percent">Percentage (%)</option>
+							<option value="flat">Flat Amount ($)</option>
+						</select>
+					</div>
+					<div style="flex: 1;">
+						<label class="form-label" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Discount Value</label>
+						<input type="number" name="discountValue" class="modal-input" placeholder="e.g. 20" required style="margin-bottom: 0;" />
+					</div>
+				</div>
+
+				<div class="modal-actions">
+					<button type="button" class="action-btn" onclick={() => showCouponModal = false}>Cancel</button>
+					<button type="submit" class="create-btn" disabled={isSubmittingCoupon}>
+						{isSubmittingCoupon ? 'Sending...' : 'Generate & Send Invite'}
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
 
 	<!-- Batch Add Section -->
 	<form class="batch-add-section" method="POST" action="?/batchAdd" use:enhance={() => {
@@ -61,6 +115,11 @@
 		{#if form?.success}
 			<div class="success-banner">
 				{form.count} Invitations successfully sent!
+			</div>
+		{/if}
+		{#if form?.inviteSuccess}
+			<div class="success-banner">
+				Invite and unique coupon successfully sent to {form.email}!
 			</div>
 		{/if}
 	</form>

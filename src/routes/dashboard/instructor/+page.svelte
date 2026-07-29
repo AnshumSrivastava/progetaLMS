@@ -10,14 +10,6 @@
 		{ label: 'Avg. Rating', value: data.stats.avgRating, change: '0%', icon: GraduationCap },
 		{ label: 'Total Revenue', value: `₹${data.stats.totalRevenue}`, change: '0%', icon: TrendingUp },
 	]);
-
-	const recentActivity = [
-		{ user: 'Alex M.', action: 'completed', target: 'Module 3: Zero Trust', time: '10 mins ago' },
-		{ user: 'Sarah J.', action: 'enrolled in', target: 'Cloud Security Architecture', time: '1 hour ago' },
-		{ user: 'David K.', action: 'earned certificate', target: 'Network Defense Associate', time: '3 hours ago' },
-		{ user: 'Maria L.', action: 'completed', target: 'Module 1: Threat Landscape', time: '5 hours ago' },
-		{ user: 'James T.', action: 'enrolled in', target: 'Cybersecurity Fundamentals', time: '1 day ago' },
-	];
 </script>
 
 <svelte:head>
@@ -74,7 +66,7 @@
 				</div>
 				
 				<div class="activity-feed">
-					{#each recentActivity as item}
+					{#each data.recentActivity as item}
 						<div class="activity-item">
 							<div class="activity-dot"></div>
 							<div class="activity-content">
@@ -85,6 +77,9 @@
 							</div>
 						</div>
 					{/each}
+					{#if data.recentActivity.length === 0}
+						<p class="text-sm text-gray-500 italic p-4">No recent activity found.</p>
+					{/if}
 				</div>
 			</section>
 		</div>

@@ -3,6 +3,7 @@
 	import { BookOpen, Search, Filter, MoreHorizontal, Edit, Tag, Power } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data } = $props<{ data: PageData }>();
 
@@ -34,6 +35,7 @@
 				isSubmitting = true;
 				return async ({ update }) => {
 					await update();
+					await invalidateAll();
 					isSubmitting = false;
 					showCreateModal = false;
 				};

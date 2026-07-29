@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { LayoutDashboard, BookOpen, Users, Users2, Ticket, Settings, LogOut, ArrowLeft, Mail } from 'lucide-svelte';
+	import { LayoutDashboard, BookOpen, Users, Users2, Ticket, Settings, LogOut, ArrowLeft, Mail, Award } from 'lucide-svelte';
 	import { authClient } from '$lib/auth.client';
 	import { goto } from '$app/navigation';
 
@@ -11,6 +11,7 @@
 		{ name: 'Courses', path: '/dashboard/instructor/courses', icon: BookOpen },
 		{ name: 'Classes', path: '/dashboard/instructor/classes', icon: Users2 },
 		{ name: 'Students', path: '/dashboard/instructor/students', icon: Users },
+		{ name: 'Certifications', path: '/dashboard/instructor/certifications', icon: Award },
 		{ name: 'Communications', path: '/dashboard/instructor/communications', icon: Mail },
 		{ name: 'Coupons', path: '/dashboard/instructor/coupons', icon: Ticket },
 		{ name: 'Settings', path: '/dashboard/instructor/settings', icon: Settings },

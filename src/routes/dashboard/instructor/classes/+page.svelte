@@ -14,6 +14,10 @@
 	let selectedClassIdForAdd = $state('');
 	let copySuccess = $state<string | null>(null);
 
+	let showSuggestModal = $state(false);
+	let selectedClassIdForSuggest = $state('');
+	let isSubmittingSuggest = $state(false);
+
 	function submitAddStudents() {
 		if (bulkEmails.trim()) {
 			showAddStudentsModal = false;
@@ -22,8 +26,10 @@
 		}
 	}
 
+	import { page } from '$app/stores';
+
 	function copyInviteLink(classId: string) {
-		const link = `http://localhost:5173/join/${classId}`;
+		const link = `${$page.url.origin}/join/${classId}`;
 		navigator.clipboard.writeText(link);
 		copySuccess = classId;
 		setTimeout(() => copySuccess = null, 3000);
@@ -97,6 +103,39 @@
 		</div>
 	{/if}
 
+	{#if showSuggestModal}
+		<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showSuggestModal = false; }}>
+			<div class="modal-content">
+				<h3>Suggest Material</h3>
+				<p>Suggest an additional paid course or certification to this class.</p>
+				
+				<form method="POST" action="?/suggestAsset" use:enhance={() => {
+					isSubmittingSuggest = true;
+					return async ({ update }) => {
+						await update();
+						isSubmittingSuggest = false;
+						showSuggestModal = false;
+					};
+				}}>
+					<input type="hidden" name="cohortId" value={selectedClassIdForSuggest} />
+					<div class="form-group">
+						<label class="form-label">Select Asset</label>
+						<select name="assetId" class="modal-input" required>
+							<option value="">Select a course or cert...</option>
+							{#each data.availableCourses as asset}
+								<option value={asset.id}>{asset.title} ({asset.type})</option>
+							{/each}
+						</select>
+					</div>
+					<div class="modal-actions">
+						<button type="button" class="action-btn" onclick={() => showSuggestModal = false}>Cancel</button>
+						<button type="submit" class="create-btn" disabled={isSubmittingSuggest}>Suggest Asset</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
+
 	<div class="table-container">
 		<div class="table-toolbar">
 			<div class="search-box">
@@ -134,16 +173,36 @@
 								{cls.status}
 							</span>
 						</td>
-						<td class="col-actions">
+						<td class="col-actions" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
 							<button class="action-btn outline" onclick={() => { selectedClassIdForAdd = cls.id; showAddStudentsModal = true; }}>
 								Add Students
 							</button>
-							<button class="action-btn outline" onclick={() => copyInviteLink(cls.id)}>
-								{copySuccess === cls.id ? 'Copied!' : 'Copy Invite Link'}
+							<button class="action-btn outline" onclick={() => { selectedClassIdForSuggest = cls.id; showSuggestModal = true; }}>
+								Suggest Material
 							</button>
-							<button class="icon-btn" title="More Options"><MoreHorizontal size={16} /></button>
+							<button class="action-btn outline" onclick={() => copyInviteLink(cls.id)}>
+								{copySuccess === cls.id ? 'Copied!' : 'Copy Invite'}
+							</button>
 						</td>
 					</tr>
+					{#if cls.suggestedAssets && cls.suggestedAssets.length > 0}
+						<tr class="suggestions-row" style="background: rgba(0,0,0,0.02);">
+							<td colspan="5" style="padding: 10px 1.5rem; border-top: none;">
+								<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+									<span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Suggested:</span>
+									{#each cls.suggestedAssets as suggestion}
+										<div style="display: flex; align-items: center; gap: 6px; background: white; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); font-size: 0.85rem;">
+											<span>{suggestion.title}</span>
+											<form method="POST" action="?/removeSuggestion" style="margin: 0;" use:enhance>
+												<input type="hidden" name="suggestedAssetId" value={suggestion.suggestedAssetId} />
+												<button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer; display: flex; align-items: center;" title="Remove Suggestion">×</button>
+											</form>
+										</div>
+									{/each}
+								</div>
+							</td>
+						</tr>
+					{/if}
 				{/each}
 			</tbody>
 		</table>

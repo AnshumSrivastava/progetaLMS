@@ -44,3 +44,16 @@ export type Cohort = typeof cohorts.$inferSelect;
 export type NewCohort = typeof cohorts.$inferInsert;
 export type CohortMembership = typeof cohortMemberships.$inferSelect;
 export type NewCohortMembership = typeof cohortMemberships.$inferInsert;
+
+export const cohortSuggestedAssets = pgTable('cohort_suggested_assets', {
+	id:        text('id').primaryKey(),
+	cohortId:  text('cohort_id').notNull().references(() => cohorts.id, { onDelete: 'cascade' }),
+	assetId:   text('asset_id').notNull().references(() => assets.id, { onDelete: 'cascade' }),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => [
+	index('cohort_suggested_assets_cohort_idx').on(t.cohortId),
+	unique('cohort_suggested_assets_unique').on(t.cohortId, t.assetId)
+]);
+
+export type CohortSuggestedAsset = typeof cohortSuggestedAssets.$inferSelect;
+export type NewCohortSuggestedAsset = typeof cohortSuggestedAssets.$inferInsert;

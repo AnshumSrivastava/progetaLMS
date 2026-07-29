@@ -8,7 +8,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, inArray } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -59,6 +59,41 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const myAttendees = await db.select().from(eventAttendees).where(eq(eventAttendees.userId, locals.user.id));
 	const registeredEventIds = new Set(myAttendees.map(a => a.eventId));
 
+	// Load student cohorts (Classes)
+	const { cohorts, cohortMemberships, cohortSuggestedAssets } = await import('$lib/server/db/schema/cohorts.schema');
+	
+	const myCohortMemberships = await db.select({
+		cohortId: cohortMemberships.cohortId,
+		role: cohortMemberships.role
+	}).from(cohortMemberships).where(eq(cohortMemberships.userId, locals.user.id));
+	
+	const myCohortIds = myCohortMemberships.map(m => m.cohortId);
+	let myCohorts = [];
+	let mySuggestedAssets = [];
+
+	if (myCohortIds.length > 0) {
+		myCohorts = await db.select().from(cohorts).where(inArray(cohorts.id, myCohortIds));
+		
+		mySuggestedAssets = await db.select({
+			cohortId: cohortSuggestedAssets.cohortId,
+			asset: {
+				id: assets.id,
+				title: assets.title,
+				type: assets.type,
+				pricePaise: assets.pricePaise,
+				thumbnail: assets.thumbnail
+			}
+		})
+		.from(cohortSuggestedAssets)
+		.innerJoin(assets, eq(cohortSuggestedAssets.assetId, assets.id))
+		.where(inArray(cohortSuggestedAssets.cohortId, myCohortIds));
+	}
+
+	const cohortsWithSuggestions = myCohorts.map(c => ({
+		...c,
+		suggestedAssets: mySuggestedAssets.filter(s => s.cohortId === c.id).map(s => s.asset)
+	}));
+
 	return {
 		user: locals.user,
 		ownedCourses,
@@ -66,7 +101,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		ownedCerts,
 		issuedCertificates,
 		upcomingEvents,
-		registeredEventIds: Array.from(registeredEventIds)
+		registeredEventIds: Array.from(registeredEventIds),
+		cohorts: cohortsWithSuggestions
 	};
 };
 

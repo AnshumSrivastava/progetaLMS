@@ -7,7 +7,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const user = locals.user;
 	if (!user) throw redirect(302, '/sign-in');
-	if (user.role !== 'instructor' && user.role !== 'admin') {
+	if (user.role !== 'teacher' && user.role !== 'admin') {
 		throw redirect(302, '/dashboard');
 	}
 
