@@ -1,5 +1,6 @@
 import { db } from '$lib/server/db/client';
-import { commerceCoupons, cohorts } from '$lib/server/db/schema';
+import { commerceCoupons } from '$lib/server/db/schema/commerce.schema';
+import { cohorts } from '$lib/server/db/schema/cohorts.schema';
 import { eq, and } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';

@@ -1,5 +1,6 @@
 import { db } from '$lib/server/db/client';
-import { cohorts, cohortMemberships, assets, cohortSuggestedAssets } from '$lib/server/db/schema';
+import { cohorts, cohortMemberships, cohortSuggestedAssets } from '$lib/server/db/schema/cohorts.schema';
+import { assets } from '$lib/server/db/schema/assets.schema';
 import { eq, and, count } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';

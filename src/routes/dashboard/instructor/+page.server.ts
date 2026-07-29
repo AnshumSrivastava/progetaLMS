@@ -69,7 +69,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 		recentActivity = recentJoins.map(join => {
 			// very naive "time ago"
-			const diffMs = Date.now() - join.joinedAt.getTime();
+			const joinDate = new Date(join.joinedAt);
+			const diffMs = Date.now() - joinDate.getTime();
 			const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 			const diffDays = Math.floor(diffHours / 24);
 			let timeStr = 'just now';
