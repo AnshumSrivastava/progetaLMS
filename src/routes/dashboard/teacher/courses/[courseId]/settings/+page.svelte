@@ -11,6 +11,7 @@
 	let thumbnailUrl = $state(data.course.thumbnail || '');
 	let pricingType = $state(data.course.pricePaise === 0 ? 'free' : 'paid');
 	let price = $state(data.course.pricePaise > 0 ? (data.course.pricePaise / 100).toString() : '');
+	let currency = $state(data.course.currency || 'INR');
 	let accessType = $state(data.course.visibility);
 	
 	let isSaving = $state(false);
@@ -87,10 +88,18 @@
 
 		{#if pricingType === 'paid'}
 			<div class="form-group mt-4">
-				<label>Price (₹ INR)</label>
-				<div class="input-with-icon">
-					<DollarSign size={16} class="icon" />
-					<input type="number" name="price" bind:value={price} placeholder="0.00" min="0" step="0.01" class="input-field pl-9" />
+				<label>Price</label>
+				<div style="display: flex; gap: 8px;">
+					<select name="currency" class="input-field" style="width: 100px; padding-left: 12px;" bind:value={currency}>
+						<option value="INR">INR</option>
+						<option value="USD">USD</option>
+						<option value="EUR">EUR</option>
+						<option value="GBP">GBP</option>
+					</select>
+					<div class="input-with-icon" style="flex: 1; width: auto;">
+						<DollarSign size={16} class="icon" />
+						<input type="number" name="price" bind:value={price} placeholder="0.00" min="0" step="0.01" class="input-field pl-9" />
+					</div>
 				</div>
 			</div>
 		{/if}

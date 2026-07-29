@@ -34,6 +34,7 @@ export const actions: Actions = {
 		const title = data.get('title') as string;
 		const description = data.get('description') as string;
 		const price = parseFloat(data.get('price') as string) || 0;
+		const currency = data.get('currency')?.toString() || 'INR';
 		const pricePaise = Math.floor(price * 100);
 		const pricingType = data.get('pricingType') as string;
 		const accessType = data.get('accessType') as string;
@@ -47,6 +48,7 @@ export const actions: Actions = {
 				title,
 				description,
 				pricePaise: pricingType === 'free' ? 0 : pricePaise,
+				currency,
 				visibility: accessType === 'private' ? 'private' : 'public',
 				updatedAt: new Date()
 			}).where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
