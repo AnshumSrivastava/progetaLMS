@@ -161,7 +161,7 @@ export const actions: Actions = {
 			} else {
 				await auth.api.unbanUser({ headers: new Headers(), body: { userId: targetUserId } });
 			}
-			return { success: true, message: \`User successfully \${action}ned.\` };
+			return { success: true, message: `User successfully ${action}ned.` };
 		} catch (e) {
 			return fail(500, { error: 'Failed to toggle ban status.' });
 		}
