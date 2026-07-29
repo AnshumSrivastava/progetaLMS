@@ -58,9 +58,9 @@ export const actions: Actions = {
 		}
 		
 		try {
-			await auth.api.updateUser({
+			await auth.api.setPassword({
 				headers: request.headers,
-				body: { password: newPassword }
+				body: { newPassword: newPassword }
 			});
 			await db.update(identityProfiles)
 				.set({ loginPreference: 'password', updatedAt: new Date() })
