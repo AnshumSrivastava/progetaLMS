@@ -130,7 +130,7 @@
 						<td>{course.students}</td>
 						<td>{course.rating > 0 ? `★ ${course.rating}` : '-'}</td>
 						<td class="col-actions">
-							<a href={`/dashboard/instructor/courses/${course.id}/curriculum`} class="action-btn" title="Edit Content" style="display: inline-flex; align-items: center; justify-content: center;"><Edit size={16} /></a>
+							<a href={`/dashboard/teacher/courses/${course.id}/curriculum`} class="action-btn" title="Edit Content" style="display: inline-flex; align-items: center; justify-content: center;"><Edit size={16} /></a>
 							<button class="action-btn" title="Edit Price" onclick={() => {
 								selectedCourseId = course.id;
 								selectedCourseCurrency = course.rawCurrency;

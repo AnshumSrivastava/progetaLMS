@@ -26,7 +26,7 @@ const db = drizzle(sql, { schema });
 
 const ROLES = [
 	{ name: 'student',     description: 'A learner who can purchase and view assets' },
-	{ name: 'instructor',  description: 'Can create assets, manage students, and earn revenue' },
+	{ name: 'teacher',  description: 'Can create assets, manage students, and earn revenue' },
 	{ name: 'super_admin', description: 'Full platform access' }
 ];
 

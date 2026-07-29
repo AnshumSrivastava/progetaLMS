@@ -63,7 +63,7 @@ export const ROLE_CAPABILITY_MAP: Record<string, CapabilityKey[]> = {
 		Capability.CERT_VERIFY,
 		Capability.SESSION_BOOK,
 	],
-	instructor: [
+	teacher: [
 		Capability.ASSET_VIEW,
 		Capability.ASSET_PUBLISH,
 		Capability.ASSET_EDIT,

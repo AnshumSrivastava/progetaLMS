@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			throw redirect(302, '/dashboard/settings');
 		}
 		if (locals.user.role === 'teacher') {
-			throw redirect(302, '/dashboard/instructor');
+			throw redirect(302, '/dashboard/teacher');
 		}
 		throw redirect(302, '/dashboard');
 	}

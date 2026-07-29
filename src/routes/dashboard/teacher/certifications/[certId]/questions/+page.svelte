@@ -43,7 +43,7 @@
 <div class="workspace-shell">
 	<header class="builder-header">
 		<div class="header-left">
-			<a href="/dashboard/instructor/certifications" class="back-btn">
+			<a href="/dashboard/teacher/certifications" class="back-btn">
 				<ArrowLeft size={18} />
 				<span>Back</span>
 			</a>

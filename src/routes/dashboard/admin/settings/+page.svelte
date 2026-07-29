@@ -49,7 +49,7 @@
 				</div>
 				<div class="ml-3 text-sm">
 					<span class="font-medium text-gray-900 block mb-1">1-on-1 Mentoring</span>
-					<span class="text-gray-500">Allow students to book live mentoring sessions with instructors.</span>
+					<span class="text-gray-500">Allow students to book live mentoring sessions with teachers.</span>
 				</div>
 			</label>
 		</div>

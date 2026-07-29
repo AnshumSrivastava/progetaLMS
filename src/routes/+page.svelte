@@ -69,7 +69,7 @@
 				
 				<div style="margin-top: auto; padding-top: 32px;">
 					<Button variant="secondary" size="lg" style="width: 100%; justify-content: center;">
-						<a href="/sign-in?role=teacher" style="color: inherit; width: 100%;">Join as Instructor</a>
+						<a href="/sign-in?role=teacher" style="color: inherit; width: 100%;">Join as Teacher</a>
 					</Button>
 				</div>
 			</div>

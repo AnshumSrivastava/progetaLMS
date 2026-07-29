@@ -51,7 +51,7 @@
 
 			<div class="lesson-list">
 				{#each mod.lessons as lesson}
-					<a href="/dashboard/instructor/courses/{data.course.id}/editor/{lesson.type}?lessonId={lesson.id}" class="lesson-item">
+					<a href="/dashboard/teacher/courses/{data.course.id}/editor/{lesson.type}?lessonId={lesson.id}" class="lesson-item">
 						<div class="drag-handle"><GripVertical size={14} /></div>
 						<div class="lesson-icon">
 							{#if lesson.type === 'video'}<PlaySquare size={16} />{:else if lesson.type === 'reading'}<FileText size={16} />{:else if lesson.type === 'slides'}<Presentation size={16} />{:else}<CheckSquare size={16} />{/if}

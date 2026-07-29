@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 	
 	if (locals.user.role === 'teacher') {
-		throw redirect(302, '/dashboard/instructor');
+		throw redirect(302, '/dashboard/teacher');
 	}
 
 	const owned = await db

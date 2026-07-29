@@ -24,7 +24,7 @@
 				<input type="text" name="name" required class="w-full px-3 py-2 border rounded-md" placeholder="e.g. Fall 2026 CS101">
 			</div>
 			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
+				<label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
 				<select name="instructorId" required class="w-full px-3 py-2 border rounded-md">
 					{#each data.instructors as inst}
 						<option value={inst.id}>{inst.name} ({inst.email})</option>
@@ -54,7 +54,7 @@
 			<thead>
 				<tr class="bg-gray-50 border-b border-gray-200">
 					<th class="py-3 px-4 text-sm font-semibold text-gray-600">Class Name</th>
-					<th class="py-3 px-4 text-sm font-semibold text-gray-600">Instructor</th>
+					<th class="py-3 px-4 text-sm font-semibold text-gray-600">Teacher</th>
 					<th class="py-3 px-4 text-sm font-semibold text-gray-600">Course Linked</th>
 					<th class="py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
 					<th class="py-3 px-4 text-sm font-semibold text-gray-600 text-right">Actions</th>

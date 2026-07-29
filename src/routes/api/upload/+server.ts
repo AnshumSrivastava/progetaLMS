@@ -19,7 +19,7 @@ const ALLOWED_MIME_TYPES = new Set([
 	'application/pdf',
 	'text/plain', 'text/markdown',
 ]);
-const INSTRUCTOR_ROLES = ['instructor', 'admin', 'owner'];
+const TEACHER_ROLES = ['teacher', 'admin', 'owner'];
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const user = locals.user;
@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	if (!INSTRUCTOR_ROLES.includes(user.role as string)) {
+	if (!TEACHER_ROLES.includes(user.role as string)) {
 		return json({ error: 'Forbidden: only instructors can upload files' }, { status: 403 });
 	}
 

@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	.orderBy(desc(cohorts.createdAt));
 
 	const allAssets = await db.select().from(assets).where(eq(assets.status, 'published'));
-	const instructors = await db.select().from(users).where(eq(users.role, 'instructor'));
+	const instructors = await db.select().from(users).where(eq(users.role, 'teacher'));
 	
 	// If no instructors, we can allow admin to be instructor
 	const admins = await db.select().from(users).where(eq(users.role, 'admin'));

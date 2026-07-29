@@ -102,17 +102,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Route Protection
-	const INSTRUCTOR_ROLES = ['teacher', 'admin', 'owner'];
+	const TEACHER_ROLES = ['teacher', 'admin', 'owner'];
 	const ADMIN_ROLES = ['admin', 'owner'];
 	
 	if (path.startsWith('/dashboard/admin')) {
 		if (!session) throw redirect(302, '/sign-in');
 		const role = session.user.role as string;
 		if (!ADMIN_ROLES.includes(role)) throw redirect(302, '/dashboard');
-	} else if (path.startsWith('/dashboard/instructor')) {
+	} else if (path.startsWith('/dashboard/teacher')) {
 		if (!session) throw redirect(302, '/sign-in');
 		const role = session.user.role as string;
-		if (!INSTRUCTOR_ROLES.includes(role)) throw redirect(302, '/dashboard');
+		if (!TEACHER_ROLES.includes(role)) throw redirect(302, '/dashboard');
 	} else if (path.startsWith('/dashboard')) {
 		if (!session) throw redirect(302, '/sign-in');
 	}

@@ -72,7 +72,7 @@
 </svelte:head>
 
 <div class="editor-header">
-	<a href={`/dashboard/instructor/courses/${courseId}/curriculum`} class="back-btn">
+	<a href={`/dashboard/teacher/courses/${courseId}/curriculum`} class="back-btn">
 		<ArrowLeft size={16} /> Back to Curriculum
 	</a>
 	<div class="header-actions">

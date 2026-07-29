@@ -112,7 +112,7 @@
 						<td>{cert.passingPercent}%</td>
 						<td>
 							<div class="action-buttons">
-								<a href="/dashboard/instructor/certifications/{cert.id}/questions" class="icon-btn" title="Manage Questions">
+								<a href="/dashboard/teacher/certifications/{cert.id}/questions" class="icon-btn" title="Manage Questions">
 									<LayoutList size={16} /> Edit
 								</a>
 								<button class="icon-btn" title="Edit Price" onclick={() => {

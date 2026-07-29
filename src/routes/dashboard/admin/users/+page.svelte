@@ -68,7 +68,7 @@
 										<input type="hidden" name="userId" value={user.id} />
 										<select name="role" class="border border-gray-300 rounded px-2 py-1 text-sm bg-white">
 											<option value="student" selected={user.role === 'student'}>Student</option>
-											<option value="instructor" selected={user.role === 'instructor'}>Instructor</option>
+											<option value="teacher" selected={user.role === 'teacher'}>Teacher</option>
 											<option value="admin" selected={user.role === 'admin'}>Admin</option>
 										</select>
 										<button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">

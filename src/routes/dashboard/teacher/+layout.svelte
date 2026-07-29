@@ -7,14 +7,14 @@
 	let { children } = $props();
 
 	const navItems = [
-		{ name: 'Overview', path: '/dashboard/instructor', icon: LayoutDashboard },
-		{ name: 'Courses', path: '/dashboard/instructor/courses', icon: BookOpen },
-		{ name: 'Classes', path: '/dashboard/instructor/classes', icon: Users2 },
-		{ name: 'Students', path: '/dashboard/instructor/students', icon: Users },
-		{ name: 'Certifications', path: '/dashboard/instructor/certifications', icon: Award },
-		{ name: 'Communications', path: '/dashboard/instructor/communications', icon: Mail },
-		{ name: 'Coupons', path: '/dashboard/instructor/coupons', icon: Ticket },
-		{ name: 'Settings', path: '/dashboard/instructor/settings', icon: Settings },
+		{ name: 'Overview', path: '/dashboard/teacher', icon: LayoutDashboard },
+		{ name: 'Courses', path: '/dashboard/teacher/courses', icon: BookOpen },
+		{ name: 'Classes', path: '/dashboard/teacher/classes', icon: Users2 },
+		{ name: 'Students', path: '/dashboard/teacher/students', icon: Users },
+		{ name: 'Certifications', path: '/dashboard/teacher/certifications', icon: Award },
+		{ name: 'Communications', path: '/dashboard/teacher/communications', icon: Mail },
+		{ name: 'Coupons', path: '/dashboard/teacher/coupons', icon: Ticket },
+		{ name: 'Settings', path: '/dashboard/teacher/settings', icon: Settings },
 	];
 
 	async function signOut() {
@@ -30,12 +30,12 @@
 			<a href="/dashboard" class="back-link">
 				<ArrowLeft size={16} /> Exit Admin
 			</a>
-			<h2>Instructor Portal</h2>
+			<h2>Teacher Portal</h2>
 		</div>
 
 		<nav class="sidebar-nav">
 			{#each navItems as item}
-				{@const active = $page.url.pathname === item.path || ($page.url.pathname.startsWith(item.path + '/') && item.path !== '/dashboard/instructor')}
+				{@const active = $page.url.pathname === item.path || ($page.url.pathname.startsWith(item.path + '/') && item.path !== '/dashboard/teacher')}
 				<a href={item.path} class="nav-item" class:active>
 					<item.icon size={18} />
 					<span>{item.name}</span>

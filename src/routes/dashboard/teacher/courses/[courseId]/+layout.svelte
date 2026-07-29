@@ -8,9 +8,9 @@
 	const courseId = $derived($page.params.courseId);
 
 	const tabs = [
-		{ name: 'Curriculum', path: `/dashboard/instructor/courses/${courseId}/curriculum`, icon: LayoutList },
-		{ name: 'Settings & Pricing', path: `/dashboard/instructor/courses/${courseId}/settings`, icon: Settings },
-		{ name: 'Access Control', path: `/dashboard/instructor/courses/${courseId}/access`, icon: Users },
+		{ name: 'Curriculum', path: `/dashboard/teacher/courses/${courseId}/curriculum`, icon: LayoutList },
+		{ name: 'Settings & Pricing', path: `/dashboard/teacher/courses/${courseId}/settings`, icon: Settings },
+		{ name: 'Access Control', path: `/dashboard/teacher/courses/${courseId}/access`, icon: Users },
 	];
 </script>
 
@@ -19,7 +19,7 @@
 	<!-- Top Navbar -->
 	<header class="builder-header">
 		<div class="header-left">
-			<a href="/dashboard/instructor/courses" class="back-btn">
+			<a href="/dashboard/teacher/courses" class="back-btn">
 				<ArrowLeft size={18} />
 				<span>Back to Courses</span>
 			</a>

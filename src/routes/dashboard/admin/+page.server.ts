@@ -71,7 +71,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const role = data.get('role') as string;
 
-		if (role && ['student', 'instructor'].includes(role)) {
+		if (role && ['student', 'teacher'].includes(role)) {
 			// Set a cookie that expires when the browser session ends
 			cookies.set('impersonate_role', role, {
 				path: '/',
