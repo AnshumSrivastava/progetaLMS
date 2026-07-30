@@ -3,7 +3,6 @@ import { Resend } from 'resend';
 import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
 import { APP_NAME } from '$shared/constants';
 import Handlebars from 'handlebars';
-import { generateCertificatePDF } from '../pdf/certificate';
 import { db } from '../db/client';
 import { users } from '../db/schema/identity.schema';
 import { inArray } from 'drizzle-orm';
@@ -137,24 +136,9 @@ export function registerEventHandlers() {
 		
 		const certIdMatch = payload.certUrl.match(/certificates\/([a-z0-9]+)/i);
 		const certId = certIdMatch ? certIdMatch[1].toUpperCase() : 'UNKNOWN';
-		const dateString = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-		
-		let pdfBuffer: Buffer | null = null;
-		try {
-			pdfBuffer = await generateCertificatePDF(
-				payload.studentName || 'Student',
-				payload.className || payload.testName || 'Cybersecurity Foundations',
-				dateString,
-				certId
-			);
-		} catch (err) {
-			console.error("Failed to generate PDF:", err);
-		}
-		
 		if (!RESEND_API_KEY || RESEND_API_KEY.startsWith('re_123456')) {
 			console.log('[LOCAL RESEND] Certificate Mail to:', payload.studentEmail);
 			console.log('[LOCAL RESEND] URL:', payload.certUrl);
-			console.log('[LOCAL RESEND] PDF generated:', !!pdfBuffer);
 			return;
 		}
 
@@ -162,13 +146,7 @@ export function registerEventHandlers() {
 			from: RESEND_FROM_ADDRESS,
 			to: payload.studentEmail,
 			subject: `Your Certificate is Ready!`,
-			html,
-			attachments: pdfBuffer ? [
-				{
-					filename: `${payload.studentName?.replace(/\s+/g, '_') || 'Student'}_Certificate.pdf`,
-					content: pdfBuffer
-				}
-			] : undefined
+			html
 		});
 	});
 

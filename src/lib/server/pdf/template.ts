@@ -3,7 +3,6 @@ export function getCertificateSVG(
 	testName: string, 
 	date: string, 
 	certId: string,
-	logoBase64: string,
 	qrCodeBase64: string
 ): string {
 	const words = testName.split(' ');
@@ -70,7 +69,7 @@ export function getCertificateSVG(
 			<!-- Powered By -->
 			<g transform="translate(860, 95) scale(1.6)">
 				<text x="-5" y="-4" font-size="9" font-weight="700" class="text-slate" text-anchor="end" letter-spacing="1" font-family="Outfit-Bold">POWERED BY</text>
-				<image href="${logoBase64}" x="5" y="-20" width="100" height="26" opacity="0.7" style="mix-blend-mode: multiply;" preserveAspectRatio="xMidYMid meet" />
+				<image href="/progeta-logo.png" x="5" y="-20" width="100" height="26" opacity="0.7" style="mix-blend-mode: multiply;" preserveAspectRatio="xMidYMid meet" />
 			</g>
 
 			<!-- Left Text Details -->

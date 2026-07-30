@@ -25,9 +25,7 @@
 		"@types/dompurify": "^3.0.5",
 		"@types/handlebars": "^4.0.40",
 		"@types/node": "^26.1.1",
-		"@types/pdfkit": "^0.17.6",
 		"@types/qrcode": "^1.5.6",
-		"@types/svg-to-pdfkit": "^0.1.4",
 		"@typescript-eslint/eslint-plugin": "^8.65.0",
 		"@typescript-eslint/parser": "^8.65.0",
 		"dotenv": "^17.4.2",
@@ -44,7 +42,8 @@
 		"tailwindcss": "^4.3.3",
 		"tsx": "^4.23.1",
 		"typescript": "^6.0.3",
-		"vite": "^8.0.16"
+		"vite": "^8.0.16",
+		"vite-plugin-node-polyfills": "^0.28.0"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1095.0",
@@ -62,11 +61,9 @@
 		"lucide-svelte": "^1.0.1",
 		"marked": "^18.0.7",
 		"pdf-lib": "^1.17.1",
-		"pdfkit": "^0.19.1",
 		"qrcode": "^1.5.4",
 		"resend": "^6.18.0",
 		"slugify": "^1.6.9",
-		"svg-to-pdfkit": "^0.1.8",
 		"tailwind-variants": "^3.2.2",
 		"zod": "^4.4.3"
 	},

@@ -1,0 +1,145 @@
+npm notice run progetalms@0.0.1 npx
+npm notice run 'wrangler' pages dev .svelte-kit/cloudflare --port 8788
+
+ ⛅️ wrangler 4.116.0
+────────────────────
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mThe package "node:fs/promises" wasn't found on the file system but is built into node.[0m
+
+  Your Worker may throw errors at runtime unless you enable the "nodejs_compat" compatibility flag. Refer to [4mhttps://developers.cloudflare.com/workers/runtime-apis/nodejs/[0m for more details. Imported from:
+   - ../output/server/entries/endpoints/uploads/_...path_/_server.ts.js
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1m						The package "node:async_hooks" wasn't found on the file system but is built into node.[0m
+
+  						Your Worker may throw errors at runtime unless you enable the "nodejs_compat" compatibility flag. Refer to [4mhttps://developers.cloudflare.com/workers/runtime-apis/nodejs/[0m for more details. Imported from:
+  						 - ../../node_modules/@sveltejs/kit/src/exports/internal/event.js
+  - ../output/server/chunks/server.js
+  - ../../node_modules/@better-auth/core/dist/async_hooks/index.mjs
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1m						The package "node:crypto" wasn't found on the file system but is built into node.[0m
+
+  						Your Worker may throw errors at runtime unless you enable the "nodejs_compat" compatibility flag. Refer to [4mhttps://developers.cloudflare.com/workers/runtime-apis/nodejs/[0m for more details. Imported from:
+  						 - ../output/server/entries/endpoints/api/progress/_server.ts.js
+  - ../output/server/entries/endpoints/api/assessments/submit/_server.ts.js
+  - ../output/server/entries/pages/dashboard/_page.server.ts.js
+  - ../output/server/entries/pages/dashboard/teacher/communications/_page.server.ts.js
+  - ../output/server/entries/pages/dashboard/admin/users/_page.server.ts.js
+  - ../output/server/chunks/OrderService.js
+  - ../../node_modules/@better-auth/utils/dist/password.node.mjs
+
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mThe package "node:path" wasn't found on the file system but is built into node.[0m
+
+  Your Worker may throw errors at runtime unless you enable the "nodejs_compat" compatibility flag. Refer to [4mhttps://developers.cloudflare.com/workers/runtime-apis/nodejs/[0m for more details. Imported from:
+   - ../output/server/entries/endpoints/uploads/_...path_/_server.ts.js
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mBuild failed with 11 errors:[0m
+
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "buffer"[0m
+  
+      ../output/server/chunks/certificate.js:3:23:
+  [37m      3 │ import { Buffer } from [32m"buffer"[37m;
+          ╵                        [32m~~~~~~~~[0m
+  
+    The package "buffer" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "fs"[0m
+  
+      ../output/server/entries/pages/certificates/_id_/_page.server.ts.js:7:15:
+  [37m      7 │ import fs from [32m"fs"[37m;
+          ╵                [32m~~~~[0m
+  
+    The package "fs" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "path"[0m
+  
+      ../output/server/entries/pages/certificates/_id_/_page.server.ts.js:8:17:
+  [37m      8 │ import path from [32m"path"[37m;
+          ╵                  [32m~~~~~~[0m
+  
+    The package "path" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "assert"[0m
+  
+      ../../node_modules/browserify-zlib/lib/binding.js:4:21:
+  [37m      4 │ var assert = require([32m'assert'[37m);
+          ╵                      [32m~~~~~~~~[0m
+  
+    The package "assert" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "buffer"[0m
+  
+      ../../node_modules/browserify-zlib/lib/index.js:3:21:
+  [37m      3 │ var Buffer = require([32m'buffer'[37m).Buffer;
+          ╵                      [32m~~~~~~~~[0m
+  
+    The package "buffer" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "stream"[0m
+  
+      ../../node_modules/browserify-zlib/lib/index.js:4:24:
+  [37m      4 │ var Transform = require([32m'stream'[37m).Transform;
+          ╵                         [32m~~~~~~~~[0m
+  
+    The package "stream" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "util"[0m
+  
+      ../../node_modules/browserify-zlib/lib/index.js:6:19:
+  [37m      6 │ var util = require([32m'util'[37m);
+          ╵                    [32m~~~~~~[0m
+  
+    The package "util" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "assert"[0m
+  
+      ../../node_modules/browserify-zlib/lib/index.js:7:21:
+  [37m      7 │ var assert = require([32m'assert'[37m).ok;
+          ╵                      [32m~~~~~~~~[0m
+  
+    The package "assert" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "stream"[0m
+  
+      ../../node_modules/pdfkit/js/pdfkit.es.js:1:19:
+  [37m      1 │ import stream from [32m'stream'[37m;
+          ╵                    [32m~~~~~~~~[0m
+  
+    The package "stream" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "zlib"[0m
+  
+      ../../node_modules/pdfkit/js/pdfkit.es.js:2:17:
+  [37m      2 │ import zlib from [32m'zlib'[37m;
+          ╵                  [32m~~~~~~[0m
+  
+    The package "zlib" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+  [31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mCould not resolve "fs"[0m
+  
+      ../../node_modules/pdfkit/js/pdfkit.es.js:7:15:
+  [37m      7 │ import fs from [32m'fs'[37m;
+          ╵                [32m~~~~[0m
+  
+    The package "fs" wasn't found on the file system but is built into node. Are you trying to bundle for node? You can use "platform: 'node'" to do that, which will remove this error.
+  
+  
+
+
+
+[31m✘ [41;31m[[41;97mERROR[41;31m][0m [1mFailed to build _worker.js.[0m
+
+
+🪵  Logs were written to "/home/ducus/.config/.wrangler/logs/wrangler-2026-07-30_18-07-48_746.log"
