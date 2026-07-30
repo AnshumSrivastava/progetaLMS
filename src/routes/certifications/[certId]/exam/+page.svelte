@@ -27,12 +27,10 @@
 				})
 			});
 			const result = await res.json();
-			if (result.success && result.certificateId) {
-				// The QuizEngine automatically handles the "Assessment Submitted" screen.
-				// The email with the cert link is sent asynchronously by the backend outbox.
-			}
+			return result;
 		} catch (e) {
 			console.error('Failed to submit quiz', e);
+			return { error: 'Failed to submit' };
 		}
 	}
 </script>
@@ -47,7 +45,7 @@
 			</div>
 		</div>
 	{:else}
-		<QuizEngine questions={data.parsedContent} testId={data.testId} onsubmit={handleQuizSubmit} />
+		<QuizEngine questions={data.parsedContent} testId={data.testId} maxAttempts={data.maxAttempts} attemptsTaken={data.attemptsTaken} onsubmit={handleQuizSubmit} />
 	{/if}
 </div>
 

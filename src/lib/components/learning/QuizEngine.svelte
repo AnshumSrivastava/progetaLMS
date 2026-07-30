@@ -1,11 +1,15 @@
 <script lang="ts">
 	export let questions: { id: string; question: string; options: string[]; answer?: string }[] = [];
 	export let testId: string = '';
-	export let onsubmit: ((answers: Record<string, string>) => void) | undefined = undefined;
+	export let onsubmit: ((answers: Record<string, string>) => Promise<any> | void) | undefined = undefined;
+	export let maxAttempts: number | null = null;
+	export let attemptsTaken: number = 0;
 
 	let currentQuestionIndex = 0;
 	let answers: Record<string, string> = {};
 	let isSubmitted = false;
+	let isSubmitting = false;
+	let submitResult: any = null;
 	let transitioning = false;
 
 	const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -31,13 +35,26 @@
 		transitioning = false;
 	}
 
-	function submitQuiz() {
+	async function submitQuiz() {
 		if (answeredCount >= questions.length) {
 			isSubmitted = true;
 			if (onsubmit) {
-				onsubmit(answers);
+				isSubmitting = true;
+				submitResult = await onsubmit(answers);
+				isSubmitting = false;
+				if (submitResult && submitResult.success) {
+					attemptsTaken++;
+				}
 			}
 		}
+	}
+
+	function handleReattempt() {
+		currentQuestionIndex = 0;
+		answers = {};
+		isSubmitted = false;
+		submitResult = null;
+		transitioning = false;
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -100,32 +117,84 @@
 	{#if isSubmitted}
 		<!-- ── COMPLETION SCREEN ─────────────────────── -->
 		<div class="done-screen">
-			<div class="done-icon">
-				<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="20 6 9 17 4 12"></polyline>
-				</svg>
-			</div>
-			<h2 class="done-title">Assessment Submitted</h2>
-			<p class="done-subtitle">Your answers have been recorded. Results will be available shortly.</p>
+			{#if isSubmitting}
+				<div class="done-icon" style="color: var(--text-muted); background: var(--bg-elevated); border: 2px solid var(--border);">
+					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="animate-spin" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="12" y1="2" x2="12" y2="6"></line>
+						<line x1="12" y1="18" x2="12" y2="22"></line>
+						<line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+						<line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+						<line x1="2" y1="12" x2="6" y2="12"></line>
+						<line x1="18" y1="12" x2="22" y2="12"></line>
+						<line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+						<line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+					</svg>
+				</div>
+				<h2 class="done-title">Grading Assessment...</h2>
+				<p class="done-subtitle">Please wait while your answers are evaluated.</p>
+			{:else if submitResult?.success}
+				{#if submitResult.passed}
+					<div class="done-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;">
+						<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+							<polyline points="20 6 9 17 4 12"></polyline>
+						</svg>
+					</div>
+					<h2 class="done-title">Congratulations! You Passed</h2>
+					<p class="done-subtitle">Your certificate has been issued and will be emailed to you as a PDF.</p>
+				{:else}
+					<div class="done-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+						<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="10"></circle>
+							<line x1="15" y1="9" x2="9" y2="15"></line>
+							<line x1="9" y1="9" x2="15" y2="15"></line>
+						</svg>
+					</div>
+					<h2 class="done-title">You Did Not Pass</h2>
+					<p class="done-subtitle">Keep studying and try again!</p>
+				{/if}
 
-			<div class="done-stats">
-				<div class="done-stat">
-					<div class="done-stat-num">{questions.length}</div>
-					<div class="done-stat-lbl">Questions</div>
+				<div class="done-stats">
+					<div class="done-stat">
+						<div class="done-stat-num">{submitResult.score}</div>
+						<div class="done-stat-lbl">Score / {submitResult.maxScore}</div>
+					</div>
+					<div class="done-divider"></div>
+					<div class="done-stat">
+						<div class="done-stat-num accent">{Math.round(submitResult.percent)}%</div>
+						<div class="done-stat-lbl">Percentage</div>
+					</div>
 				</div>
-				<div class="done-divider"></div>
-				<div class="done-stat">
-					<div class="done-stat-num accent">{answeredCount}</div>
-					<div class="done-stat-lbl">Answered</div>
-				</div>
-				<div class="done-divider"></div>
-				<div class="done-stat">
-					<div class="done-stat-num accent">{Math.round((answeredCount / questions.length) * 100)}%</div>
-					<div class="done-stat-lbl">Completion</div>
-				</div>
-			</div>
 
-			<a href="/dashboard" class="done-btn">Return to Dashboard</a>
+				<div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+					<a href="/dashboard" class="done-btn outline">Return to Dashboard</a>
+					{#if submitResult.passed && submitResult.certificateId}
+						<a href="/certificates/{submitResult.certificateId}.pdf" target="_blank" class="done-btn">Download Certificate</a>
+					{:else if !submitResult.passed}
+						{#if maxAttempts === null || attemptsTaken < maxAttempts}
+							<button type="button" class="done-btn" onclick={handleReattempt}>Reattempt Exam</button>
+						{:else}
+							<div style="width: 100%; text-align: center; margin-top: 12px; font-size: 0.9rem; color: var(--text-muted);">
+								You have reached the maximum number of attempts.
+							</div>
+						{/if}
+					{/if}
+				</div>
+			{:else}
+				<div class="done-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+					<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<circle cx="12" cy="12" r="10"></circle>
+						<line x1="12" y1="8" x2="12" y2="12"></line>
+						<line x1="12" y1="16" x2="12.01" y2="16"></line>
+					</svg>
+				</div>
+				<h2 class="done-title">Error Submitting</h2>
+				<p class="done-subtitle">{submitResult?.error || 'An unexpected error occurred while grading.'}</p>
+				
+				<div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
+					<button type="button" class="done-btn outline" onclick={() => isSubmitted = false}>Back to Quiz</button>
+					<button type="button" class="done-btn" onclick={submitQuiz}>Retry Submission</button>
+				</div>
+			{/if}
 		</div>
 
 	{:else}
@@ -365,12 +434,30 @@
 		font-weight: 600;
 		font-size: 1rem;
 		padding: 14px 36px;
+		border: none;
 		border-radius: 10px;
 		text-decoration: none;
+		cursor: pointer;
 		transition: background 0.18s, transform 0.1s;
 	}
-	.done-btn:hover { background: var(--accent-hover); }
+	.done-btn.outline {
+		background: transparent;
+		color: var(--text-primary);
+		border: 1px solid var(--border-strong);
+	}
+	.done-btn.outline:hover {
+		background: var(--bg-elevated);
+	}
+	.done-btn:hover:not(.outline) { background: var(--accent-hover); }
 	.done-btn:active { transform: scale(0.97); }
+
+	.animate-spin {
+		animation: spin 1s linear infinite;
+	}
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
 
 	/* ── Quiz Body ── */
 	.quiz-body-inner {

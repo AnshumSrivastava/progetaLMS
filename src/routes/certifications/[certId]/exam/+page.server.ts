@@ -94,6 +94,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		cert,
 		testId: test.id,
-		parsedContent
+		parsedContent,
+		maxAttempts: test.maxAttempts,
+		attemptsTaken: existingAttempts.length
 	};
 };
