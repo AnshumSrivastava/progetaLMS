@@ -80,8 +80,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Enforce Admin password change (ignore if impersonating so we don't break their testing)
 	if (session && !event.locals.isImpersonating) {
 		const [freshUser] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-		if (freshUser?.mustChangePassword && !path.startsWith('/dashboard/change-password') && !path.startsWith('/api/auth')) {
+		
+		if (freshUser?.mustChangePassword && !path.startsWith('/dashboard/change-password') && !path.startsWith('/api/auth') && !path.startsWith('/onboarding')) {
 			throw redirect(302, '/dashboard/change-password');
+		}
+
+		// Enforce setting a name if missing (common for OTP logins)
+		if ((!freshUser?.name || freshUser.name.trim() === '') && !path.startsWith('/onboarding') && !path.startsWith('/api/auth') && !path.startsWith('/dashboard/change-password')) {
+			throw redirect(302, '/onboarding');
 		}
 	}
 	

@@ -44,6 +44,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	updateProfile: async ({ request, locals }) => {
+		if (!locals.user) return fail(401, { error: 'Unauthorized' });
+		
+		const data = await request.formData();
+		const name = data.get('name') as string;
+		
+		if (!name || name.trim() === '') {
+			return fail(400, { error: 'Name cannot be empty.' });
+		}
+		
+		try {
+			await db.update(users).set({ name: name.trim() }).where(eq(users.id, locals.user.id));
+			return { success: true, message: 'Profile updated successfully.' };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update profile.' });
+		}
+	},
+
 	updatePreference: async ({ request, locals }) => {
 		if (!locals.user) return fail(401, { error: 'Unauthorized' });
 		
