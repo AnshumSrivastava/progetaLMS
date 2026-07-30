@@ -4,7 +4,7 @@
  * Handles persistence of domain events to the transactional outbox table.
  * Events are always written within the same DB transaction as the state change.
  */
-import { eq, isNull, sql } from 'drizzle-orm';
+import { eq, isNull, sql, and, lt } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import { eventOutbox, type NewEventOutboxRecord, type EventOutboxRecord } from '../db/schema/outbox.schema';
 import type { DomainEvent } from '$shared/types/events';
@@ -36,7 +36,7 @@ export class OutboxRepository {
 		return this.db
 			.select()
 			.from(eventOutbox)
-			.where(isNull(eventOutbox.processedAt))
+			.where(and(isNull(eventOutbox.processedAt), lt(eventOutbox.attempts, 5)))
 			.orderBy(eventOutbox.createdAt)
 			.limit(limit);
 	}
