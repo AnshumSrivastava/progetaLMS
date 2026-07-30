@@ -9,9 +9,6 @@
 	let currentPreference = data.profile?.loginPreference || 'otp';
 	let role = (data.user as any).role;
 	
-	let currentPreference = data.profile?.loginPreference || 'otp';
-	let role = (data.user as any).role;
-	
 	// Start on profile for all users
 	let activeTab = 'profile';
 </script>
@@ -30,13 +27,6 @@
 			</h2>
 			
 			<nav class="flex flex-col gap-2">
-				<button 
-					class="text-left px-4 py-2 rounded-md font-medium text-sm flex items-center gap-3 transition-colors {activeTab === 'security' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}"
-					onclick={() => activeTab = 'security'}
-				>
-					<Shield size={18} /> Security & Sign in
-				</button>
-				
 				<button 
 					class="text-left px-4 py-2 rounded-md font-medium text-sm flex items-center gap-3 transition-colors {activeTab === 'profile' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}"
 					onclick={() => activeTab = 'profile'}
