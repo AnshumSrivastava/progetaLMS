@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import QRCode from 'qrcode';
 import { env } from '$env/dynamic/public';
 import { getCertificateSVG } from '$lib/server/pdf/template';
+import { Buffer } from 'node:buffer';
 
 export const load: PageServerLoad = async ({ params, url }) => {
 	const certId = params.id;
@@ -21,7 +22,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	// Generate QR Code
 	const baseUrl = env.PUBLIC_APP_URL || url.origin;
 	const verifyUrlFull = `${baseUrl}${certificate.verifyUrl}`;
-	const qrCodeDataUrl = await QRCode.toDataURL(verifyUrlFull, {
+	const qrSvg = await QRCode.toString(verifyUrlFull, {
+		type: 'svg',
 		width: 150,
 		margin: 1,
 		color: {
@@ -29,6 +31,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 			light: '#ffffff'
 		}
 	});
+	
+	// Convert SVG string to base64 data URL to embed in the main SVG template
+	const qrCodeDataUrl = `data:image/svg+xml;base64,${Buffer.from(qrSvg).toString('base64')}`;
 
 	const metadata = (certificate.metadata || {}) as any;
 	const studentName = metadata.studentName || 'Student Name';
