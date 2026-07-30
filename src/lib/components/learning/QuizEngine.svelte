@@ -188,7 +188,7 @@
 				<div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
 					<a href="/dashboard" class="done-btn outline">Return to Dashboard</a>
 					{#if submitResult.passed && submitResult.certificateId}
-						<a href="/certificates/{submitResult.certificateId}.pdf" target="_blank" class="done-btn">Download Certificate</a>
+						<a href="/certificates/{submitResult.certificateId}" target="_blank" class="done-btn">Download Certificate</a>
 					{:else if !submitResult.passed}
 						{#if maxAttempts === null || attemptsTaken < maxAttempts}
 							<button type="button" class="done-btn" onclick={handleReattempt}>Reattempt Exam</button>

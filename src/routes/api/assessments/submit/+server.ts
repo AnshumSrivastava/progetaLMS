@@ -10,7 +10,8 @@ import { randomUUID } from 'node:crypto';
 import { createId } from '@paralleldrive/cuid2';
 import { processOutbox } from '$lib/server/events/outbox.processor';
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async (event) => {
+	const { request, locals, platform } = event;
 	const user = locals.user;
 	if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -152,7 +153,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		if (passed) {
 			// Trigger processor asynchronously to avoid email delay
-			Promise.resolve().then(() => processOutbox(db).catch(e => console.error('Immediate outbox error:', e)));
+			if (platform?.context?.waitUntil) {
+				platform.context.waitUntil(processOutbox(db).catch(e => console.error('Immediate outbox error:', e)));
+			} else {
+				Promise.resolve().then(() => processOutbox(db).catch(e => console.error('Immediate outbox error:', e)));
+			}
 		}
 
 		return json({ success: true, score, maxScore, passed, percent, certificateId });

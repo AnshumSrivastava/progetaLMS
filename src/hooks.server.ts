@@ -47,8 +47,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	await initializeApp();
 
 	// Process outbox in background on every request
-	if (typeof event.waitUntil === 'function') {
-		event.waitUntil(processOutbox(db).catch(e => console.error('Outbox err:', e)));
+	if (event.platform?.context?.waitUntil) {
+		event.platform.context.waitUntil(processOutbox(db).catch(e => console.error('Outbox err:', e)));
+	} else if (typeof (event as any).waitUntil === 'function') {
+		(event as any).waitUntil(processOutbox(db).catch(e => console.error('Outbox err:', e)));
 	} else {
 		processOutbox(db).catch(e => console.error('Outbox err:', e));
 	}

@@ -223,7 +223,7 @@
 								<p>Score: <strong>{cert.metadata.score || 'Pass'}</strong> 
 								</p>
 							</div>
-							<a href={`/certificates/${cert.id}.pdf`} target="_blank" class="action-btn outline" style="text-decoration:none;">Download PDF</a>
+							<a href={`/certificates/${cert.id}`} target="_blank" class="action-btn outline" style="text-decoration:none;">Download PDF</a>
 						</div>
 					{/each}
 
