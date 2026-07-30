@@ -51,37 +51,37 @@ export class OrderService {
 		if (amountPaise === 0) {
 			const orderId = randomUUID();
 			
-			await db.transaction(async (tx) => {
-				await tx.insert(commerceOrders).values({
-					id: orderId,
-					cashfreeOrderId: `FREE_${orderId}`,
-					userId,
-					assetId,
-					amountPaise: 0,
-					discountPaise,
-					couponId: appliedCouponId,
-					status: 'paid',
-					paidAt: new Date(),
-					metadata: cohortId ? { cohortId } : {}
-				});
-				
-				await OrderService.grantAccessTx(tx, orderId, assetId, userId, couponCode ? 'coupon' : 'free');
-				if (cohortId) {
-					await OrderService.grantCohortAccessTx(tx, cohortId, userId);
-				}
-				
-				if (appliedCouponId) {
-					await tx.insert(commerceCouponUses).values({
+			await db.insert(commerceOrders).values({
+				id: orderId,
+				cashfreeOrderId: `FREE_${orderId}`,
+				userId,
+				assetId,
+				amountPaise: 0,
+				discountPaise,
+				couponId: appliedCouponId,
+				status: 'paid',
+				paidAt: new Date(),
+				metadata: cohortId ? { cohortId } : {}
+			});
+			
+			await OrderService.grantAccess(orderId, assetId, userId, couponCode ? 'coupon' : 'free');
+			if (cohortId) {
+				await OrderService.grantCohortAccess(cohortId, userId);
+			}
+			
+			if (appliedCouponId) {
+				await db.batch([
+					db.insert(commerceCouponUses).values({
 						id: randomUUID(),
 						couponId: appliedCouponId,
 						orderId: orderId,
 						userId: userId
-					});
-					await tx.update(commerceCoupons)
+					}),
+					db.update(commerceCoupons)
 						.set({ usesCount: sql`${commerceCoupons.usesCount} + 1` })
-						.where(eq(commerceCoupons.id, appliedCouponId));
-				}
-			});
+						.where(eq(commerceCoupons.id, appliedCouponId))
+				]);
+			}
 			
 			return { 
 				isFree: true, 
@@ -140,38 +140,38 @@ export class OrderService {
 		
 		const isMockMode = (paymentSessionId === 'mock_session_id_no_keys_provided');
 
-		await db.transaction(async (tx) => {
-			await tx.insert(commerceOrders).values({
-				id: internalOrderId,
-				cashfreeOrderId,
-				userId,
-				assetId,
-				amountPaise,
-				discountPaise,
-				couponId: appliedCouponId,
-				status: isMockMode ? 'paid' : 'pending',
-				paidAt: isMockMode ? new Date() : null,
-				metadata: cohortId ? { cohortId } : {}
-			});
+		await db.insert(commerceOrders).values({
+			id: internalOrderId,
+			cashfreeOrderId,
+			userId,
+			assetId,
+			amountPaise,
+			discountPaise,
+			couponId: appliedCouponId,
+			status: isMockMode ? 'paid' : 'pending',
+			paidAt: isMockMode ? new Date() : null,
+			metadata: cohortId ? { cohortId } : {}
+		});
 
-			if (isMockMode) {
-				await OrderService.grantAccessTx(tx, internalOrderId, assetId, userId, 'purchase');
-				if (cohortId) {
-					await OrderService.grantCohortAccessTx(tx, cohortId, userId);
-				}
-				if (appliedCouponId) {
-					await tx.insert(commerceCouponUses).values({
+		if (isMockMode) {
+			await OrderService.grantAccess(internalOrderId, assetId, userId, 'purchase');
+			if (cohortId) {
+				await OrderService.grantCohortAccess(cohortId, userId);
+			}
+			if (appliedCouponId) {
+				await db.batch([
+					db.insert(commerceCouponUses).values({
 						id: randomUUID(),
 						couponId: appliedCouponId,
 						orderId: internalOrderId,
 						userId: userId
-					});
-					await tx.update(commerceCoupons)
+					}),
+					db.update(commerceCoupons)
 						.set({ usesCount: sql`${commerceCoupons.usesCount} + 1` })
-						.where(eq(commerceCoupons.id, appliedCouponId));
-				}
+						.where(eq(commerceCoupons.id, appliedCouponId))
+				]);
 			}
-		});
+		}
 
 		return {
 			isFree: false,
@@ -197,44 +197,48 @@ export class OrderService {
 			return;
 		}
 
-		await db.transaction(async (tx) => {
-			// 1. Mark Order as Paid
-			await tx.update(commerceOrders)
-				.set({ status: 'paid', paidAt: new Date() })
-				.where(eq(commerceOrders.id, order.id));
+		// 1. Grant Access to Asset First (idempotent)
+		await OrderService.grantAccess(order.id, order.assetId, order.userId, 'purchase');
+		
+		const metadata = order.metadata as { cohortId?: string };
+		if (metadata?.cohortId) {
+			await OrderService.grantCohortAccess(metadata.cohortId, order.userId);
+		}
 
-			// 2. Increment Coupon Usage
-			if (order.couponId) {
-				await tx.insert(commerceCouponUses).values({
+		// 2. Increment Coupon Usage and Mark Paid in a batch
+		const batch = [];
+		if (order.couponId) {
+			batch.push(
+				db.insert(commerceCouponUses).values({
 					id: randomUUID(),
 					couponId: order.couponId,
 					orderId: order.id,
 					userId: order.userId
-				});
-				await tx.update(commerceCoupons)
+				})
+			);
+			batch.push(
+				db.update(commerceCoupons)
 					.set({ usesCount: sql`${commerceCoupons.usesCount} + 1` })
-					.where(eq(commerceCoupons.id, order.couponId));
-			}
-
-			// 3. Grant Access to Asset
-			await OrderService.grantAccessTx(tx, order.id, order.assetId, order.userId, 'purchase');
-			
-			const metadata = order.metadata as { cohortId?: string };
-			if (metadata?.cohortId) {
-				await OrderService.grantCohortAccessTx(tx, metadata.cohortId, order.userId);
-			}
-		});
+					.where(eq(commerceCoupons.id, order.couponId))
+			);
+		}
 		
+		batch.push(
+			db.update(commerceOrders)
+				.set({ status: 'paid', paidAt: new Date() })
+				.where(eq(commerceOrders.id, order.id))
+		);
+
+		await db.batch(batch as any);		
 		console.log(`[OrderService] Successfully processed payment and unlocked asset for order ${cashfreeOrderId}`);
 	}
 
-	// Transactional helpers for internal use
-	private static async grantAccessTx(tx: any, orderId: string, assetId: string, userId: string, source: 'purchase' | 'free' | 'coupon') {
-		const [existing] = await tx.select().from(assetOwnership)
+	private static async grantAccess(orderId: string, assetId: string, userId: string, source: 'purchase' | 'free' | 'coupon') {
+		const [existing] = await db.select().from(assetOwnership)
 			.where(and(eq(assetOwnership.assetId, assetId), eq(assetOwnership.ownerId, userId)));
 		
 		if (!existing) {
-			await tx.insert(assetOwnership).values({
+			await db.insert(assetOwnership).values({
 				id: randomUUID(),
 				assetId,
 				ownerId: userId,
@@ -244,26 +248,17 @@ export class OrderService {
 		}
 	}
 
-	private static async grantCohortAccessTx(tx: any, cohortId: string, userId: string) {
-		const [existing] = await tx.select().from(cohortMemberships)
+	private static async grantCohortAccess(cohortId: string, userId: string) {
+		const [existing] = await db.select().from(cohortMemberships)
 			.where(and(eq(cohortMemberships.cohortId, cohortId), eq(cohortMemberships.userId, userId)));
 		
 		if (!existing) {
-			await tx.insert(cohortMemberships).values({
+			await db.insert(cohortMemberships).values({
 				id: randomUUID(),
 				cohortId,
 				userId,
 				role: 'student'
 			});
 		}
-	}
-
-	// Legacy non-transactional methods just in case they are called externally
-	private static async grantAccess(orderId: string, assetId: string, userId: string, source: 'purchase' | 'free' | 'coupon') {
-		return this.grantAccessTx(db, orderId, assetId, userId, source);
-	}
-
-	private static async grantCohortAccess(cohortId: string, userId: string) {
-		return this.grantCohortAccessTx(db, cohortId, userId);
 	}
 }

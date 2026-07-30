@@ -94,23 +94,23 @@ export const actions: Actions = {
 		if (!newOwnerId) return fail(400, { error: 'Missing userId' });
 		
 		try {
-			// Use drizzle's transaction support to ensure atomicity
-			await db.transaction(async (tx) => {
+			// Use drizzle's batch support to ensure atomicity
+			await db.batch([
 				// Demote current owner to admin
-				await tx.update(users).set({ role: 'admin' }).where(eq(users.id, locals.user!.id));
+				db.update(users).set({ role: 'admin' }).where(eq(users.id, locals.user!.id)),
 				// Promote new user to owner
-				await tx.update(users).set({ role: 'owner' }).where(eq(users.id, newOwnerId));
+				db.update(users).set({ role: 'owner' }).where(eq(users.id, newOwnerId)),
 				
 				// Log it
-				await tx.insert(auditLogs).values({
+				db.insert(auditLogs).values({
 					id: createId(),
 					actorId: locals.user!.id,
 					action: 'transfer_ownership',
 					entityId: newOwnerId,
 					entityType: 'user',
 					details: JSON.stringify({ fromOwner: locals.user!.id, toOwner: newOwnerId })
-				});
-			});
+				})
+			]);
 
 			return { success: true };
 		} catch (e: any) {

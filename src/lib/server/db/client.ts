@@ -7,16 +7,16 @@
  * This is a singleton instance. All domain repositories import `db` from here.
  * No repository should create its own connection.
  */
-import { Pool } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import { DATABASE_URL } from '$env/static/private';
 
 // Import all schemas so Drizzle can resolve relations
 import * as schema from './schema/index';
 
-const pool = new Pool({ connectionString: DATABASE_URL });
+const sql = neon(DATABASE_URL);
 
-export const db = drizzle(pool, {
+export const db = drizzle(sql, {
 	schema,
 	logger: process.env.NODE_ENV === 'development'
 });

@@ -81,47 +81,48 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		// Wrap all inserts in a transaction
 		let certificateId = null;
 
-		await db.transaction(async (tx) => {
-			// Save Attempt
-			await tx.insert(assessmentAttempts).values({
-				id: attemptId,
-				testId: test.id,
-				userId: user.id,
-				status: 'evaluated',
-				score,
-				maxScore,
-				passed,
-				startedAt: new Date(),
-				submittedAt: new Date(),
-				evaluatedAt: new Date()
-			});
+		// Run everything sequentially since we don't have interactive transactions on HTTP
+		// Save Attempt
+		await db.insert(assessmentAttempts).values({
+			id: attemptId,
+			testId: test.id,
+			userId: user.id,
+			status: 'evaluated',
+			score,
+			maxScore,
+			passed,
+			startedAt: new Date(),
+			submittedAt: new Date(),
+			evaluatedAt: new Date()
+		});
 
-			if (answerInserts.length > 0) {
-				await tx.insert(assessmentAttemptAnswers).values(answerInserts);
+		if (answerInserts.length > 0) {
+			await db.insert(assessmentAttemptAnswers).values(answerInserts);
+		}
+
+		// Certificate Generation if passed
+		if (passed) {
+			// Find default template
+			let templates = await db.select().from(certificateTemplates).where(eq(certificateTemplates.isActive, true));
+			
+			// If no template exists, create a dummy one for this to work
+			if (templates.length === 0) {
+				const tplId = createId();
+				await db.insert(certificateTemplates).values({
+					id: tplId,
+					name: 'Default Template',
+					htmlContent: '<h1>Certificate of Completion</h1><p>{{studentName}} completed {{testName}} on {{date}}</p>',
+					isActive: true
+				});
+				templates = await db.select().from(certificateTemplates).where(eq(certificateTemplates.id, tplId));
 			}
 
-			// Certificate Generation if passed
-			if (passed) {
-				// Find default template
-				let templates = await tx.select().from(certificateTemplates).where(eq(certificateTemplates.isActive, true));
-				
-				// If no template exists, create a dummy one for this to work
-				if (templates.length === 0) {
-					const tplId = createId();
-					await tx.insert(certificateTemplates).values({
-						id: tplId,
-						name: 'Default Template',
-						htmlContent: '<h1>Certificate of Completion</h1><p>{{studentName}} completed {{testName}} on {{date}}</p>',
-						isActive: true
-					});
-					templates = await tx.select().from(certificateTemplates).where(eq(certificateTemplates.id, tplId));
-				}
+			const [asset] = await db.select().from(assets).where(eq(assets.id, test.assetId));
 
-				const [asset] = await tx.select().from(assets).where(eq(assets.id, test.assetId));
-
-				certificateId = createId();
-				
-				await tx.insert(certificates).values({
+			certificateId = createId();
+			
+			await db.batch([
+				db.insert(certificates).values({
 					id: certificateId,
 					templateId: templates[0].id,
 					testId: test.id,
@@ -134,10 +135,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						score: `${Math.round(percent)}%`,
 						date: new Date().toISOString()
 					}
-				});
-
-				// Queue certificate email via Outbox
-				await tx.insert(eventOutbox).values({
+				}),
+				db.insert(eventOutbox).values({
 					id: randomUUID(),
 					eventType: 'CERTIFICATE_ISSUED',
 					payload: {
@@ -147,9 +146,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						certUrl: `${new URL(request.url).origin}/certificates/${certificateId}`,
 						customTemplate: (asset?.metadata as any)?.certEmailTemplate || null
 					}
-				});
-			}
-		});
+				})
+			]);
+		}
 
 		if (passed) {
 			// Trigger processor asynchronously to avoid email delay
