@@ -9,7 +9,7 @@
 	let { children, data } = $props();
 
 	// Don't show layout elements on specific routes
-	let isAuthRoute = $derived($page.url.pathname.startsWith('/join'));
+	let isAuthRoute = $derived($page.url.pathname.startsWith('/join') || $page.url.pathname === '/');
 </script>
 
 <ToastProvider />

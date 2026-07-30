@@ -87,10 +87,10 @@
 				</button>
 			{:else}
 				<Button variant="ghost" size="sm">
-					<a href="/sign-in" style="color: inherit;">Sign in</a>
+					<a href="/" style="color: inherit;">Sign in</a>
 				</Button>
 				<Button variant="primary" size="sm">
-					<a href="/sign-in" style="color: inherit;">Get started</a>
+					<a href="/" style="color: inherit;">Get started</a>
 				</Button>
 			{/if}
 		</div>
@@ -132,8 +132,8 @@
 				<a href="/dashboard" onclick={() => (menuOpen = false)} style="flex: 1; display: flex; align-items: center; justify-content: center; height: 40px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Dashboard</a>
 				<button onclick={handleSignOut} style="flex: 1; height: 40px; background: var(--text-primary); color: var(--bg); border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; font-family: inherit;">Sign out</button>
 			{:else}
-				<a href="/sign-in" style="flex: 1; display: flex; align-items: center; justify-content: center; height: 40px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Sign in</a>
-				<a href="/sign-in" style="flex: 1; display: flex; align-items: center; justify-content: center; height: 40px; background: var(--text-primary); color: var(--bg); border-radius: 6px; font-size: 0.875rem; font-weight: 500;">Get started</a>
+				<a href="/" style="flex: 1; display: flex; align-items: center; justify-content: center; height: 40px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: var(--text-primary);">Sign in</a>
+				<a href="/" style="flex: 1; display: flex; align-items: center; justify-content: center; height: 40px; background: var(--text-primary); color: var(--bg); border-radius: 6px; font-size: 0.875rem; font-weight: 500;">Get started</a>
 			{/if}
 		</div>
 	</div>
