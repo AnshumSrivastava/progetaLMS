@@ -20,6 +20,7 @@
 	let selectedCertDuration = $state(120);
 	let selectedCertQuestions = $state(80);
 	let selectedCertProctored = $state(true);
+	let selectedCertTags = $state('');
 	let isSubmitting = $state(false);
 </script>
 
@@ -132,6 +133,11 @@
 				<p>Configure dynamic content for the certification page.</p>
 				<input type="hidden" name="certId" value={selectedCertId} />
 				
+				<div style="margin-bottom: 1rem;">
+					<label style="display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 500;">Tags (comma separated)</label>
+					<input type="text" name="tags" class="modal-input" style="margin-bottom: 0;" placeholder="e.g. Advanced, Security, Certified" bind:value={selectedCertTags} />
+				</div>
+				
 				<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1rem;">
 					<div>
 						<label style="display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 500;">Duration (mins)</label>
@@ -204,6 +210,7 @@
 									selectedCertDuration = cert.duration;
 									selectedCertQuestions = cert.questions;
 									selectedCertProctored = cert.isProctored;
+									selectedCertTags = cert.tags;
 									showSettingsModal = true;
 								}}>
 									<Settings size={16} /> Settings

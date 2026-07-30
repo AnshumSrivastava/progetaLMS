@@ -41,7 +41,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			rules: (c.metadata as any)?.rules?.join('\n') || '',
 			duration: (c.metadata as any)?.duration || 120,
 			questions: (c.metadata as any)?.questions || 80,
-			isProctored: (c.metadata as any)?.isProctored !== false
+			isProctored: (c.metadata as any)?.isProctored !== false,
+			tags: (c.metadata as any)?.tags?.join(', ') || ''
 		};
 	});
 
@@ -171,6 +172,7 @@ export const actions: Actions = {
 		const duration = parseInt(data.get('duration') as string) || 120;
 		const questions = parseInt(data.get('questions') as string) || 80;
 		const isProctored = data.get('isProctored') === 'true';
+		const tagsRaw = data.get('tags') as string || '';
 
 		try {
 			const [cert] = await db.select().from(assets)
@@ -179,6 +181,7 @@ export const actions: Actions = {
 
 			const syllabus = syllabusRaw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
 			const rules = rulesRaw.split('\n').map(r => r.trim()).filter(r => r.length > 0);
+			const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t.length > 0);
 
 			const newMetadata = {
 				...((cert.metadata as any) || {}),
@@ -186,7 +189,8 @@ export const actions: Actions = {
 				rules,
 				duration,
 				questions,
-				isProctored
+				isProctored,
+				tags
 			};
 
 			// Update asset metadata

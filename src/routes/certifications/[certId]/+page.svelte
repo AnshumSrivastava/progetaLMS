@@ -17,8 +17,12 @@
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
 				Back to Certifications
 			</a>
-			<div class="badge">{data.cert.metadata?.level || 'Advanced'}</div>
 			<h1>{data.cert.title}</h1>
+			<div class="tags-row">
+				{#each (data.cert.metadata?.tags || ['Advanced']) as tag}
+					<div class="badge">{tag}</div>
+				{/each}
+			</div>
 			<p class="desc">{data.cert.description}</p>
 			
 			<div class="meta-stats">
@@ -108,6 +112,12 @@
 	.back-link:hover {
 		color: var(--text-primary);
 	}
+	.tags-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 1.5rem;
+	}
 	.badge {
 		display: inline-block;
 		background: var(--accent-muted);
@@ -118,7 +128,6 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		margin-bottom: 1rem;
 	}
 	.cert-header h1 {
 		font-size: 2.5rem;
