@@ -2,84 +2,83 @@ import { eventBus } from './event-bus';
 import { Resend } from 'resend';
 import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
 import { APP_NAME } from '$shared/constants';
-import Handlebars from 'handlebars';
 import { db } from '../db/client';
 import { users } from '../db/schema/identity.schema';
 import { inArray } from 'drizzle-orm';
 
 const resend = new Resend(RESEND_API_KEY);
 
-const resourceTemplate = Handlebars.compile(`
+const resourceTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">
-	<h2>Welcome to {{className}}</h2>
-	<p>Hi {{studentName}},</p>
+	<h2>Welcome to ${payload.className}</h2>
+	<p>Hi ${payload.studentName},</p>
 	<p>Here are the resources for your class:</p>
-	<a href="{{courseUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+	<a href="${payload.courseUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
 		Access Course Material
 	</a>
 	<p>You can view these HTML pages and save them as PDFs from your browser.</p>
 </div>
-`);
+`;
 
-const examTemplate = Handlebars.compile(`
+const examTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">
 	<h2>Your Certification Exam is Ready!</h2>
-	<p>Hi {{studentName}},</p>
-	<p>You have been selected to take the certification exam for {{className}}.</p>
+	<p>Hi ${payload.studentName},</p>
+	<p>You have been selected to take the certification exam for ${payload.className}.</p>
 	<p>We've included a coupon code that grants you 100% off the exam fee:</p>
 	<div style="background:#f5f5f5;padding:16px;font-size:24px;font-weight:bold;letter-spacing:4px;text-align:center">
-		{{couponCode}}
+		${payload.couponCode}
 	</div>
 	<br>
-	<a href="{{examUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+	<a href="${payload.examUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
 		Start Exam
 	</a>
 </div>
-`);
+`;
 
-const certTemplate = Handlebars.compile(`
+const certTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">
-	<h2>Congratulations, {{studentName}}!</h2>
+	<h2>Congratulations, ${payload.studentName}!</h2>
 	<p>You have successfully passed your assessment.</p>
 	<p>Your verified digital certificate is now available.</p>
-	<a href="{{certUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+	<a href="${payload.certUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
 		View Certificate
 	</a>
 </div>
-`);
+`;
 
-const joinTemplate = Handlebars.compile(`
+const joinTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">
-	<h2>Welcome to {{className}}!</h2>
-	<p>Hi {{studentName}},</p>
+	<h2>Welcome to ${payload.className}!</h2>
+	<p>Hi ${payload.studentName},</p>
 	<p>You've been invited to join our upcoming class.</p>
-	<a href="{{joinUrl}}" style="display:inline-block;padding:10px 20px;background:#10b981;color:white;text-decoration:none;border-radius:4px">
+	<a href="${payload.joinUrl}" style="display:inline-block;padding:10px 20px;background:#10b981;color:white;text-decoration:none;border-radius:4px">
 		Accept Invitation
 	</a>
 </div>
-`);
+`;
 
-const welcomeTemplate = Handlebars.compile(`
+const welcomeTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">
 	<h2>Welcome to ${APP_NAME}!</h2>
-	<p>Hi {{studentName}},</p>
+	<p>Hi ${payload.studentName},</p>
 	<p>We are excited to have you on board. Start exploring courses and certifications today.</p>
-	<a href="{{loginUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+	<a href="${payload.loginUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
 		Log In
 	</a>
 </div>
-`);
+`;
 
-const enrollmentTemplate = Handlebars.compile(`
+const enrollmentTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">
 	<h2>Enrollment Confirmed</h2>
-	<p>Hi {{studentName}},</p>
-	<p>You have successfully enrolled in <strong>{{courseName}}</strong>.</p>
-	<a href="{{courseUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+	<p>Hi ${payload.studentName},</p>
+	<p>You have successfully enrolled in <strong>${payload.courseName}</strong>.</p>
+	<a href="${payload.courseUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
 		Start Learning
 	</a>
 </div>
-`);
+`;
 
 export function registerEventHandlers() {
 	eventBus.clear();
@@ -120,16 +119,16 @@ export function registerEventHandlers() {
 	eventBus.on('CERTIFICATE_ISSUED', async (payload: any, meta) => {
 		let html = '';
 		if (payload.customTemplate) {
-			const customCompiled = Handlebars.compile(`
+			const safeCustomTemplate = payload.customTemplate.replace(/\n/g, '<br>');
+			html = `
 <div style="font-family:system-ui,sans-serif;padding:32px">
-	${payload.customTemplate.replace(/\n/g, '<br>')}
+	${safeCustomTemplate}
 	<br><br>
-	<a href="{{certUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
+	<a href="${payload.certUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:4px">
 		View Certificate
 	</a>
 </div>
-`);
-			html = customCompiled(payload);
+`;
 		} else {
 			html = certTemplate(payload);
 		}
