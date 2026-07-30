@@ -1,6 +1,5 @@
 <script lang="ts">
 	export let questions: { id: string; question: string; options: string[]; answer?: string }[] = [];
-	export let testId: string = '';
 	export let onsubmit: ((answers: Record<string, string>) => Promise<any> | void) | undefined = undefined;
 	export let maxAttempts: number | null = null;
 	export let attemptsTaken: number = 0;

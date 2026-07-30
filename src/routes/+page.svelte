@@ -13,9 +13,6 @@
 	let otp     = $state('');
 	let error   = $state('');
 	let sending = $state(false);
-	
-	let sending = $state(false);
-
 	async function handleGoogleSignIn() {
 		step = 'loading';
 		await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
