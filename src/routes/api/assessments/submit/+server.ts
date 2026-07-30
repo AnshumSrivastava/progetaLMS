@@ -5,7 +5,7 @@ import { assessmentTests, assessmentAttempts, assessmentAttemptAnswers, assessme
 import { certificates, certificateTemplates } from '$lib/server/db/schema/certificates.schema';
 import { assets } from '$lib/server/db/schema/assets.schema';
 import { eventOutbox } from '$lib/server/db/schema/outbox.schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { createId } from '@paralleldrive/cuid2';
 
