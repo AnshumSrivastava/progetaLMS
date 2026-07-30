@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Award, Plus, FileText, LayoutList, Tag, Power, Trash2 } from 'lucide-svelte';
+	import { Award, Plus, FileText, LayoutList, Tag, Power, Trash2, Settings } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -10,10 +10,16 @@
 	let showCreateModal = $state(false);
 	let showPriceModal = $state(false);
 	let showEmailModal = $state(false);
+	let showSettingsModal = $state(false);
 	let selectedCertId = $state('');
 	let selectedCertPrice = $state(0);
 	let selectedCertCurrency = $state('INR');
 	let selectedCertEmailTemplate = $state('');
+	let selectedCertSyllabus = $state('');
+	let selectedCertRules = $state('');
+	let selectedCertDuration = $state(120);
+	let selectedCertQuestions = $state(80);
+	let selectedCertProctored = $state(true);
 	let isSubmitting = $state(false);
 </script>
 
@@ -112,6 +118,56 @@
 		</div>
 	{/if}
 
+	{#if showSettingsModal}
+		<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showSettingsModal = false; }}>
+			<form class="modal-content" method="POST" action="?/updateSettings" style="max-width: 650px;" use:enhance={() => {
+				isSubmitting = true;
+				return async ({ update }) => {
+					await update();
+					isSubmitting = false;
+					showSettingsModal = false;
+				};
+			}}>
+				<h3>Certification Settings</h3>
+				<p>Configure dynamic content for the certification page.</p>
+				<input type="hidden" name="certId" value={selectedCertId} />
+				
+				<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1rem;">
+					<div>
+						<label style="display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 500;">Duration (mins)</label>
+						<input type="number" name="duration" class="modal-input" style="margin-bottom: 0;" min="1" required bind:value={selectedCertDuration} />
+					</div>
+					<div>
+						<label style="display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 500;">Total Questions</label>
+						<input type="number" name="questions" class="modal-input" style="margin-bottom: 0;" min="1" required bind:value={selectedCertQuestions} />
+					</div>
+				</div>
+
+				<div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+					<input type="checkbox" name="isProctored" id="proctored-checkbox" value="true" checked={selectedCertProctored} onchange={(e) => selectedCertProctored = (e.target as HTMLInputElement).checked} style="width: 18px; height: 18px;" />
+					<label for="proctored-checkbox" style="font-weight: 500; cursor: pointer;">This is a proctored exam</label>
+				</div>
+
+				<div style="margin-bottom: 1rem;">
+					<label style="display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 500;">Exam Syllabus (one topic per line)</label>
+					<textarea name="syllabus" class="modal-input" style="min-height: 100px; margin-bottom: 0;" placeholder="Frontend Architecture (20%)&#10;Backend APIs (30%)" bind:value={selectedCertSyllabus}></textarea>
+				</div>
+
+				<div style="margin-bottom: 1.5rem;">
+					<label style="display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 500;">Rules & Conditions (one rule per line)</label>
+					<textarea name="rules" class="modal-input" style="min-height: 100px; margin-bottom: 0;" placeholder="Webcam and microphone must be enabled.&#10;No external monitors allowed." bind:value={selectedCertRules}></textarea>
+				</div>
+
+				<div class="modal-actions">
+					<button type="button" class="action-btn" onclick={() => showSettingsModal = false}>Cancel</button>
+					<button type="submit" class="create-btn" disabled={isSubmitting}>
+						{isSubmitting ? 'Saving...' : 'Save Settings'}
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
 	<div class="table-container">
 		<table class="data-table">
 			<thead>
@@ -141,6 +197,17 @@
 								<a href="/dashboard/teacher/certifications/{cert.id}/questions" class="icon-btn" title="Manage Questions">
 									<LayoutList size={16} /> Edit
 								</a>
+								<button class="icon-btn" title="Edit Settings" onclick={() => {
+									selectedCertId = cert.id;
+									selectedCertSyllabus = cert.syllabus;
+									selectedCertRules = cert.rules;
+									selectedCertDuration = cert.duration;
+									selectedCertQuestions = cert.questions;
+									selectedCertProctored = cert.isProctored;
+									showSettingsModal = true;
+								}}>
+									<Settings size={16} /> Settings
+								</button>
 								<button class="icon-btn" title="Edit Price" onclick={() => {
 									selectedCertId = cert.id;
 									selectedCertCurrency = cert.rawCurrency;

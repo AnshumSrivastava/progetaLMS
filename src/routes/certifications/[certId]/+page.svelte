@@ -22,33 +22,41 @@
 			<p class="desc">{data.cert.description}</p>
 			
 			<div class="meta-stats">
-				<div class="stat"><Clock size={18} /> {data.cert.metadata?.duration || '120 min'}</div>
+				<div class="stat"><Clock size={18} /> {data.cert.metadata?.duration || 120} min</div>
 				<div class="stat"><BookOpen size={18} /> {data.cert.metadata?.questions || 80} Questions</div>
-				<div class="stat"><ShieldCheck size={18} /> Proctored</div>
+				{#if data.cert.metadata?.isProctored !== false}
+					<div class="stat"><ShieldCheck size={18} /> Proctored</div>
+				{/if}
 			</div>
 		</div>
 	</div>
 
 	<div class="container content-grid">
 		<div class="main-column">
-			<section class="info-section">
-				<h2>Exam Syllabus</h2>
-				<ul class="syllabus-list">
-					{#each (data.cert.metadata?.syllabus || ['Frontend Architecture & Frameworks (20%)', 'Backend API Design & Databases (30%)', 'Security & Authentication (25%)', 'DevOps & Deployment (25%)']) as topic}
-						<li><CheckCircle2 size={18} class="icon-check" /> {topic}</li>
-					{/each}
-				</ul>
-			</section>
+			{#if data.cert.metadata?.syllabus && data.cert.metadata.syllabus.length > 0}
+				<section class="info-section">
+					<h2>Exam Syllabus</h2>
+					<ul class="syllabus-list">
+						{#each data.cert.metadata.syllabus as topic}
+							<li><CheckCircle2 size={18} class="icon-check" /> {topic}</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 
-			<section class="info-section rules-section">
-				<h2><AlertTriangle size={20} class="icon-warn" /> Exam Rules & Conditions</h2>
-				<p class="rules-intro">This is a strictly proctored exam. Please read the following conditions carefully before purchasing.</p>
-				<ul class="rules-list">
-					{#each (data.cert.metadata?.rules || ['Webcam and microphone must be enabled.', 'No external monitors or secondary devices allowed.', 'Browser will be locked down during the exam.', 'No breaks are permitted once the exam begins.']) as rule}
-						<li>{rule}</li>
-					{/each}
-				</ul>
-			</section>
+			{#if data.cert.metadata?.rules && data.cert.metadata.rules.length > 0}
+				<section class="info-section rules-section">
+					<h2><AlertTriangle size={20} class="icon-warn" /> Exam Rules & Conditions</h2>
+					{#if data.cert.metadata?.isProctored !== false}
+						<p class="rules-intro">This is a strictly proctored exam. Please read the following conditions carefully before purchasing.</p>
+					{/if}
+					<ul class="rules-list">
+						{#each data.cert.metadata.rules as rule}
+							<li>{rule}</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 		</div>
 
 		<div class="sidebar">

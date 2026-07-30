@@ -36,7 +36,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			price: formattedPrice,
 			rawCurrency: c.currency,
 			rawPrice: c.pricePaise / 100,
-			certEmailTemplate: (c.metadata as any)?.certEmailTemplate || ''
+			certEmailTemplate: (c.metadata as any)?.certEmailTemplate || '',
+			syllabus: (c.metadata as any)?.syllabus?.join('\n') || '',
+			rules: (c.metadata as any)?.rules?.join('\n') || '',
+			duration: (c.metadata as any)?.duration || 120,
+			questions: (c.metadata as any)?.questions || 80,
+			isProctored: (c.metadata as any)?.isProctored !== false
 		};
 	});
 
@@ -153,6 +158,46 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (e) {
 			return fail(500, { error: 'Failed to update email template' });
+		}
+	},
+	updateSettings: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+		const syllabusRaw = data.get('syllabus') as string;
+		const rulesRaw = data.get('rules') as string;
+		const duration = parseInt(data.get('duration') as string) || 120;
+		const questions = parseInt(data.get('questions') as string) || 80;
+		const isProctored = data.get('isProctored') === 'true';
+
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, user.id)));
+			if (!cert) return fail(403, { error: 'Unauthorized' });
+
+			const syllabus = syllabusRaw.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+			const rules = rulesRaw.split('\n').map(r => r.trim()).filter(r => r.length > 0);
+
+			const newMetadata = {
+				...((cert.metadata as any) || {}),
+				syllabus,
+				rules,
+				duration,
+				questions,
+				isProctored
+			};
+
+			// Update asset metadata
+			await db.update(assets).set({ metadata: newMetadata }).where(eq(assets.id, certId));
+			
+			// Also update timeLimitMins in assessment_tests just to keep it in sync
+			await db.update(assessmentTests).set({ timeLimitMins: duration }).where(eq(assessmentTests.assetId, certId));
+
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update settings' });
 		}
 	},
 	deleteCert: async ({ request, locals }) => {
