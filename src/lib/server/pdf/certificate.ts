@@ -11,14 +11,19 @@ import outfitMediumUrl from '@fontsource/outfit/files/outfit-latin-500-normal.wo
 import outfitBoldUrl from '@fontsource/outfit/files/outfit-latin-700-normal.woff?url';
 import dancingScriptUrl from '@fontsource/dancing-script/files/dancing-script-latin-600-normal.woff?url';
 
+let cachedFonts: [ArrayBuffer, ArrayBuffer, ArrayBuffer, ArrayBuffer] | null = null;
+
 export async function generateCertificatePDF(studentName: string, testName: string, date: string, certId: string): Promise<Buffer> {
-	// Read fonts concurrently to save time
-	const [outfitReq, outfitMedReq, outfitBoldReq, dancingReq] = await Promise.all([
-		read(outfitRegularUrl).arrayBuffer(),
-		read(outfitMediumUrl).arrayBuffer(),
-		read(outfitBoldUrl).arrayBuffer(),
-		read(dancingScriptUrl).arrayBuffer()
-	]);
+	// Read fonts concurrently to save time, cache them to prevent race conditions during concurrent generation
+	if (!cachedFonts) {
+		cachedFonts = await Promise.all([
+			read(outfitRegularUrl).arrayBuffer(),
+			read(outfitMediumUrl).arrayBuffer(),
+			read(outfitBoldUrl).arrayBuffer(),
+			read(dancingScriptUrl).arrayBuffer()
+		]);
+	}
+	const [outfitReq, outfitMedReq, outfitBoldReq, dancingReq] = cachedFonts;
 
 	return new Promise((resolve, reject) => {
 		try {

@@ -32,7 +32,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	return new Response(pdfBuffer, {
 		headers: {
 			'Content-Type': 'application/pdf',
-			'Content-Disposition': `attachment; filename="${studentName.replace(/\s+/g, '_')}_${testName.replace(/\s+/g, '_')}_Certificate.pdf"`
+			'Content-Disposition': `attachment; filename="${studentName.replace(/\s+/g, '_')}_Certificate.pdf"`
 		}
 	});
 };

@@ -8,6 +8,7 @@ import { eventOutbox } from '$lib/server/db/schema/outbox.schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { createId } from '@paralleldrive/cuid2';
+import { processOutbox } from '$lib/server/events/outbox.processor';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	const user = locals.user;
@@ -144,6 +145,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 					customTemplate: (asset?.metadata as any)?.certEmailTemplate || null
 				}
 			});
+			// Trigger processor asynchronously to avoid email delay
+			Promise.resolve().then(() => processOutbox(db).catch(e => console.error('Immediate outbox error:', e)));
 		}
 
 		return json({ success: true, score, maxScore, passed, percent, certificateId });

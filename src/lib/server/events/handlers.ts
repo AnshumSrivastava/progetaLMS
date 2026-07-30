@@ -83,6 +83,8 @@ const enrollmentTemplate = Handlebars.compile(`
 `);
 
 export function registerEventHandlers() {
+	eventBus.clear();
+	
 	eventBus.on('RESOURCE_MAIL_SENT', async (payload: any, meta) => {
 		const html = resourceTemplate(payload);
 		

@@ -21,6 +21,11 @@ export type EventHandler<TPayload = unknown> = (
 class EventBus {
 	private handlers = new Map<string, EventHandler<any>[]>();
 
+	/** Clear all registered handlers (useful for HMR in dev) */
+	clear(): void {
+		this.handlers.clear();
+	}
+
 	/** Register a handler for an event type (can have multiple per type) */
 	on<TPayload>(eventType: string, handler: EventHandler<TPayload>): void {
 		const existing = this.handlers.get(eventType) ?? [];
