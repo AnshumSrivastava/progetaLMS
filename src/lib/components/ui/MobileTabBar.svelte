@@ -6,7 +6,7 @@
 		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
 		{ href: '/catalog', icon: Compass, label: 'Catalog' },
 		{ href: '/certifications', icon: CalendarRange, label: 'Certs' },
-		{ href: '/settings', icon: User, label: 'Profile' }
+		{ href: '/dashboard/settings', icon: User, label: 'Profile' }
 	];
 </script>
 
