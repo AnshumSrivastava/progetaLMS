@@ -22,9 +22,15 @@ import type { DomainEvent } from '$shared/types/events';
 const BATCH_SIZE = 10;
 const MAX_ATTEMPTS = 5;
 
+let isProcessingOutbox = false;
+
 export async function processOutbox(db: Database): Promise<void> {
-	const repo = new OutboxRepository(db);
-	const pending = await repo.fetchPending(BATCH_SIZE);
+	if (isProcessingOutbox) return;
+	isProcessingOutbox = true;
+
+	try {
+		const repo = new OutboxRepository(db);
+		const pending = await repo.fetchPending(BATCH_SIZE);
 
 	for (const record of pending) {
 		// Skip events that have exceeded max attempts
@@ -44,5 +50,8 @@ export async function processOutbox(db: Database): Promise<void> {
 			console.error(`[OutboxProcessor] Failed to process event ${record.id} (${record.eventType}):`, message);
 			await repo.markFailed(record.id, message);
 		}
+	}
+	} finally {
+		isProcessingOutbox = false;
 	}
 }

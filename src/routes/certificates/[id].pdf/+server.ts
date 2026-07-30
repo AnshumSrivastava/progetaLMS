@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	}
 
 	const certificate = results[0];
-	const metadata = certificate.metadata as any;
+	const metadata = (certificate.metadata || {}) as any;
 	
 	const studentName = metadata.studentName || 'Student Name';
 	const testName = metadata.testName || 'Course Name';

@@ -1,4 +1,5 @@
 import path from 'path';
+import { Buffer } from 'buffer';
 import PDFDocument from 'pdfkit';
 import SVGtoPDF from 'svg-to-pdfkit';
 import { getCertificateSVG } from './template';
