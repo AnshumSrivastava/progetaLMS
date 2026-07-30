@@ -117,6 +117,11 @@
 				</div>
 
 				<div class="form-group">
+					<label class="form-label">Max Attempts</label>
+					<input type="number" name="maxAttempts" class="form-input" min="1" value={data.cert.maxAttempts || ''} placeholder="Leave blank for unlimited" />
+				</div>
+
+				<div class="form-group">
 					<label class="form-label">Status</label>
 					<select name="status" class="form-input" value={data.cert.status}>
 						<option value="draft">Draft</option>

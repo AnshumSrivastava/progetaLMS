@@ -17,6 +17,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		status: assets.status,
 		testId: assessmentTests.id,
 		passingPercent: assessmentTests.passingPercent,
+		maxAttempts: assessmentTests.maxAttempts,
 	})
 	.from(assets)
 	.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
@@ -115,11 +116,14 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const passingPercentStr = data.get('passingPercent')?.toString();
 		const status = data.get('status')?.toString();
+		const maxAttemptsStr = data.get('maxAttempts')?.toString();
 		
 		if (!passingPercentStr || !status) return fail(400, { error: 'Missing fields' });
 
 		const passingPercent = parseInt(passingPercentStr, 10);
 		if (passingPercent < 0 || passingPercent > 100) return fail(400, { error: 'Invalid passing percent' });
+
+		const maxAttempts = maxAttemptsStr ? parseInt(maxAttemptsStr, 10) : null;
 
 		try {
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
@@ -128,7 +132,7 @@ export const actions: Actions = {
 			
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
 
-			await db.update(assessmentTests).set({ passingPercent }).where(eq(assessmentTests.id, certAsset.testId));
+			await db.update(assessmentTests).set({ passingPercent, maxAttempts }).where(eq(assessmentTests.id, certAsset.testId));
 			await db.update(assets).set({ status: status as 'draft' | 'published' }).where(eq(assets.id, certId));
 
 			return { success: true };

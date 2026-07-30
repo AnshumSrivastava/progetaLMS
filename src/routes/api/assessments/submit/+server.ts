@@ -21,6 +21,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const [test] = await db.select().from(assessmentTests).where(eq(assessmentTests.id, testId));
 		if (!test) return json({ error: 'Test not found' }, { status: 404 });
 
+		// Check if user has already passed or exceeded attempts
+		const existingAttempts = await db.select().from(assessmentAttempts).where(and(eq(assessmentAttempts.testId, testId), eq(assessmentAttempts.userId, user.id)));
+		const hasPassed = existingAttempts.some(a => a.passed);
+		
+		if (hasPassed) {
+			return json({ error: 'You have already passed this assessment' }, { status: 400 });
+		}
+		if (test.maxAttempts !== null && existingAttempts.length >= test.maxAttempts) {
+			return json({ error: 'Maximum attempts reached' }, { status: 400 });
+		}
+
 		const questions = await db.select().from(assessmentQuestions).where(eq(assessmentQuestions.testId, testId));
 		const options = await db.select().from(assessmentOptions);
 

@@ -1,10 +1,25 @@
+import path from 'path';
 import PDFDocument from 'pdfkit';
 import SVGtoPDF from 'svg-to-pdfkit';
 import { getCertificateSVG } from './template';
 import QRCode from 'qrcode';
 import { logoBase64 } from './logo-base64';
 
+import { read } from '$app/server';
+import outfitRegularUrl from '@fontsource/outfit/files/outfit-latin-400-normal.woff?url';
+import outfitMediumUrl from '@fontsource/outfit/files/outfit-latin-500-normal.woff?url';
+import outfitBoldUrl from '@fontsource/outfit/files/outfit-latin-700-normal.woff?url';
+import dancingScriptUrl from '@fontsource/dancing-script/files/dancing-script-latin-600-normal.woff?url';
+
 export async function generateCertificatePDF(studentName: string, testName: string, date: string, certId: string): Promise<Buffer> {
+	// Read fonts concurrently to save time
+	const [outfitReq, outfitMedReq, outfitBoldReq, dancingReq] = await Promise.all([
+		read(outfitRegularUrl).arrayBuffer(),
+		read(outfitMediumUrl).arrayBuffer(),
+		read(outfitBoldUrl).arrayBuffer(),
+		read(dancingScriptUrl).arrayBuffer()
+	]);
+
 	return new Promise((resolve, reject) => {
 		try {
 			// A4 Landscape is 841.89 x 595.28 points
@@ -14,10 +29,10 @@ export async function generateCertificatePDF(studentName: string, testName: stri
 			});
 
 			// Register Fonts
-			doc.registerFont('Outfit', 'node_modules/@fontsource/outfit/files/outfit-latin-400-normal.woff');
-			doc.registerFont('Outfit-Medium', 'node_modules/@fontsource/outfit/files/outfit-latin-500-normal.woff');
-			doc.registerFont('Outfit-Bold', 'node_modules/@fontsource/outfit/files/outfit-latin-700-normal.woff');
-			doc.registerFont('Dancing Script', 'node_modules/@fontsource/dancing-script/files/dancing-script-latin-600-normal.woff');
+			doc.registerFont('Outfit', outfitReq);
+			doc.registerFont('Outfit-Medium', outfitMedReq);
+			doc.registerFont('Outfit-Bold', outfitBoldReq);
+			doc.registerFont('Dancing Script', dancingReq);
 
 			const buffers: Buffer[] = [];
 			doc.on('data', buffers.push.bind(buffers));

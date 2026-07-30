@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
-import { assessmentTests, assessmentQuestions, assessmentOptions } from '$lib/server/db/schema/assessments.schema';
+import { assessmentTests, assessmentQuestions, assessmentOptions, assessmentAttempts } from '$lib/server/db/schema/assessments.schema';
 import { eq, and, isNull } from 'drizzle-orm';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -52,6 +52,20 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	if (!test) {
 		throw error(404, 'Assessment not configured');
+	}
+
+	const existingAttempts = await db.select().from(assessmentAttempts).where(and(eq(assessmentAttempts.testId, test.id), eq(assessmentAttempts.userId, locals.user.id)));
+	const hasPassed = existingAttempts.some(a => a.passed);
+	const maxReached = test.maxAttempts !== null && existingAttempts.length >= test.maxAttempts;
+	
+	if (hasPassed || maxReached) {
+		return {
+			cert,
+			testId: test.id,
+			cannotTake: true,
+			reason: hasPassed ? 'You have already passed this assessment.' : 'You have reached the maximum number of attempts.',
+			parsedContent: []
+		};
 	}
 
 	const questions = await db
