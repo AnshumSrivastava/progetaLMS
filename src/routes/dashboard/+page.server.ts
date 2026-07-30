@@ -11,6 +11,7 @@ import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { certificates } from '$lib/server/db/schema/certificates.schema';
 import { events, eventAttendees } from '$lib/server/db/schema/platform.schema';
 import { cohorts, cohortMemberships, cohortSuggestedAssets } from '$lib/server/db/schema/cohorts.schema';
+import { assessmentTests } from '$lib/server/db/schema/assessments.schema';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
@@ -50,10 +51,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const ownedCourses = owned.filter(a => ['html', 'markdown', 'pdf'].includes(a.type));
 	const ownedResources = owned.filter(a => ['download', 'external'].includes(a.type));
-	const ownedCerts = owned.filter(a => a.type === 'cert_test');
+	// Load issued certificates with their corresponding assetId
+	const issuedCertsWithAsset = await db
+		.select({
+			certificate: certificates,
+			assetId: assessmentTests.assetId
+		})
+		.from(certificates)
+		.innerJoin(assessmentTests, eq(certificates.testId, assessmentTests.id))
+		.where(eq(certificates.userId, locals.user.id));
 
-	// Also load issued certificates
-	const issuedCertificates = await db.select().from(certificates).where(eq(certificates.userId, locals.user.id));
+	const issuedAssetIds = new Set(issuedCertsWithAsset.map(c => c.assetId));
+	const issuedCertificates = issuedCertsWithAsset.map(c => c.certificate);
+	
+	// Filter out exams the user has already passed (which have an issued certificate)
+	const ownedCerts = owned.filter(a => a.type === 'cert_test' && !issuedAssetIds.has(a.id));
 
 	// Load upcoming events
 	const upcomingEvents = await db.select().from(events);

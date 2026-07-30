@@ -420,9 +420,15 @@
 	}
 
 	/* Grids */
-	.course-grid, .generic-grid {
+	.course-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
+	}
+	
+	.generic-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 		gap: 1.5rem;
 	}
 
@@ -558,12 +564,18 @@
 	}
 	.item-info {
 		flex: 1;
+		min-width: 0; /* Ensures truncation works if needed */
 	}
 	.item-info h4 {
 		font-size: 1rem;
 		font-weight: 600;
 		color: var(--text-primary);
 		margin-bottom: 4px;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		line-height: 1.3;
 	}
 	.item-info p {
 		font-size: 0.85rem;
@@ -590,6 +602,8 @@
 		font-weight: 600;
 		font-size: 0.85rem;
 		cursor: pointer;
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 	.action-btn.outline {
 		background: transparent;
