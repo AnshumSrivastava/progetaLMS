@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
 import { cohortMemberships, cohorts } from '$lib/server/db/schema/cohorts.schema';
-import { eq, and, count } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		currency: assets.currency
 	})
 	.from(assets)
-	.where(and(eq(assets.type, 'html'), eq(assets.ownerId, locals.user!.id)));
+	.where(and(eq(assets.type, 'html'), eq(assets.ownerId, locals.user!.id), isNull(assets.deletedAt)));
 
 	// Calculate student count (dummy approximation: count cohorts and multiply or fetch real)
 	// In a real system, course students = sum of students in all cohorts of this course
@@ -125,6 +125,26 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (e) {
 			return fail(500, { error: 'Failed to toggle status' });
+		}
+	},
+	
+	deleteCourse: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const courseId = data.get('courseId') as string;
+		
+		try {
+			const [course] = await db.select().from(assets)
+				.where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+			if (!course) return fail(403, { error: 'Unauthorized' });
+
+			await db.update(assets).set({ deletedAt: new Date(), status: 'archived' }).where(eq(assets.id, courseId));
+			
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to delete course' });
 		}
 	}
 };

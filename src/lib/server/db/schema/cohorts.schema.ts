@@ -31,7 +31,7 @@ export const cohorts = pgTable('cohorts', {
 export const cohortMemberships = pgTable('cohort_memberships', {
 	id:        text('id').primaryKey(),
 	cohortId:  text('cohort_id').notNull().references(() => cohorts.id, { onDelete: 'cascade' }),
-	userId:    text('user_id').notNull().references(() => users.id),
+	userId:    text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
 	role:      text('role', { enum: ['student', 'assistant'] }).notNull().default('student'),
 	joinedAt:  timestamp('joined_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => [

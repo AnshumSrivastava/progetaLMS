@@ -75,7 +75,7 @@ export const assetContent = pgTable('asset_content', {
 export const assetOwnership = pgTable('asset_ownership', {
 	id:        text('id').primaryKey(),
 	assetId:   text('asset_id').notNull().references(() => assets.id),
-	ownerId:   text('owner_id').notNull().references(() => users.id),
+	ownerId:   text('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
 	source:    text('source', { enum: ['purchase', 'grant', 'free', 'coupon'] }).notNull(),
 	orderId:   text('order_id'),  // FK defined after commerce schema
 	grantedAt: timestamp('granted_at', { withTimezone: true }).notNull().defaultNow(),
@@ -89,7 +89,7 @@ export const assetOwnership = pgTable('asset_ownership', {
 
 export const assetProgress = pgTable('asset_progress', {
 	id:              text('id').primaryKey(),
-	userId:          text('user_id').notNull().references(() => users.id),
+	userId:          text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
 	assetId:         text('asset_id').notNull().references(() => assets.id, { onDelete: 'cascade' }),
 	lessonId:        text('lesson_id').notNull(), // points to asset_content.id or module internal id
 	completed:       boolean('completed').notNull().default(false),

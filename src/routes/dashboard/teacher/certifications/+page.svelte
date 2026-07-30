@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Award, Plus, FileText, LayoutList, Tag, Power } from 'lucide-svelte';
+	import { Award, Plus, FileText, LayoutList, Tag, Power, Trash2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -160,6 +160,12 @@
 									<input type="hidden" name="certId" value={cert.id} />
 									<button class="icon-btn" title={cert.status === 'Published' ? 'Unpublish' : 'Publish'}>
 										<Power size={16} /> {cert.status === 'Published' ? 'Unpublish' : 'Publish'}
+									</button>
+								</form>
+								<form method="POST" action="?/deleteCert" use:enhance style="display: inline;" onsubmit={() => confirm('Are you sure you want to delete this certification?')}>
+									<input type="hidden" name="certId" value={cert.id} />
+									<button class="icon-btn" title="Delete" style="color: var(--error); border-color: var(--error);">
+										<Trash2 size={16} /> Delete
 									</button>
 								</form>
 							</div>

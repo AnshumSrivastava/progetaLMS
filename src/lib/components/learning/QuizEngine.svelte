@@ -12,6 +12,19 @@
 	let submitResult: any = null;
 	let transitioning = false;
 
+	// Shuffle helper function
+	function shuffle(array: string[]) {
+		let currentIndex = array.length, randomIndex;
+		while (currentIndex > 0) {
+			randomIndex = Math.floor(Math.random() * currentIndex);
+			currentIndex--;
+			[array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+		}
+		return array;
+	}
+
+	let shuffledOptions: string[] = [];
+
 	const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
 	const numberKeys = ['1', '2', '3', '4', '5', '6'];
 
@@ -75,7 +88,7 @@
 
 		if (optionIndex !== -1) {
 			e.preventDefault();
-			selectOption(curQ.id, curQ.options[optionIndex]);
+			selectOption(curQ.id, shuffledOptions[optionIndex]);
 			return;
 		}
 
@@ -108,6 +121,13 @@
 	$: answeredCount = Object.keys(answers).length;
 	$: progressPct = ((currentQuestionIndex + 1) / questions.length) * 100;
 	$: canSubmit = answeredCount === questions.length;
+
+	$: {
+		if (questions[currentQuestionIndex]) {
+			// Create a copy of options and shuffle them so it changes each time
+			shuffledOptions = shuffle([...questions[currentQuestionIndex].options]);
+		}
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -220,7 +240,7 @@
 				<h3 class="q-text">{currentQuestion.question}</h3>
 
 				<div class="options">
-					{#each currentQuestion.options as option, i}
+					{#each shuffledOptions as option, i}
 						{@const sel = answers[currentQuestion.id] === option}
 						<button
 							type="button"

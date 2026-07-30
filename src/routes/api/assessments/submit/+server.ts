@@ -55,14 +55,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			let isCorrect = false;
 			let pointsEarned = 0;
 
-			// A very naive check assuming the providedAns is the text of the option (as per QuizEngine.svelte)
-			if (providedAns && correctOpt && providedAns === correctOpt.content) {
+			// Normalize strings for safer comparison
+			if (providedAns && correctOpt && providedAns.trim().toLowerCase() === correctOpt.content.trim().toLowerCase()) {
 				isCorrect = true;
 				pointsEarned = q.points;
 				score += pointsEarned;
 			}
 
-			const selectedOpt = qOptions.find(o => o.content === providedAns);
+			const selectedOpt = qOptions.find(o => o.content.trim().toLowerCase() === providedAns?.trim().toLowerCase());
 
 			answerInserts.push({
 				id: createId(),
@@ -78,73 +78,80 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const percent = maxScore > 0 ? (score / maxScore) * 100 : 0;
 		const passed = percent >= test.passingPercent;
 
-		// Save Attempt
-		await db.insert(assessmentAttempts).values({
-			id: attemptId,
-			testId: test.id,
-			userId: user.id,
-			status: 'evaluated',
-			score,
-			maxScore,
-			passed,
-			startedAt: new Date(),
-			submittedAt: new Date(),
-			evaluatedAt: new Date()
-		});
-
-		if (answerInserts.length > 0) {
-			await db.insert(assessmentAttemptAnswers).values(answerInserts);
-		}
-
-		// Certificate Generation if passed
+		// Wrap all inserts in a transaction
 		let certificateId = null;
-		if (passed) {
-			// Find default template
-			let templates = await db.select().from(certificateTemplates).where(eq(certificateTemplates.isActive, true));
-			
-			// If no template exists, create a dummy one for this to work
-			if (templates.length === 0) {
-				const tplId = createId();
-				await db.insert(certificateTemplates).values({
-					id: tplId,
-					name: 'Default Template',
-					htmlContent: '<h1>Certificate of Completion</h1><p>{{studentName}} completed {{testName}} on {{date}}</p>',
-					isActive: true
-				});
-				templates = await db.select().from(certificateTemplates).where(eq(certificateTemplates.id, tplId));
-			}
 
-			const [asset] = await db.select().from(assets).where(eq(assets.id, test.assetId));
-
-			certificateId = createId();
-			
-			await db.insert(certificates).values({
-				id: certificateId,
-				templateId: templates[0].id,
+		await db.transaction(async (tx) => {
+			// Save Attempt
+			await tx.insert(assessmentAttempts).values({
+				id: attemptId,
 				testId: test.id,
 				userId: user.id,
-				attemptId,
-				verifyUrl: `/certificates/${certificateId}`,
-				metadata: {
-					studentName: user.name,
-					testName: asset?.title || 'Course Assessment',
-					score: `${Math.round(percent)}%`,
-					date: new Date().toISOString()
-				}
+				status: 'evaluated',
+				score,
+				maxScore,
+				passed,
+				startedAt: new Date(),
+				submittedAt: new Date(),
+				evaluatedAt: new Date()
 			});
 
-			// Queue certificate email via Outbox
-			await db.insert(eventOutbox).values({
-				id: randomUUID(),
-				eventType: 'CERTIFICATE_ISSUED',
-				payload: {
-					studentName: user.name || 'Student',
-					studentEmail: user.email,
-					className: asset?.title || test.title,
-					certUrl: `${new URL(request.url).origin}/certificates/${certificateId}`,
-					customTemplate: (asset?.metadata as any)?.certEmailTemplate || null
+			if (answerInserts.length > 0) {
+				await tx.insert(assessmentAttemptAnswers).values(answerInserts);
+			}
+
+			// Certificate Generation if passed
+			if (passed) {
+				// Find default template
+				let templates = await tx.select().from(certificateTemplates).where(eq(certificateTemplates.isActive, true));
+				
+				// If no template exists, create a dummy one for this to work
+				if (templates.length === 0) {
+					const tplId = createId();
+					await tx.insert(certificateTemplates).values({
+						id: tplId,
+						name: 'Default Template',
+						htmlContent: '<h1>Certificate of Completion</h1><p>{{studentName}} completed {{testName}} on {{date}}</p>',
+						isActive: true
+					});
+					templates = await tx.select().from(certificateTemplates).where(eq(certificateTemplates.id, tplId));
 				}
-			});
+
+				const [asset] = await tx.select().from(assets).where(eq(assets.id, test.assetId));
+
+				certificateId = createId();
+				
+				await tx.insert(certificates).values({
+					id: certificateId,
+					templateId: templates[0].id,
+					testId: test.id,
+					userId: user.id,
+					attemptId,
+					verifyUrl: `/certificates/${certificateId}`,
+					metadata: {
+						studentName: user.name,
+						testName: asset?.title || 'Course Assessment',
+						score: `${Math.round(percent)}%`,
+						date: new Date().toISOString()
+					}
+				});
+
+				// Queue certificate email via Outbox
+				await tx.insert(eventOutbox).values({
+					id: randomUUID(),
+					eventType: 'CERTIFICATE_ISSUED',
+					payload: {
+						studentName: user.name || 'Student',
+						studentEmail: user.email,
+						className: asset?.title || test.title,
+						certUrl: `${new URL(request.url).origin}/certificates/${certificateId}`,
+						customTemplate: (asset?.metadata as any)?.certEmailTemplate || null
+					}
+				});
+			}
+		});
+
+		if (passed) {
 			// Trigger processor asynchronously to avoid email delay
 			Promise.resolve().then(() => processOutbox(db).catch(e => console.error('Immediate outbox error:', e)));
 		}

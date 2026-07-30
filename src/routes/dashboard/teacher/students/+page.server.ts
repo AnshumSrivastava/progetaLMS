@@ -55,17 +55,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	batchAdd: async ({ request }) => {
 		const data = await request.formData();
-		const emailsStr = data.get('emails')?.toString();
+		const rowCountStr = data.get('rowCount')?.toString() || '0';
+		const rowCount = parseInt(rowCountStr, 10);
 		const cohortId = data.get('cohortId')?.toString();
 
-		if (!emailsStr) {
-			return fail(400, { error: 'Missing emails' });
+		const studentsToAdd: { name: string, email: string }[] = [];
+		for (let i = 0; i < rowCount; i++) {
+			const name = data.get(`name_${i}`)?.toString().trim();
+			const email = data.get(`email_${i}`)?.toString().trim().toLowerCase();
+			if (name && email) {
+				studentsToAdd.push({ name, email });
+			}
 		}
 
-		const emails = emailsStr.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
-		if (emails.length === 0) {
-			return fail(400, { error: 'No valid emails found' });
+		if (studentsToAdd.length === 0) {
+			return fail(400, { error: 'No valid students found' });
 		}
+		
+		const emails = studentsToAdd.map(s => s.email);
 
 		if (!locals.user) throw redirect(302, '/sign-in');
 		const instructorId = locals.user.id;
@@ -76,11 +83,11 @@ export const actions: Actions = {
 			const existingEmails = new Set(existingUsers.map(u => u.email));
 			
 			// Create missing users as placeholders
-			const newEmails = emails.filter(e => !existingEmails.has(e));
-			const newUsers = newEmails.map(email => ({
+			const newUsersToCreate = studentsToAdd.filter(s => !existingEmails.has(s.email));
+			const newUsers = newUsersToCreate.map(student => ({
 				id: createId(),
-				email,
-				name: email.split('@')[0], // placeholder name
+				email: student.email,
+				name: student.name,
 				role: 'student' as const
 			}));
 

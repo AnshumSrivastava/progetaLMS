@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db/client';
 import { users, auditLogs } from '$lib/server/db/schema/identity.schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { createId } from '@paralleldrive/cuid2';
@@ -8,10 +8,14 @@ import { eventOutbox } from '$lib/server/db/schema/outbox.schema';
 import { auth } from '$lib/server/auth/auth.config';
 import { randomBytes } from 'node:crypto';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
 		throw redirect(302, '/dashboard');
 	}
+
+	const page = parseInt(url.searchParams.get('page') || '1', 10);
+	const limit = 20;
+	const offset = (page - 1) * limit;
 
 	const allUsers = await db.select({
 		id: users.id,
@@ -19,11 +23,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 		email: users.email,
 		role: users.role,
 		createdAt: users.createdAt
-	}).from(users);
+	}).from(users).limit(limit).offset(offset);
+
+	const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(users);
 
 	return {
 		allUsers,
-		currentUserRole: locals.user.role
+		currentUserRole: locals.user.role,
+		pagination: {
+			page,
+			limit,
+			total: count,
+			totalPages: Math.ceil(count / limit)
+		}
 	};
 };
 

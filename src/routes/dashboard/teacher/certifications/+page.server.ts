@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
 import { assessmentTests } from '$lib/server/db/schema/assessments.schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	})
 	.from(assets)
 	.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
-	.where(and(eq(assets.type, 'cert_test'), eq(assets.ownerId, instructorId)));
+	.where(and(eq(assets.type, 'cert_test'), eq(assets.ownerId, instructorId), isNull(assets.deletedAt)));
 
 	const certifications = certAssets.map(c => {
 		let formattedPrice = 'Free';
@@ -153,6 +153,25 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (e) {
 			return fail(500, { error: 'Failed to update email template' });
+		}
+	},
+	deleteCert: async ({ request, locals }) => {
+		const user = locals.user;
+		if (!user) throw redirect(302, '/sign-in');
+		
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+		
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, user.id)));
+			if (!cert) return fail(403, { error: 'Unauthorized' });
+
+			await db.update(assets).set({ deletedAt: new Date(), status: 'archived' }).where(eq(assets.id, certId));
+			
+			return { success: true };
+		} catch (e) {
+			return fail(500, { error: 'Failed to delete certification' });
 		}
 	}
 };

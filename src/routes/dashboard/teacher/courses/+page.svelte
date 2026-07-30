@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { BookOpen, Search, Filter, MoreHorizontal, Edit, Tag, Power } from 'lucide-svelte';
+	import { BookOpen, Search, Filter, MoreHorizontal, Edit, Tag, Power, Trash2 } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -143,7 +143,12 @@
 									<Power size={16} />
 								</button>
 							</form>
-							<button class="action-btn" title="More Options"><MoreHorizontal size={16} /></button>
+							<form method="POST" action="?/deleteCourse" use:enhance style="display: inline;" onsubmit={() => confirm('Are you sure you want to delete this course?')}>
+								<input type="hidden" name="courseId" value={course.id} />
+								<button class="action-btn" title="Delete Course" style="color: var(--error);">
+									<Trash2 size={16} />
+								</button>
+							</form>
 						</td>
 					</tr>
 				{/each}

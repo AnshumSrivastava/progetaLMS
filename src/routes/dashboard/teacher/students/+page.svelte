@@ -9,6 +9,18 @@
 	let isSubmitting = $state(false);
 	let isSubmittingCoupon = $state(false);
 	let showCouponModal = $state(false);
+
+	let batchRows = $state([{ name: '', email: '' }]);
+
+	function addBatchRow() {
+		batchRows = [...batchRows, { name: '', email: '' }];
+	}
+
+	function removeBatchRow(index: number) {
+		if (batchRows.length > 1) {
+			batchRows = batchRows.filter((_, i) => i !== index);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -84,10 +96,13 @@
 		return async ({ update }) => {
 			await update();
 			isSubmitting = false;
+			if (form?.success) {
+				batchRows = [{ name: '', email: '' }];
+			}
 		};
 	}}>
 		<h3>Batch Add Students</h3>
-		<p class="section-desc">Paste a list of emails to automatically send enrollment invitations.</p>
+		<p class="section-desc">Add students manually using the grid below to quickly enroll them.</p>
 		
 		<div class="form-group" style="margin-bottom: 1rem;">
 			<label class="form-label" for="classSelect">Assign to Class (Optional)</label>
@@ -99,12 +114,32 @@
 			</select>
 		</div>
 
-		<textarea 
-			name="emails"
-			class="batch-textarea" 
-			placeholder="student1@email.com, student2@email.com&#10;student3@email.com"
-			required
-		></textarea>
+		<div class="batch-grid-wrapper">
+			<div class="batch-grid-header">
+				<div style="flex: 1; font-weight: 600; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Full Name</div>
+				<div style="flex: 1; font-weight: 600; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Email Address</div>
+				<div style="width: 32px;"></div>
+			</div>
+			
+			<div class="batch-rows-container">
+				{#each batchRows as row, i}
+					<div class="batch-row">
+						<input type="text" name="name_{i}" bind:value={row.name} placeholder="John Doe" class="batch-input" required />
+						<input type="email" name="email_{i}" bind:value={row.email} placeholder="john@example.com" class="batch-input" required />
+						
+						<button type="button" class="remove-row-btn" onclick={() => removeBatchRow(i)} disabled={batchRows.length === 1} title="Remove row">
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+						</button>
+					</div>
+				{/each}
+			</div>
+			
+			<button type="button" class="add-row-btn" onclick={addBatchRow}>
+				+ Add Another Row
+			</button>
+			
+			<input type="hidden" name="rowCount" value={batchRows.length} />
+		</div>
 		
 		<div class="batch-actions">
 			<button type="submit" class="primary-btn" disabled={isSubmitting}>
@@ -404,19 +439,92 @@
 		margin-bottom: 1rem;
 		margin-top: 4px;
 	}
-	.batch-textarea {
-		width: 100%;
-		min-height: 120px;
-		background: var(--bg);
-		border: 1px solid var(--border-strong);
+	.batch-grid-wrapper {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		border: 1px solid var(--border);
 		border-radius: 8px;
-		padding: 12px;
-		font-size: 0.95rem;
-		font-family: monospace;
-		color: var(--text-primary);
-		resize: vertical;
-		transition: border-color 0.2s;
+		overflow: hidden;
+		background: var(--bg);
 	}
+	.batch-grid-header {
+		display: flex;
+		gap: 12px;
+		padding: 12px 16px;
+		background: var(--bg-elevated);
+		border-bottom: 1px solid var(--border);
+	}
+	.batch-rows-container {
+		display: flex;
+		flex-direction: column;
+	}
+	.batch-row {
+		display: flex;
+		gap: 12px;
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--border-subtle);
+		align-items: center;
+	}
+	.batch-row:last-child {
+		border-bottom: none;
+	}
+	.batch-input {
+		flex: 1;
+		background: transparent;
+		border: 1px solid transparent;
+		padding: 8px 12px;
+		font-size: 0.95rem;
+		color: var(--text-primary);
+		border-radius: 6px;
+		transition: all 0.2s;
+	}
+	.batch-input:hover {
+		background: var(--bg-elevated);
+	}
+	.batch-input:focus {
+		outline: none;
+		background: var(--bg);
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px var(--accent-muted);
+	}
+	.remove-row-btn {
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		color: var(--text-muted);
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+	.remove-row-btn:hover:not(:disabled) {
+		background: rgba(239, 68, 68, 0.1);
+		color: #ef4444;
+	}
+	.remove-row-btn:disabled {
+		opacity: 0.3;
+		cursor: not-allowed;
+	}
+	.add-row-btn {
+		padding: 12px 16px;
+		background: var(--bg-subtle);
+		border: none;
+		border-top: 1px solid var(--border);
+		color: var(--accent);
+		font-weight: 600;
+		font-size: 0.9rem;
+		text-align: left;
+		cursor: pointer;
+		transition: background 0.2s;
+	}
+	.add-row-btn:hover {
+		background: var(--bg-elevated);
+	}
+
 	.batch-select {
 		width: 100%;
 		background: var(--bg);
@@ -436,7 +544,7 @@
 		font-weight: 600;
 		color: var(--text-primary);
 	}
-	.batch-textarea:focus, .batch-select:focus {
+	.batch-select:focus {
 		outline: none;
 		border-color: var(--accent);
 	}

@@ -27,7 +27,7 @@ import { assets } from './assets.schema';
 export const commerceOrders = pgTable('commerce_orders', {
 	id:               text('id').primaryKey(),   // CUID2
 	cashfreeOrderId:  text('cashfree_order_id').notNull().unique(),
-	userId:           text('user_id').notNull().references(() => users.id),
+	userId:           text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
 	assetId:          text('asset_id').notNull().references(() => assets.id),
 	amountPaise:      integer('amount_paise').notNull(),
 	currency:         text('currency').notNull().default('INR'),

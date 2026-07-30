@@ -1,5 +1,6 @@
 import { db } from '$lib/server/db/client';
-import { events } from '$lib/server/db/schema/platform.schema';
+import { events, eventAttendees } from '$lib/server/db/schema/platform.schema';
+import { eventOutbox } from '$lib/server/db/schema/outbox.schema';
 import { eq, desc } from 'drizzle-orm';
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
@@ -59,6 +60,28 @@ export const actions: Actions = {
 		const eventId = data.get('eventId') as string;
 
 		try {
+			// Fetch the event to get the title
+			const [event] = await db.select().from(events).where(eq(events.id, eventId));
+			
+			if (event) {
+				// Fetch attendees
+				const attendees = await db.select().from(eventAttendees).where(eq(eventAttendees.eventId, eventId));
+				const userIds = attendees.map(a => a.userId);
+				
+				if (userIds.length > 0) {
+					// Dispatch EMAIL_BLAST to notify attendees
+					await db.insert(eventOutbox).values({
+						id: createId(),
+						eventType: 'EMAIL_BLAST',
+						payload: {
+							userIds,
+							subject: `Event Cancelled: ${event.title}`,
+							body: `Hi there,\n\nUnfortunately, the event "${event.title}" scheduled for ${event.date.toLocaleDateString()} has been cancelled.\n\nWe apologize for the inconvenience.`
+						}
+					});
+				}
+			}
+
 			await db.delete(events).where(eq(events.id, eventId));
 			return { success: true };
 		} catch (e: any) {

@@ -68,6 +68,10 @@ export const actions: Actions = {
 		if (!coupon || !coupon.isActive) {
 			return fail(400, { couponError: 'Invalid or expired coupon' });
 		}
+		
+		if (coupon.maxUses !== null && coupon.usesCount >= coupon.maxUses) {
+			return fail(400, { couponError: 'Coupon usage limit reached' });
+		}
 
 		const itemId = params.itemId;
 		let assetId = itemId;
