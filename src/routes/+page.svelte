@@ -14,14 +14,7 @@
 	let error   = $state('');
 	let sending = $state(false);
 	
-	// Parallax effect for the left side graphic
-	let mouseX = $state(0);
-	let mouseY = $state(0);
-
-	function handleMouseMove(e: MouseEvent) {
-		mouseX = (e.clientX / window.innerWidth - 0.5) * 20;
-		mouseY = (e.clientY / window.innerHeight - 0.5) * 20;
-	}
+	let sending = $state(false);
 
 	async function handleGoogleSignIn() {
 		step = 'loading';
@@ -104,11 +97,9 @@
 	<title>Sign in — {APP_NAME}</title>
 </svelte:head>
 
-<svelte:window onmousemove={handleMouseMove} />
-
 <div class="auth-layout">
 	<!-- Left Side: Brand Graphic -->
-	<div class="auth-graphic" style="--mx: {mouseX}px; --my: {mouseY}px;">
+	<div class="auth-graphic">
 		<div class="graphic-content">
 			<div class="logo-wrapper">
 				<svg width="24" height="24" viewBox="0 0 18 18" fill="none">
@@ -269,8 +260,6 @@
 		position: relative;
 		z-index: 10;
 		max-width: 500px;
-		transform: translate(var(--mx), var(--my));
-		transition: transform 0.1s ease-out;
 	}
 
 	.logo-wrapper {
@@ -310,20 +299,27 @@
 		border-radius: 50%;
 		filter: blur(80px);
 		z-index: 0;
+		animation: pulse-glow 8s ease-in-out infinite alternate;
 	}
 	.orb-1 {
 		width: 400px;
 		height: 400px;
-		background: rgba(56, 189, 248, 0.2);
+		background: rgba(56, 189, 248, 0.25);
 		top: -100px;
 		left: -100px;
 	}
 	.orb-2 {
 		width: 300px;
 		height: 300px;
-		background: rgba(99, 102, 241, 0.2);
+		background: rgba(99, 102, 241, 0.25);
 		bottom: 10%;
 		right: 10%;
+		animation-delay: -4s;
+	}
+
+	@keyframes pulse-glow {
+		0% { transform: scale(1); opacity: 0.8; }
+		100% { transform: scale(1.1); opacity: 1; }
 	}
 
 	/* Decorative Glass Card */
@@ -337,8 +333,13 @@
 		backdrop-filter: blur(24px);
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 20px;
-		transform: rotate(-5deg) scale(1.1);
 		box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+		animation: float-card 6s ease-in-out infinite;
+	}
+
+	@keyframes float-card {
+		0%, 100% { transform: rotate(-5deg) scale(1.1) translateY(0px); }
+		50% { transform: rotate(-5deg) scale(1.1) translateY(-15px); }
 	}
 
 	.skeleton-line {
