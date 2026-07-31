@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
-import { assessmentTests, assessmentQuestions, assessmentOptions } from '$lib/server/db/schema/assessments.schema';
+import { assessmentTests, assessmentQuestions, assessmentOptions, assessmentAttemptAnswers } from '$lib/server/db/schema/assessments.schema';
 import { eq, and } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect, error } from '@sveltejs/kit';
@@ -161,6 +161,8 @@ export const actions: Actions = {
 			const [q] = await db.select().from(assessmentQuestions).where(and(eq(assessmentQuestions.id, questionId), eq(assessmentQuestions.testId, certAsset.testId)));
 			if (!q) return fail(404, { error: 'Question not found' });
 
+			// Delete attempt answers first (if the exam was taken/tested)
+			await db.delete(assessmentAttemptAnswers).where(eq(assessmentAttemptAnswers.questionId, questionId));
 			await db.delete(assessmentOptions).where(eq(assessmentOptions.questionId, questionId));
 			await db.delete(assessmentQuestions).where(eq(assessmentQuestions.id, questionId));
 			return { success: true };
