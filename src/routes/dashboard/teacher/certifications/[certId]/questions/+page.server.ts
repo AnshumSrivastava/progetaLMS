@@ -161,6 +161,7 @@ export const actions: Actions = {
 			const [q] = await db.select().from(assessmentQuestions).where(and(eq(assessmentQuestions.id, questionId), eq(assessmentQuestions.testId, certAsset.testId)));
 			if (!q) return fail(404, { error: 'Question not found' });
 
+			await db.delete(assessmentOptions).where(eq(assessmentOptions.questionId, questionId));
 			await db.delete(assessmentQuestions).where(eq(assessmentQuestions.id, questionId));
 			return { success: true };
 		} catch(e) {
