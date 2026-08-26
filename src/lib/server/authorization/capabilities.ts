@@ -88,5 +88,7 @@ export const ROLE_CAPABILITY_MAP: Record<string, CapabilityKey[]> = {
 		Capability.MENTORING_BOOK_SESSION,
 		Capability.MENTORING_MANAGE_OWN_AVAILABILITY,
 	],
+	admin: ALL_CAPABILITIES,
+	owner: ALL_CAPABILITIES,
 	super_admin: ALL_CAPABILITIES,
 };

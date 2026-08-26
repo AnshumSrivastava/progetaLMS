@@ -36,7 +36,10 @@
 		ChevronLeft,
 		ChevronRight,
 		AlertCircle,
-		Loader2
+		Loader2,
+		Award,
+		Power,
+		Trash2
 	} from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 
@@ -103,6 +106,13 @@
 			canJoin: false
 		};
 	}
+
+	// ── TEACHER CERTIFICATIONS STATE ───────────────────────────
+	let teacherCerts = $derived(data.teacher.certifications || []);
+	let showCreateCertModal = $state(false);
+	let showEditCertPriceModal = $state(false);
+	let selectedCertForEdit = $state<any>(null);
+	let editCertPriceInput = $state('0');
 
 	// ── TEACHER MENTORING STUDIO STATE ─────────────────────────
 	let teacherMentoringSubTab = $state<'calendar' | 'pricing' | 'coupons' | 'bookings'>('calendar');
@@ -497,6 +507,9 @@
 					</button>
 					<button class="nav-btn" class:active={activeTab === 'teacher_courses'} onclick={() => activeTab = 'teacher_courses'}>
 						<BookOpenCheck size={14} /> <span>Manage Courses</span>
+					</button>
+					<button class="nav-btn" class:active={activeTab === 'teacher_certifications'} onclick={() => activeTab = 'teacher_certifications'}>
+						<Award size={14} /> <span>Certifications & Exams</span>
 					</button>
 					<button class="nav-btn" class:active={activeTab === 'teacher_mentoring'} onclick={() => { activeTab = 'teacher_mentoring'; loadTeacherCoupons(); }}>
 						<CalendarDays size={14} /> <span>Mentoring Studio</span>
@@ -931,6 +944,184 @@
 					{/each}
 				</div>
 			</div>
+
+		<!-- ════════════════════════════════════════════════════ -->
+		<!-- TAB 7A-2: INSTRUCTOR CERTIFICATIONS                 -->
+		<!-- ════════════════════════════════════════════════════ -->
+		{:else if activeTab === 'teacher_certifications' && data.isTeacher}
+			<div class="tab-pane">
+				<header class="pane-header">
+					<div>
+						<h1>Certification Exams</h1>
+						<p class="pane-sub">Create and manage professional certifications, passing criteria, pricing, and MCQ exam questions.</p>
+					</div>
+					<button class="btn-primary" onclick={() => showCreateCertModal = true}>
+						<Plus size={14} /> <span>New Certification</span>
+					</button>
+				</header>
+
+				<!-- KPI row -->
+				<div class="stats-row" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+					<div class="stat-card">
+						<span class="stat-label">Total Certifications</span>
+						<span class="stat-val">{teacherCerts.length}</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-label">Published & Live</span>
+						<span class="stat-val text-emerald">{teacherCerts.filter((c: any) => c.status === 'published').length}</span>
+					</div>
+					<div class="stat-card">
+						<span class="stat-label">Drafts</span>
+						<span class="stat-val text-muted">{teacherCerts.filter((c: any) => c.status === 'draft').length}</span>
+					</div>
+				</div>
+
+				<div class="row-list">
+					{#each teacherCerts as cert}
+						<div class="list-row">
+							<div class="row-icon"><Award size={16} /></div>
+							<div class="row-main">
+								<div class="cert-title-row">
+									<h3>{cert.title}</h3>
+									<span class="badge-minimal" class:badge-active={cert.status === 'published'}>
+										{cert.status.toUpperCase()}
+									</span>
+								</div>
+								<span class="row-sub-text">
+									Passing: <strong>{cert.passingPercent}%</strong> •
+									Fee: <strong>{cert.price}</strong> •
+									Duration: {cert.duration} mins •
+									{cert.isProctored ? 'Proctored Exam' : 'Standard'}
+								</span>
+							</div>
+							<div class="action-group">
+								<a href={`/dashboard/teacher/certifications/${cert.id}/questions`} class="btn-action primary">
+									Manage Questions & MCQs
+								</a>
+								<form method="POST" action="?/toggleCertPublish" style="display:inline;">
+									<input type="hidden" name="certId" value={cert.id} />
+									<button type="submit" class="btn-action secondary" title={cert.status === 'published' ? 'Move to Draft' : 'Publish Live'}>
+										{cert.status === 'published' ? 'Unpublish' : 'Publish'}
+									</button>
+								</form>
+								<button
+									class="btn-action secondary"
+									onclick={() => {
+										selectedCertForEdit = cert;
+										editCertPriceInput = cert.rawPrice.toString();
+										showEditCertPriceModal = true;
+									}}
+								>
+									Set Price
+								</button>
+								<form method="POST" action="?/deleteCert" onsubmit={(e) => { if (!confirm(`Delete certification "${cert.title}"?`)) e.preventDefault(); }} style="display:inline;">
+									<input type="hidden" name="certId" value={cert.id} />
+									<button type="submit" class="btn-action danger" title="Delete Certification">
+										<Trash2 size={13} />
+									</button>
+								</form>
+							</div>
+						</div>
+					{:else}
+						<div class="empty-state">
+							<Award size={32} />
+							<p>No certification exams created yet.</p>
+							<button class="btn-primary" onclick={() => showCreateCertModal = true}>Create Your First Certification</button>
+						</div>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Modal: Create Certification -->
+			{#if showCreateCertModal}
+				<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showCreateCertModal = false; }} role="presentation">
+					<form class="modal-card" method="POST" action="?/createCert">
+						<header class="modal-header">
+							<h3>Create Certification Exam</h3>
+							<button type="button" class="btn-modal-close" onclick={() => showCreateCertModal = false}><X size={16} /></button>
+						</header>
+						<div class="modal-body">
+							<p class="modal-desc">Define your certification exam title, passing threshold, and student enrollment fee.</p>
+
+							<div class="form-group">
+								<label for="certTitle" class="form-label">Certification Title *</label>
+								<input
+									type="text"
+									id="certTitle"
+									name="title"
+									required
+									placeholder="e.g. Certified Cloud Security Architect (CCSA)"
+									class="form-input"
+								/>
+							</div>
+
+							<div class="form-row-2">
+								<div class="form-group">
+									<label for="certPassing" class="form-label">Passing Threshold (%)</label>
+									<input
+										type="number"
+										id="certPassing"
+										name="passingPercent"
+										min="40"
+										max="100"
+										value="70"
+										class="form-input"
+									/>
+								</div>
+								<div class="form-group">
+									<label for="certPrice" class="form-label">Exam Fee (INR ₹)</label>
+									<input
+										type="number"
+										id="certPrice"
+										name="price"
+										min="0"
+										step="50"
+										value="0"
+										placeholder="0 for Free"
+										class="form-input"
+									/>
+								</div>
+							</div>
+						</div>
+						<footer class="modal-footer">
+							<button type="button" class="btn-action secondary" onclick={() => showCreateCertModal = false}>Cancel</button>
+							<button type="submit" class="btn-primary">Create & Configure Questions</button>
+						</footer>
+					</form>
+				</div>
+			{/if}
+
+			<!-- Modal: Edit Price -->
+			{#if showEditCertPriceModal && selectedCertForEdit}
+				<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showEditCertPriceModal = false; }} role="presentation">
+					<form class="modal-card" method="POST" action="?/updateCertPrice">
+						<header class="modal-header">
+							<h3>Update Certification Price</h3>
+							<button type="button" class="btn-modal-close" onclick={() => showEditCertPriceModal = false}><X size={16} /></button>
+						</header>
+						<div class="modal-body">
+							<input type="hidden" name="certId" value={selectedCertForEdit.id} />
+							<p class="modal-desc">Update enrollment fee for <strong>{selectedCertForEdit.title}</strong>.</p>
+							<div class="form-group">
+								<label for="editPrice" class="form-label">Price (INR ₹)</label>
+								<input
+									type="number"
+									id="editPrice"
+									name="price"
+									min="0"
+									step="50"
+									bind:value={editCertPriceInput}
+									class="form-input"
+								/>
+							</div>
+						</div>
+						<footer class="modal-footer">
+							<button type="button" class="btn-action secondary" onclick={() => showEditCertPriceModal = false}>Cancel</button>
+							<button type="submit" class="btn-primary">Save Price</button>
+						</footer>
+					</form>
+				</div>
+			{/if}
 
 		<!-- ════════════════════════════════════════════════════ -->
 		<!-- TAB 7B: INSTRUCTOR MENTORING STUDIO                  -->
@@ -3301,7 +3492,108 @@
 		margin-top: 12px;
 	}
 
-	/* Admin Modals */
+	/* Admin & Teacher Modals */
+	.modal-overlay {
+		position: fixed;
+		top: 0; left: 0; right: 0; bottom: 0;
+		background: rgba(0, 0, 0, 0.6);
+		z-index: 999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+		backdrop-filter: blur(4px);
+	}
+
+	.modal-card {
+		width: 100%;
+		max-width: 520px;
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		box-shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
+		animation: modalFadeIn 0.15s ease-out;
+	}
+
+	@keyframes modalFadeIn {
+		from { opacity: 0; transform: scale(0.96); }
+		to { opacity: 1; transform: scale(1); }
+	}
+
+	.modal-header {
+		padding: 18px 22px;
+		border-bottom: 1px solid var(--border);
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.modal-header h3 {
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		margin: 0;
+	}
+
+	.btn-modal-close {
+		background: none;
+		border: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px;
+		border-radius: 4px;
+	}
+	.btn-modal-close:hover { color: var(--text-primary); }
+
+	.modal-body {
+		padding: 22px;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.modal-desc {
+		font-size: 0.8125rem;
+		color: var(--text-secondary);
+		line-height: 1.5;
+		margin: 0;
+	}
+
+	.modal-footer {
+		padding: 16px 22px;
+		border-top: 1px solid var(--border);
+		background: var(--bg);
+		display: flex;
+		justify-content: flex-end;
+		gap: 10px;
+	}
+
+	.cert-title-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 4px;
+	}
+
+	.badge-active {
+		background: #ecfdf5 !important;
+		color: #047857 !important;
+		border-color: #a7f3d0 !important;
+	}
+
+	.btn-action.danger {
+		color: #ef4444;
+		border-color: rgba(239, 68, 68, 0.2);
+	}
+	.btn-action.danger:hover {
+		background: rgba(239, 68, 68, 0.08);
+		border-color: #ef4444;
+	}
+
 	.admin-modal-card {
 		position: fixed;
 		top: 50%;

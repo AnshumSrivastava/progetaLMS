@@ -108,8 +108,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// ── 2. TEACHER DATA (If Teacher, Admin, or Owner) ──────────
-	let teacherStats = { totalStudents: 0, activeCourses: 0, avgRating: '4.9', totalRevenue: '0' };
+	let teacherStats = { totalStudents: 0, activeCourses: 0, activeCerts: 0, avgRating: '4.9', totalRevenue: '0' };
 	let teacherCourses: any[] = [];
+	let teacherCertifications: any[] = [];
 	if (isTeacher) {
 		try {
 			teacherCourses = await db
@@ -123,7 +124,41 @@ export const load: PageServerLoad = async ({ locals }) => {
 				)
 				.limit(20);
 
+			const certAssets = await db
+				.select({
+					id: assets.id,
+					slug: assets.slug,
+					title: assets.title,
+					status: assets.status,
+					pricePaise: assets.pricePaise,
+					currency: assets.currency,
+					createdAt: assets.createdAt,
+					testId: assessmentTests.id,
+					passingPercent: assessmentTests.passingPercent,
+					metadata: assets.metadata
+				})
+				.from(assets)
+				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
+				.where(
+					and(
+						eq(assets.type, 'cert_test'),
+						eq(assets.ownerId, locals.user.id),
+						isNull(assets.deletedAt)
+					)
+				)
+				.orderBy(desc(assets.createdAt));
+
+			teacherCertifications = certAssets.map(c => ({
+				...c,
+				price: c.pricePaise > 0 ? `₹${c.pricePaise / 100}` : 'Free',
+				rawPrice: c.pricePaise / 100,
+				duration: (c.metadata as any)?.duration || 120,
+				questionsCount: (c.metadata as any)?.questions || 50,
+				isProctored: (c.metadata as any)?.isProctored !== false
+			}));
+
 			teacherStats.activeCourses = teacherCourses.length;
+			teacherStats.activeCerts = teacherCertifications.length;
 			const [{ studentCount }] = await db.select({ studentCount: sql<number>`count(*)` }).from(users);
 			teacherStats.totalStudents = studentCount;
 		} catch (err) {
@@ -265,6 +300,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		teacher: {
 			stats: teacherStats,
 			courses: teacherCourses,
+			certifications: teacherCertifications,
 			mentoringWindows: teacherMentoringWindows,
 			mentoringPrices: teacherMentoringPrices,
 			mentoringBookings: teacherMentoringBookings
@@ -469,6 +505,113 @@ export const actions: Actions = {
 			return { success: true, message: 'Login preference saved' };
 		} catch (e) {
 			return fail(500, { error: 'Failed to update preference' });
+		}
+	},
+
+	// ── TEACHER CERTIFICATION ACTIONS ──────────────────────────
+	createCert: async ({ request, locals }) => {
+		if (!locals.user || !['teacher', 'admin', 'owner'].includes(locals.user.role)) {
+			return fail(403, { error: 'Instructor role required' });
+		}
+
+		const data = await request.formData();
+		const title = (data.get('title') as string)?.trim();
+		const passingPercent = parseInt(data.get('passingPercent') as string) || 70;
+		const price = parseFloat(data.get('price') as string) || 0;
+		const pricePaise = Math.floor(price * 100);
+
+		if (!title) return fail(400, { error: 'Certification title is required' });
+
+		try {
+			const assetId = createId();
+			const testId = createId();
+			const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+			const slug = baseSlug ? `${baseSlug}-${Math.random().toString(36).substring(2, 6)}` : createId();
+
+			await db.insert(assets).values({
+				id: assetId,
+				slug,
+				title,
+				type: 'cert_test',
+				ownerId: locals.user.id,
+				status: 'draft',
+				pricePaise,
+				currency: 'INR'
+			});
+
+			await db.insert(assessmentTests).values({
+				id: testId,
+				assetId,
+				passingPercent
+			});
+
+			return { success: true, message: `Certification "${title}" created as draft.` };
+		} catch (e: any) {
+			console.error('Failed to create certification:', e);
+			return fail(500, { error: 'Failed to create certification' });
+		}
+	},
+
+	toggleCertPublish: async ({ request, locals }) => {
+		if (!locals.user || !['teacher', 'admin', 'owner'].includes(locals.user.role)) {
+			return fail(403, { error: 'Unauthorized' });
+		}
+
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, locals.user.id)));
+			if (!cert) return fail(403, { error: 'Certification not found or unauthorized' });
+
+			const newStatus = cert.status === 'published' ? 'draft' : 'published';
+			await db.update(assets).set({ status: newStatus }).where(eq(assets.id, certId));
+			return { success: true, message: `Certification ${newStatus === 'published' ? 'published' : 'moved to draft'}.` };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update certification status' });
+		}
+	},
+
+	updateCertPrice: async ({ request, locals }) => {
+		if (!locals.user || !['teacher', 'admin', 'owner'].includes(locals.user.role)) {
+			return fail(403, { error: 'Unauthorized' });
+		}
+
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+		const price = parseFloat(data.get('price') as string) || 0;
+		const pricePaise = Math.floor(price * 100);
+
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, locals.user.id)));
+			if (!cert) return fail(403, { error: 'Certification not found or unauthorized' });
+
+			await db.update(assets).set({ pricePaise }).where(eq(assets.id, certId));
+			return { success: true, message: 'Price updated successfully' };
+		} catch (e) {
+			return fail(500, { error: 'Failed to update price' });
+		}
+	},
+
+	deleteCert: async ({ request, locals }) => {
+		if (!locals.user || !['teacher', 'admin', 'owner'].includes(locals.user.role)) {
+			return fail(403, { error: 'Unauthorized' });
+		}
+
+		const data = await request.formData();
+		const certId = data.get('certId') as string;
+
+		try {
+			const [cert] = await db.select().from(assets)
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, locals.user.id)));
+			if (!cert) return fail(403, { error: 'Certification not found or unauthorized' });
+
+			await db.update(assets).set({ deletedAt: new Date() }).where(eq(assets.id, certId));
+			return { success: true, message: 'Certification deleted' };
+		} catch (e) {
+			return fail(500, { error: 'Failed to delete certification' });
 		}
 	}
 };
