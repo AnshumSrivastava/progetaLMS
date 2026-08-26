@@ -62,6 +62,15 @@
 		}
 	}
 
+	function parseRowToQuestionSafe(cols: string[]): ParsedBatchQuestion {
+		const parsed = parseRowToQuestion(cols);
+		// Ensure options array has at least 4 slots for reactive editing
+		while (parsed.options.length < 4) {
+			parsed.options.push({ content: '', isCorrect: false });
+		}
+		return parsed;
+	}
+
 	function parsePastedInput() {
 		batchImportError = '';
 		if (!pastedText.trim()) {
@@ -75,14 +84,23 @@
 			return;
 		}
 
-		batchQuestions = result.questions;
+		batchQuestions = result.questions.map(q => {
+			const options = [...q.options];
+			while (options.length < 4) {
+				options.push({ content: '', isCorrect: false });
+			}
+			return { ...q, options };
+		});
 	}
 
+	let debounceTimer: any;
 	function handlePasteInput() {
-		// Debounced parsing
-		setTimeout(() => {
-			if (pastedText.trim()) parsePastedInput();
-		}, 400);
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			if (pastedText.trim()) {
+				parsePastedInput();
+			}
+		}, 300);
 	}
 
 	function addBlankRowToGrid() {
@@ -118,9 +136,9 @@
 		const errors: string[] = [];
 		if (!row.content.trim()) errors.push('Question text is missing');
 		
-		const filledOpts = row.options.filter(o => o.content.trim() !== '');
+		const filledOpts = row.options.filter(o => o.content && o.content.trim() !== '');
 		if (filledOpts.length < 2) errors.push('At least 1 correct and 1 wrong answer required');
-		if (!row.options[0].content.trim()) errors.push('Correct answer is required');
+		if (!row.options[0]?.content?.trim()) errors.push('Correct answer is required');
 
 		return {
 			...row,
@@ -136,21 +154,28 @@
 
 	function handleWrongAnswersChange(rowIdx: number, value: string) {
 		const parts = value.split(',').map(s => s.trim()).filter(Boolean);
-		batchQuestions[rowIdx].options[1].content = parts[0] || '';
-		batchQuestions[rowIdx].options[2].content = parts[1] || '';
-		batchQuestions[rowIdx].options[3].content = parts[2] || '';
+		if (!batchQuestions[rowIdx].options) {
+			batchQuestions[rowIdx].options = [
+				{ content: '', isCorrect: true },
+				{ content: '', isCorrect: false },
+				{ content: '', isCorrect: false },
+				{ content: '', isCorrect: false }
+			];
+		}
+		batchQuestions[rowIdx].options[1] = { content: parts[0] || '', isCorrect: false };
+		batchQuestions[rowIdx].options[2] = { content: parts[1] || '', isCorrect: false };
+		batchQuestions[rowIdx].options[3] = { content: parts[2] || '', isCorrect: false };
 		handleCellChange(rowIdx);
 	}
 
 	function getWrongAnswersText(row: ParsedBatchQuestion): string {
+		if (!row.options) return '';
 		return [
 			row.options[1]?.content,
 			row.options[2]?.content,
 			row.options[3]?.content
 		].filter(Boolean).join(', ');
 	}
-
-
 
 	function handleFileUpload(e: Event) {
 		const input = e.target as HTMLInputElement;
@@ -406,10 +431,14 @@
 						placeholder={`Question\tCorrect Answer\tWrong Answer 1\tWrong Answer 2\tWrong Answer 3\tExplanation\nWhat is DNS?\tDomain Name System\tDynamic Network Server\tData Node Storage\tDirect Network Sync\tResolves domain names to IP addresses\nWhich layer is TCP?\tTransport\tNetwork\tApplication\tData Link\tTCP is Layer 4`}
 					></textarea>
 
-					<div class="upload-bar">
-						<Upload size={16} class="text-muted" />
-						<span>Or upload CSV/TSV:</span>
-						<input type="file" accept=".csv,.tsv,.txt" onchange={handleFileUpload} />
+					<div class="input-actions-bar">
+						<button type="button" class="btn-parse-now" onclick={parsePastedInput}>
+							<Sparkles size={14} /> Parse to Grid
+						</button>
+						<label class="btn-upload-file">
+							<Upload size={14} /> Upload File (.csv, .tsv)
+							<input type="file" accept=".csv,.tsv,.txt" onchange={handleFileUpload} style="display: none;" />
+						</label>
 					</div>
 
 					{#if batchImportError}
@@ -1059,6 +1088,49 @@
 		min-height: 0;
 	}
 	
+	.input-actions-bar {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 10px;
+	}
+
+	.btn-parse-now {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: var(--text-primary);
+		color: var(--bg);
+		border: none;
+		padding: 7px 12px;
+		border-radius: 6px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity var(--t-fast);
+	}
+	.btn-parse-now:hover {
+		opacity: 0.9;
+	}
+
+	.btn-upload-file {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
+		color: var(--text-primary);
+		padding: 6px 12px;
+		border-radius: 6px;
+		font-size: 0.8rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background var(--t-fast);
+	}
+	.btn-upload-file:hover {
+		background: var(--bg);
+	}
+
 	.upload-bar {
 		display: flex;
 		align-items: center;

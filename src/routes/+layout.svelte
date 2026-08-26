@@ -8,8 +8,9 @@
 
 	let { children, data } = $props();
 
-	// Don't show layout elements on specific routes
+	// Don't show layout elements on specific routes (auth, splash, or dashboard pages)
 	let isAuthRoute = $derived($page.url.pathname.startsWith('/join') || $page.url.pathname === '/');
+	let isDashboardRoute = $derived($page.url.pathname.startsWith('/dashboard'));
 </script>
 
 <ToastProvider />
@@ -21,7 +22,7 @@
 	<main class="main-content">
 		{@render children()}
 	</main>
-	{#if !isAuthRoute}
+	{#if !isAuthRoute && !isDashboardRoute}
 		<Footer />
 		<MobileTabBar />
 	{/if}
