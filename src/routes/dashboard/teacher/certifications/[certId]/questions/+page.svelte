@@ -13,7 +13,9 @@
 		AlertTriangle, 
 		Sparkles, 
 		FileText,
-		Loader2
+		Loader2,
+		Check,
+		X
 	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';

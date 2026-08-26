@@ -8,7 +8,7 @@ import { createId } from '@paralleldrive/cuid2';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!locals.user) throw redirect(302, '/sign-in');
-	const instructorId = locals.user.id;
+	const user = locals.user;
 	const certId = params.certId;
 
 	const [certAsset] = await db.select({
@@ -21,7 +21,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	})
 	.from(assets)
 	.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
-	.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
+	.where(
+		and(
+			eq(assets.id, certId),
+			user.role === 'admin' || user.role === 'owner' ? undefined : eq(assets.ownerId, user.id)
+		)
+	);
 
 	if (!certAsset) {
 		throw error(404, 'Certification not found or unauthorized');
@@ -78,9 +83,15 @@ export const actions: Actions = {
 
 		try {
 			// Verify ownership
+			const user = locals.user;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
-				.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
+				.where(
+					and(
+						eq(assets.id, certId),
+						user.role === 'admin' || user.role === 'owner' ? undefined : eq(assets.ownerId, user.id)
+					)
+				);
 			
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
 
@@ -135,9 +146,15 @@ export const actions: Actions = {
 		const maxAttempts = maxAttemptsStr ? parseInt(maxAttemptsStr, 10) : null;
 
 		try {
+			const user = locals.user;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
-				.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
+				.where(
+					and(
+						eq(assets.id, certId),
+						user.role === 'admin' || user.role === 'owner' ? undefined : eq(assets.ownerId, user.id)
+					)
+				);
 			
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
 
@@ -161,9 +178,15 @@ export const actions: Actions = {
 		if (!questionId) return fail(400, { error: 'Missing question id' });
 
 		try {
+			const user = locals.user;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
-				.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
+				.where(
+					and(
+						eq(assets.id, certId),
+						user.role === 'admin' || user.role === 'owner' ? undefined : eq(assets.ownerId, user.id)
+					)
+				);
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
 
 			// Check if question belongs to this test
@@ -187,9 +210,15 @@ export const actions: Actions = {
 		const certId = params.certId;
 
 		try {
+			const user = locals.user;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
-				.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
+				.where(
+					and(
+						eq(assets.id, certId),
+						user.role === 'admin' || user.role === 'owner' ? undefined : eq(assets.ownerId, user.id)
+					)
+				);
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
 
 			const qRows = await db.select({ id: assessmentQuestions.id }).from(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId));
