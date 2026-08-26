@@ -57,15 +57,21 @@
 		return Math.max(0, base - discount);
 	});
 
+	// ── Interactive Sidebar Calendar State ─────────────────────────────────────
+	let sidebarCalMonth = $state(new Date().getMonth());
+	let sidebarCalYear = $state(new Date().getFullYear());
+	const sidebarDaysInMonth = $derived(new Date(sidebarCalYear, sidebarCalMonth + 1, 0).getDate());
+	const sidebarFirstDayOffset = $derived(new Date(sidebarCalYear, sidebarCalMonth, 1).getDay());
+
 	// ── Booking drawer actions ───────────────────────────────────────────────
-	async function openBookingDrawer() {
+	async function openBookingDrawer(targetDate?: string) {
 		if (!user) {
 			window.location.href = `/sign-in?redirect=${encodeURIComponent(window.location.pathname)}`;
 			return;
 		}
 		isDrawerOpen = true;
 		bookingStep = 1;
-		selectedDate = '';
+		selectedDate = targetDate || '';
 		selectedWindowId = '';
 		selectedSlot = null;
 		sessionNotes = '';
@@ -81,7 +87,12 @@
 			const res = await fetch(`/api/mentoring/instructors/${instructor.id}/calendar`);
 			const json = await res.json();
 			availableDates = json.availableDates || [];
-			if (availableDates.length > 0) await selectDate(availableDates[0]);
+			const dateToPick = targetDate && availableDates.includes(targetDate)
+				? targetDate
+				: (availableDates.length > 0 ? availableDates[0] : '');
+			if (dateToPick) {
+				await selectDate(dateToPick);
+			}
 		} catch {
 			// silently handled — user sees empty calendar
 		} finally {
@@ -461,55 +472,62 @@
 				<!-- Section E: Session Packages -->
 				<div class="sidebar-card">
 					<h3 class="sidebar-heading">Session Packages</h3>
-					{#if instructor.prices && instructor.prices.length > 0}
-						<div class="packages-list">
-							{#each instructor.prices as price}
-								<div class="package-row">
-									<div class="pkg-duration">
-										<Clock size={13} />
-										<span>{price.durationMins} min</span>
-									</div>
-									<span class="pkg-price">{formatPaise(price.pricePaise)}</span>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<p class="sidebar-empty">Pricing not yet configured.</p>
-					{/if}
-				</div>
-
 				<!-- Section F: Availability Calendar -->
 				<div class="sidebar-card">
-					<h3 class="sidebar-heading">
-						<Calendar size={15} />
-						Availability
-					</h3>
-
-					{#if instructor.availableDates && instructor.availableDates.length > 0}
-						<div class="cal-dates">
-							{#each instructor.availableDates.slice(0, 14) as date}
-								<button
-									class="cal-date-chip"
-									class:selected={selectedDate === date}
-									onclick={() => {
-										if (user) {
-											openBookingDrawer();
-										} else {
-											window.location.href = `/sign-in?redirect=${encodeURIComponent(window.location.pathname)}`;
-										}
-									}}
-								>
-									{formatDateShort(date)}
-								</button>
-							{/each}
+					<div class="sidebar-cal-header">
+						<h3 class="sidebar-heading">
+							<Calendar size={15} />
+							Availability Calendar
+						</h3>
+						<div class="sidebar-cal-nav">
+							<button class="cal-nav-btn" onclick={() => { if (sidebarCalMonth === 0) { sidebarCalMonth = 11; sidebarCalYear--; } else { sidebarCalMonth--; } }}>
+								<ChevronDown size={14} style="transform: rotate(90deg);" />
+							</button>
+							<span class="sidebar-cal-month-label">
+								{new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(new Date(sidebarCalYear, sidebarCalMonth, 1))}
+							</span>
+							<button class="cal-nav-btn" onclick={() => { if (sidebarCalMonth === 11) { sidebarCalMonth = 0; sidebarCalYear++; } else { sidebarCalMonth++; } }}>
+								<ChevronDown size={14} style="transform: rotate(-90deg);" />
+							</button>
 						</div>
+					</div>
 
-						{#if !user}
-							<p class="cal-guest-hint">
-								<a href={`/sign-in?redirect=${encodeURIComponent('/mentoring/' + (instructor.handle || instructor.id))}`}>Sign in</a>
-								to view available time slots and book.
-							</p>
-						{/if}
+					<!-- Visual Month Grid -->
+					<div class="mini-cal-grid">
+						{#each ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as dName}
+							<span class="mini-cal-dname">{dName}</span>
+						{/each}
+						{#each Array(sidebarFirstDayOffset) as _}
+							<span class="mini-cal-cell empty"></span>
+						{/each}
+						{#each Array.from({ length: sidebarDaysInMonth }, (_, i) => i + 1) as dNum}
+							{@const cellDateStr = `${sidebarCalYear}-${(sidebarCalMonth + 1).toString().padStart(2, '0')}-${dNum.toString().padStart(2, '0')}`}
+							{@const isAvail = availableDates.includes(cellDateStr)}
+							<button
+								class="mini-cal-cell"
+								class:avail={isAvail}
+								class:selected={selectedDate === cellDateStr}
+								disabled={!isAvail}
+								onclick={() => openBookingDrawer(cellDateStr)}
+								title={isAvail ? `Book session on ${cellDateStr}` : 'No slots'}
+							>
+								<span class="cell-num">{dNum}</span>
+								{#if isAvail}
+									<span class="avail-dot"></span>
+								{/if}
+							</button>
+						{/each}
+					</div>
+
+					{#if !user}
+						<p class="cal-guest-hint">
+							<a href={`/sign-in?redirect=${encodeURIComponent('/mentoring/' + (instructor.handle || instructor.id))}`}>Sign in</a>
+							to select time slots and book.
+						</p>
+					{:else if availableDates.length > 0}
+						<p class="cal-active-hint">
+							<span class="avail-dot inline"></span> Green dots indicate bookable days.
+						</p>
 					{:else}
 						<p class="sidebar-empty">No upcoming availability. Check back soon.</p>
 					{/if}
@@ -519,7 +537,7 @@
 				<div class="sidebar-cta-card">
 					<p class="sidebar-cta-text">Ready to level up?</p>
 					{#if user}
-						<button class="book-cta full-width" onclick={openBookingDrawer}>
+						<button class="book-cta full-width" onclick={() => openBookingDrawer()}>
 							Book a Session <ArrowRight size={14} />
 						</button>
 					{:else}
@@ -543,7 +561,7 @@
 	<aside class="booking-drawer" role="dialog" aria-labelledby="drawer-title">
 		<header class="drawer-header">
 			<div>
-				<p class="drawer-tag">Book Session</p>
+				<p class="drawer-tag">Book 1-on-1 Session</p>
 				<h2 id="drawer-title" class="drawer-title">{instructor.name}</h2>
 			</div>
 			<button class="close-btn" onclick={closeDrawer} aria-label="Close">
@@ -554,15 +572,15 @@
 		{#if bookingStep < 4}
 			<div class="steps-progress">
 				<div class="step-item" class:active={bookingStep >= 1} class:current={bookingStep === 1}>
-					<span class="step-num">1</span><span class="step-label">Select Date</span>
+					<span class="step-num">1</span><span class="step-label">Date & Time</span>
 				</div>
 				<div class="step-sep"></div>
 				<div class="step-item" class:active={bookingStep >= 2} class:current={bookingStep === 2}>
-					<span class="step-num">2</span><span class="step-label">Pick Time</span>
+					<span class="step-num">2</span><span class="step-label">Review & Pay</span>
 				</div>
 				<div class="step-sep"></div>
 				<div class="step-item" class:active={bookingStep >= 3} class:current={bookingStep === 3}>
-					<span class="step-num">3</span><span class="step-label">Confirm</span>
+					<span class="step-num">3</span><span class="step-label">Confirmation</span>
 				</div>
 			</div>
 		{/if}
@@ -572,105 +590,119 @@
 				<div class="error-banner"><AlertCircle size={15} />{bookingErrorMessage}</div>
 			{/if}
 
-			<!-- Step 1: Date selection -->
+			<!-- Step 1: Unified Date, Duration & Time Slot Picker -->
 			{#if bookingStep === 1}
-				<p class="step-label-h">Select a date</p>
-				{#if isLoadingDates}
-					<div class="loading-row"><Loader2 size={18} class="spin" /> Loading dates...</div>
-				{:else if availableDates.length === 0}
-					<div class="empty-state-sm">No upcoming dates available for this instructor.</div>
-				{:else}
-					<div class="date-grid">
-						{#each availableDates as date}
+				<!-- Date Selection Strip -->
+				<div class="drawer-section">
+					<div class="section-label-row">
+						<span class="step-label-h">1. Choose Date</span>
+						{#if selectedDate}
+							<span class="step-selected-tag">{formatDate(selectedDate)}</span>
+						{/if}
+					</div>
+
+					{#if isLoadingDates}
+						<div class="loading-row"><Loader2 size={16} class="spin" /> Loading available dates...</div>
+					{:else if availableDates.length === 0}
+						<div class="empty-state-sm">No upcoming dates available for this mentor.</div>
+					{:else}
+						<div class="date-scroll-strip">
+							{#each availableDates as date}
+								<button
+									class="date-strip-card"
+									class:selected={selectedDate === date}
+									onclick={() => selectDate(date)}
+								>
+									<span class="date-card-wday">{new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' })}</span>
+									<span class="date-card-day">{new Date(date + 'T00:00:00').getDate()}</span>
+									<span class="date-card-month">{new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { month: 'short' })}</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Duration Tiers -->
+				<div class="drawer-section">
+					<div class="section-label-row">
+						<span class="step-label-h">2. Session Duration</span>
+						<span class="step-selected-tag">{selectedDuration} min · {formatPaise(currentBasePricePaise())}</span>
+					</div>
+
+					<div class="duration-pills-row">
+						{#each durationPrices as price}
 							<button
-								class="date-chip"
-								class:selected={selectedDate === date}
-								onclick={() => selectDate(date)}
+								class="duration-pill-btn"
+								class:selected={selectedDuration === price.durationMins}
+								onclick={() => onDurationChange(price.durationMins)}
 							>
-								<span class="day-abbr">{new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short' }).toUpperCase()}</span>
-								<span class="date-num">{new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+								<span class="dur-pill-mins">{price.durationMins} min</span>
+								<span class="dur-pill-price">{formatPaise(price.pricePaise)}</span>
 							</button>
 						{/each}
 					</div>
+				</div>
+
+				<!-- Time Slots Selection -->
+				<div class="drawer-section">
+					<div class="section-label-row">
+						<span class="step-label-h">3. Available Start Time (IST)</span>
+						{#if selectedSlot}
+							<span class="step-selected-tag active-slot">✓ {selectedSlot.timeStr} IST</span>
+						{/if}
+					</div>
+
+					{#if isLoadingSlots}
+						<div class="loading-row"><Loader2 size={16} class="spin" /> Calculating conflict-free slots...</div>
+					{:else if !selectedDate}
+						<p class="field-hint">Please select a date above to view time slots.</p>
+					{:else if availableSlots.length === 0}
+						<div class="empty-state-sm">
+							No available slots for {selectedDuration} minutes on this date.
+							{#if dayWindows.length > 0}
+								Try a shorter duration or pick another date.
+							{/if}
+						</div>
+					{:else}
+						<div class="slots-grid-enhanced">
+							{#each availableSlots as slot}
+								<button
+									class="slot-btn-enhanced"
+									class:selected={selectedSlot?.startsAtISO === slot.startsAtISO}
+									onclick={() => selectedSlot = slot}
+								>
+									<Clock size={12} />
+									<span>{slot.timeStr}</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Selected Summary Badge -->
+				{#if selectedSlot}
+					<div class="slot-chosen-summary">
+						<CheckCircle size={15} class="text-emerald" />
+						<div>
+							<strong>{formatDate(selectedDate)} at {selectedSlot.timeStr} IST</strong>
+							<span class="sub">({selectedDuration} min session · {formatPaise(currentFinalPricePaise())})</span>
+						</div>
+					</div>
 				{/if}
+
 				<div class="drawer-nav">
 					<button class="btn-ghost" onclick={closeDrawer}>Cancel</button>
 					<button
 						class="btn-primary"
-						disabled={!selectedDate}
-						onclick={() => { if (selectedDate) bookingStep = 2; }}
-					>Continue to Time Slots</button>
-				</div>
-
-			<!-- Step 2: Window / Duration / Slot -->
-			{:else if bookingStep === 2}
-				{#if isLoadingSlots}
-					<div class="loading-row"><Loader2 size={18} class="spin" /> Loading slots...</div>
-				{:else}
-					<!-- Time windows -->
-					{#if dayWindows.length > 1}
-						<p class="step-label-h">Available Time Windows</p>
-						<div class="window-chips">
-							{#each dayWindows as w}
-								<button
-									class="window-chip"
-									class:selected={selectedWindowId === w.id}
-									onclick={() => onWindowChange(w.id)}
-								>
-									{w.windowStart} – {w.windowEnd}
-								</button>
-							{/each}
-						</div>
-					{/if}
-
-					<!-- Duration tiers -->
-					<p class="step-label-h">Session Duration</p>
-					<div class="duration-chips">
-						{#each durationPrices.filter((p: any) => {
-							const w = dayWindows.find((dw: any) => dw.id === selectedWindowId);
-							return !w || w.allowedDurations.includes(p.durationMins);
-						}) as price}
-							<button
-								class="duration-chip"
-								class:selected={selectedDuration === price.durationMins}
-								onclick={() => onDurationChange(price.durationMins)}
-							>
-								<span class="dur-mins">{price.durationMins} min</span>
-								<span class="dur-price">{formatPaise(price.pricePaise)}</span>
-							</button>
-						{/each}
-					</div>
-
-					<!-- Time slots -->
-					<p class="step-label-h">Select Start Time (IST)</p>
-					{#if availableSlots.length === 0}
-						<div class="empty-state-sm">No available slots for this duration. Try a shorter session or a different window.</div>
-					{:else}
-						<div class="slot-grid">
-							{#each availableSlots as slot}
-								<button
-									class="slot-chip"
-									class:selected={selectedSlot?.startsAtISO === slot.startsAtISO}
-									onclick={() => selectedSlot = slot}
-								>
-									{slot.timeStr}
-								</button>
-							{/each}
-						</div>
-					{/if}
-				{/if}
-
-				<div class="drawer-nav">
-					<button class="btn-ghost" onclick={() => bookingStep = 1}>Back</button>
-					<button
-						class="btn-primary"
 						disabled={!selectedSlot || isLoadingSlots}
-						onclick={() => { if (selectedSlot) bookingStep = 3; }}
-					>Proceed to Confirm</button>
+						onclick={() => { if (selectedSlot) bookingStep = 2; }}
+					>
+						Proceed to Confirm <ArrowRight size={14} />
+					</button>
 				</div>
 
-			<!-- Step 3: Summary / Notes / Payment -->
-			{:else if bookingStep === 3}
+			<!-- Step 2: Confirm, Agenda, Coupon & Payment -->
+			{:else if bookingStep === 2}
 				<div class="summary-card">
 					<p class="sum-row"><span class="sum-label">Mentor</span><span class="sum-val">{instructor.name}</span></p>
 					<p class="sum-row"><span class="sum-label">Date</span><span class="sum-val">{formatDate(selectedDate)}</span></p>
@@ -678,7 +710,7 @@
 					<p class="sum-row"><span class="sum-label">Duration</span><span class="sum-val">{selectedDuration} minutes</span></p>
 					<hr class="sum-divider" />
 					<p class="sum-row total">
-						<span class="sum-label">Total</span>
+						<span class="sum-label">Total Due</span>
 						<span class="sum-val">{formatPaise(currentFinalPricePaise())}</span>
 					</p>
 				</div>
@@ -1115,37 +1147,276 @@
 
 	.pkg-price { font-size: 0.9rem; font-weight: 700; color: #111; }
 
-	/* Calendar chips */
-	.cal-dates {
+	/* ── Enhanced Sidebar Calendar ──────────────────────────────────── */
+	.sidebar-cal-header {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.4rem;
+		justify-content: space-between;
+		align-items: center;
 		margin-bottom: 0.75rem;
 	}
 
-	.cal-date-chip {
+	.sidebar-cal-nav {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.sidebar-cal-month-label {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: #111;
+	}
+
+	.cal-nav-btn {
 		background: #f5f5f5;
 		border: 1px solid #e0e0e0;
-		border-radius: 6px;
-		padding: 0.3rem 0.6rem;
-		font-size: 0.72rem;
-		font-weight: 500;
-		color: #333;
+		border-radius: 4px;
+		width: 22px;
+		height: 22px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		cursor: pointer;
-		transition: background 0.12s, border-color 0.12s;
+		color: #555;
+	}
+	.cal-nav-btn:hover { border-color: #111; color: #111; }
+
+	.mini-cal-grid {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 4px;
+		margin-bottom: 0.75rem;
 	}
 
-	.cal-date-chip:hover { background: #111; color: #fff; border-color: #111; }
-	.cal-date-chip.selected { background: #111; color: #fff; border-color: #111; }
+	.mini-cal-dname {
+		font-size: 0.65rem;
+		font-weight: 700;
+		color: #999;
+		text-align: center;
+		padding: 2px 0;
+	}
 
-	.cal-guest-hint {
+	.mini-cal-cell {
+		aspect-ratio: 1;
+		border-radius: 6px;
+		border: 1px solid transparent;
+		background: transparent;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
 		font-size: 0.75rem;
-		color: #888;
-		margin: 0.5rem 0 0;
+		font-weight: 500;
+		color: #bbb;
+		position: relative;
+		cursor: default;
+		padding: 0;
 	}
 
-	.cal-guest-hint a { color: #111; font-weight: 600; text-decoration: none; }
-	.cal-guest-hint a:hover { text-decoration: underline; }
+	.mini-cal-cell.empty { visibility: hidden; }
+
+	.mini-cal-cell.avail {
+		color: #111;
+		font-weight: 700;
+		background: #f9f9f9;
+		border-color: #e5e5e5;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+	.mini-cal-cell.avail:hover {
+		background: #111;
+		color: #fff;
+		border-color: #111;
+	}
+	.mini-cal-cell.avail.selected {
+		background: #111;
+		color: #fff;
+		border-color: #111;
+	}
+
+	.avail-dot {
+		width: 4px;
+		height: 4px;
+		border-radius: 50%;
+		background: #10b981;
+		position: absolute;
+		bottom: 3px;
+	}
+	.avail-dot.inline {
+		display: inline-block;
+		position: static;
+		vertical-align: middle;
+		margin-right: 4px;
+	}
+
+	.cal-active-hint {
+		font-size: 0.72rem;
+		color: #047857;
+		margin: 0.4rem 0 0;
+		display: flex;
+		align-items: center;
+	}
+
+	/* ── Enhanced Booking Drawer Sections ──────────────────────────── */
+	.drawer-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.section-label-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.step-selected-tag {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: #555;
+	}
+	.step-selected-tag.active-slot {
+		color: #047857;
+		font-weight: 700;
+	}
+
+	/* Date Scroll Strip */
+	.date-scroll-strip {
+		display: flex;
+		gap: 0.45rem;
+		overflow-x: auto;
+		padding-bottom: 4px;
+		scrollbar-width: thin;
+	}
+
+	.date-strip-card {
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.1rem;
+		background: #f8f8f8;
+		border: 1.5px solid #e5e5e5;
+		border-radius: 8px;
+		padding: 0.5rem 0.65rem;
+		cursor: pointer;
+		min-width: 58px;
+		transition: all 0.12s;
+	}
+	.date-strip-card:hover { border-color: #111; }
+	.date-strip-card.selected {
+		background: #111;
+		border-color: #111;
+		color: #fff;
+	}
+	.date-card-wday {
+		font-size: 0.62rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: #888;
+	}
+	.date-strip-card.selected .date-card-wday { color: #aaa; }
+	.date-card-day {
+		font-size: 1rem;
+		font-weight: 700;
+		color: #111;
+	}
+	.date-strip-card.selected .date-card-day { color: #fff; }
+	.date-card-month {
+		font-size: 0.65rem;
+		color: #777;
+	}
+	.date-strip-card.selected .date-card-month { color: #ccc; }
+
+	/* Duration Pills */
+	.duration-pills-row {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.duration-pill-btn {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.15rem;
+		background: #f8f8f8;
+		border: 1.5px solid #e5e5e5;
+		border-radius: 8px;
+		padding: 0.6rem 0.5rem;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+	.duration-pill-btn:hover { border-color: #111; }
+	.duration-pill-btn.selected {
+		background: #111;
+		border-color: #111;
+		color: #fff;
+	}
+	.dur-pill-mins { font-size: 0.82rem; font-weight: 700; color: #111; }
+	.dur-pill-price { font-size: 0.72rem; color: #666; }
+	.duration-pill-btn.selected .dur-pill-mins,
+	.duration-pill-btn.selected .dur-pill-price { color: #fff; }
+
+	/* Slots Grid Enhanced */
+	.slots-grid-enhanced {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+		gap: 0.45rem;
+		max-height: 180px;
+		overflow-y: auto;
+		padding: 2px;
+	}
+
+	.slot-btn-enhanced {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		background: #f8f8f8;
+		border: 1.5px solid #e2e2e2;
+		border-radius: 6px;
+		padding: 0.5rem 0.4rem;
+		font-size: 0.8rem;
+		font-weight: 600;
+		color: #222;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+	.slot-btn-enhanced:hover {
+		border-color: #111;
+		background: #fff;
+	}
+	.slot-btn-enhanced.selected {
+		background: #111;
+		color: #fff;
+		border-color: #111;
+	}
+
+	.slot-chosen-summary {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: #ecfdf5;
+		border: 1px solid #a7f3d0;
+		border-radius: 7px;
+		padding: 0.65rem 0.85rem;
+		font-size: 0.8rem;
+		color: #065f46;
+	}
+	:global(.text-emerald) { color: #10b981; flex-shrink: 0; }
+	.slot-chosen-summary .sub { color: #047857; margin-left: 4px; font-weight: 400; }
+
+	.field-hint { font-size: 0.78rem; color: #888; margin: 0; }
+
+	/* Summary */
+	.summary-card {
+		background: #f8f8f8;
+		border: 1px solid #eaeaea;
+		border-radius: 8px;
+		padding: 1rem 1.1rem;
+	}
 
 	.sidebar-cta-card {
 		background: #111;

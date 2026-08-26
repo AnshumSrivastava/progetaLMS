@@ -1106,6 +1106,42 @@
 								<!-- Add Window Form -->
 								<div class="add-win-form">
 									<h4>Add New Availability Window</h4>
+
+									<!-- Quick Presets -->
+									<div class="presets-block">
+										<span class="presets-label">Quick Presets:</span>
+										<div class="presets-chips">
+											<button
+												type="button"
+												class="preset-btn"
+												onclick={() => { newWinStart = '10:00'; newWinEnd = '14:00'; }}
+											>
+												Morning (10am–2pm)
+											</button>
+											<button
+												type="button"
+												class="preset-btn"
+												onclick={() => { newWinStart = '14:00'; newWinEnd = '18:00'; }}
+											>
+												Afternoon (2pm–6pm)
+											</button>
+											<button
+												type="button"
+												class="preset-btn"
+												onclick={() => { newWinStart = '18:00'; newWinEnd = '21:00'; }}
+											>
+												Evening (6pm–9pm)
+											</button>
+											<button
+												type="button"
+												class="preset-btn"
+												onclick={() => { newWinStart = '10:00'; newWinEnd = '18:00'; }}
+											>
+												Full Day (10am–6pm)
+											</button>
+										</div>
+									</div>
+
 									<div class="form-row-2">
 										<div class="field-sm">
 											<label for="winStart">Start Time (24h)</label>
@@ -3125,6 +3161,44 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		margin: 0;
+	}
+
+	.presets-block {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.presets-label {
+		font-size: 0.6875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--text-muted);
+	}
+
+	.presets-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.preset-btn {
+		background: var(--bg-surface);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		padding: 4px 8px;
+		font-size: 0.72rem;
+		font-weight: 500;
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all var(--t-fast);
+	}
+
+	.preset-btn:hover {
+		background: var(--text-primary);
+		color: var(--bg);
+		border-color: var(--text-primary);
 	}
 
 	.durations-toggle-row {
