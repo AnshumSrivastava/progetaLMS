@@ -220,4 +220,88 @@ export function registerEventHandlers() {
 			html
 		});
 	});
+
+	// ── Mentoring Event Handlers ─────────────────────────────────────────────
+	eventBus.on('MENTORING_BOOKED', async (payload: any, meta) => {
+		const { emailService } = await import('$lib/server/emails');
+		await emailService.sendBookingConfirmation({
+			studentEmail: payload.studentEmail,
+			studentName: payload.studentName,
+			instructorEmail: payload.instructorEmail,
+			instructorName: payload.instructorName,
+			startsAt: new Date(payload.startsAt),
+			durationMins: payload.durationMins,
+			meetingUrl: payload.meetingUrl,
+			notes: payload.notes
+		});
+	});
+
+	eventBus.on('MENTORING_REMINDER', async (payload: any, meta) => {
+		const { emailService } = await import('$lib/server/emails');
+		const { mentoringBookings } = await import('$lib/server/db/schema/mentoring.schema');
+		const { eq } = await import('drizzle-orm');
+
+		// Idempotency check: verify booking is still confirmed and reminder not already sent
+		const [booking] = await db
+			.select()
+			.from(mentoringBookings)
+			.where(eq(mentoringBookings.id, payload.bookingId))
+			.limit(1);
+
+		if (!booking || booking.status !== 'confirmed' || booking.reminderSent) {
+			return;
+		}
+
+		// Send reminder to student
+		await emailService.sendSessionReminder({
+			recipientEmail: payload.studentEmail,
+			recipientName: payload.studentName,
+			otherPartyName: payload.instructorName,
+			startsAt: new Date(payload.startsAt),
+			durationMins: payload.durationMins,
+			meetingUrl: payload.meetingUrl,
+			isInstructor: false
+		});
+
+		// Send reminder to instructor
+		await emailService.sendSessionReminder({
+			recipientEmail: payload.instructorEmail,
+			recipientName: payload.instructorName,
+			otherPartyName: payload.studentName,
+			startsAt: new Date(payload.startsAt),
+			durationMins: payload.durationMins,
+			meetingUrl: payload.meetingUrl,
+			isInstructor: true
+		});
+
+		// Mark reminderSent = true atomically
+		await db
+			.update(mentoringBookings)
+			.set({ reminderSent: true })
+			.where(eq(mentoringBookings.id, payload.bookingId));
+	});
+
+	eventBus.on('MENTORING_CANCELLED_BY_STUDENT', async (payload: any, meta) => {
+		const { emailService } = await import('$lib/server/emails');
+		await emailService.sendStudentCancellationNotice({
+			instructorEmail: payload.instructorEmail,
+			instructorName: payload.instructorName,
+			studentName: payload.studentName,
+			startsAt: new Date(payload.startsAt),
+			durationMins: payload.durationMins
+		});
+	});
+
+	eventBus.on('MENTORING_WINDOW_CANCELLED', async (payload: any, meta) => {
+		const { emailService } = await import('$lib/server/emails');
+		await emailService.sendWindowCancellationNotice({
+			studentEmail: payload.studentEmail,
+			studentName: payload.studentName,
+			instructorName: payload.instructorName,
+			date: payload.date,
+			windowStart: payload.windowStart,
+			windowEnd: payload.windowEnd,
+			reason: payload.reason
+		});
+	});
 }

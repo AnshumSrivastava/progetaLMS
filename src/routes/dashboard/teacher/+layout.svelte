@@ -7,14 +7,14 @@
 	let { children } = $props();
 
 	const navItems = [
-		{ name: 'Overview', path: '/dashboard/teacher', icon: LayoutDashboard },
-		{ name: 'Courses', path: '/dashboard/teacher/courses', icon: BookOpen },
-		{ name: 'Classes', path: '/dashboard/teacher/classes', icon: Users2 },
-		{ name: 'Students', path: '/dashboard/teacher/students', icon: Users },
+		{ name: 'Overview',       path: '/dashboard/teacher', icon: LayoutDashboard },
+		{ name: 'Courses',        path: '/dashboard/teacher/courses', icon: BookOpen },
+		{ name: 'Classes',        path: '/dashboard/teacher/classes', icon: Users2 },
+		{ name: 'Students',       path: '/dashboard/teacher/students', icon: Users },
 		{ name: 'Certifications', path: '/dashboard/teacher/certifications', icon: Award },
 		{ name: 'Communications', path: '/dashboard/teacher/communications', icon: Mail },
-		{ name: 'Coupons', path: '/dashboard/teacher/coupons', icon: Ticket },
-		{ name: 'Settings', path: '/dashboard/teacher/settings', icon: Settings },
+		{ name: 'Coupons',        path: '/dashboard/teacher/coupons', icon: Ticket },
+		{ name: 'Settings',       path: '/dashboard/teacher/settings', icon: Settings },
 	];
 
 	async function signOut() {
@@ -23,21 +23,21 @@
 	}
 </script>
 
-<div class="admin-layout">
+<div class="teacher-layout">
 	<!-- Sidebar -->
-	<aside class="admin-sidebar">
+	<aside class="teacher-sidebar">
 		<div class="sidebar-header">
-			<a href="/dashboard" class="back-link">
-				<ArrowLeft size={16} /> Exit Admin
+			<a href="/dashboard" class="exit-link">
+				<ArrowLeft size={13} />
+				<span>Exit Portal</span>
 			</a>
-			<h2>Teacher Portal</h2>
 		</div>
 
 		<nav class="sidebar-nav">
 			{#each navItems as item}
 				{@const active = $page.url.pathname === item.path || ($page.url.pathname.startsWith(item.path + '/') && item.path !== '/dashboard/teacher')}
 				<a href={item.path} class="nav-item" class:active>
-					<item.icon size={18} />
+					<item.icon size={15} />
 					<span>{item.name}</span>
 				</a>
 			{/each}
@@ -45,28 +45,27 @@
 
 		<div class="sidebar-footer">
 			<button class="nav-item signout" onclick={signOut}>
-				<LogOut size={18} />
+				<LogOut size={15} />
 				<span>Sign out</span>
 			</button>
 		</div>
 	</aside>
 
 	<!-- Main Content Area -->
-	<main class="admin-content">
+	<main class="teacher-content">
 		{@render children()}
 	</main>
 </div>
 
 <style>
-	.admin-layout {
+	.teacher-layout {
 		display: flex;
 		min-height: calc(100vh - var(--nav-h));
 		background: var(--bg);
 	}
 
-	/* Sidebar */
-	.admin-sidebar {
-		width: 250px;
+	.teacher-sidebar {
+		width: 200px;
 		flex-shrink: 0;
 		background: var(--bg-subtle);
 		border-right: 1px solid var(--border);
@@ -75,86 +74,99 @@
 		position: sticky;
 		top: var(--nav-h);
 		height: calc(100vh - var(--nav-h));
-		z-index: 10;
 	}
 
 	.sidebar-header {
-		padding: 1.5rem;
+		padding: 12px 14px;
 		border-bottom: 1px solid var(--border);
 	}
-	.back-link {
+
+	.exit-link {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		font-size: 0.8rem;
+		font-size: 0.75rem;
+		font-weight: 500;
 		color: var(--text-muted);
 		text-decoration: none;
-		margin-bottom: 12px;
-		transition: color 0.2s;
+		transition: color var(--t-fast);
 	}
-	.back-link:hover {
+
+	.exit-link:hover {
 		color: var(--text-primary);
-	}
-	.sidebar-header h2 {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		letter-spacing: -0.02em;
 	}
 
 	.sidebar-nav {
 		flex: 1;
-		padding: 1.5rem 1rem;
+		padding: 10px 8px;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 2px;
 		overflow-y: auto;
 	}
 
 	.nav-item {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 10px 14px;
-		border-radius: 8px;
+		gap: 8px;
+		height: 34px;
+		padding: 0 10px;
+		border-radius: var(--radius-sm);
 		color: var(--text-secondary);
 		text-decoration: none;
-		font-size: 0.9rem;
+		font-size: 0.8125rem;
 		font-weight: 500;
-		transition: all 0.2s;
+		position: relative;
+		transition: color var(--t-fast), background var(--t-fast);
 	}
+
 	.nav-item:hover {
-		background: var(--bg-elevated);
 		color: var(--text-primary);
+		background: var(--bg-elevated);
 	}
+
 	.nav-item.active {
-		background: var(--accent-muted);
-		color: var(--accent);
+		color: var(--text-primary);
 		font-weight: 600;
+		background: var(--bg);
+	}
+
+	.nav-item.active::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 6px;
+		bottom: 6px;
+		width: 2px;
+		background: var(--text-primary);
+		border-radius: 99px;
 	}
 
 	.sidebar-footer {
-		padding: 1rem;
+		padding: 8px;
 		border-top: 1px solid var(--border);
 	}
+
 	.nav-item.signout {
 		width: 100%;
 		background: transparent;
 		border: none;
 		cursor: pointer;
 		font-family: inherit;
-		text-align: left;
-	}
-	.nav-item.signout:hover {
-		color: var(--error, #ef4444);
-		background: var(--error-muted, rgba(239, 68, 68, 0.1));
 	}
 
-	/* Main Content */
-	.admin-content {
+	.nav-item.signout:hover {
+		color: var(--text-primary);
+	}
+
+	.teacher-content {
 		flex: 1;
 		min-width: 0;
 		display: flex;
 		flex-direction: column;
+	}
+
+	@media (max-width: 768px) {
+		.teacher-sidebar { display: none; }
 	}
 </style>

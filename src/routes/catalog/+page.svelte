@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Search, Filter, BookOpen, Calendar, FileBadge2, Download, Star, Clock } from 'lucide-svelte';
+	import { Search, BookOpen, Download, FileBadge2, Clock, ArrowRight } from 'lucide-svelte';
 	
 	let { data } = $props();
 	
@@ -14,467 +14,448 @@
 	<title>Catalog — {APP_NAME}</title>
 </svelte:head>
 
-<div class="catalog-page">
-	<!-- Ultra Minimal Hero -->
-	<div class="catalog-header-minimal">
-		<div class="container">
-			<h1 class="page-title">Discover Your Next Skill</h1>
-			<p class="page-subtitle">Browse world-class courses, resources, events, and certifications.</p>
-			
-			<form method="GET" action="/catalog" class="search-wrapper">
-				<Search size={20} class="search-icon" />
-				<input type="text" name="q" value={data.search} placeholder="What do you want to learn today?" />
-				{#if data.search}
-					<a href="/catalog" class="clear-search" style="margin-left: auto; text-decoration: none; color: var(--text-muted); font-size: 14px; font-weight: 500;">Clear</a>
-				{/if}
-			</form>
-
-			<!-- Horizontal Pill Navigation -->
-			<div class="pill-nav">
-				<button class="pill" class:active={activeTab === 'courses'} onclick={() => activeTab = 'courses'}>
-					<BookOpen size={16} /> Courses
-				</button>
-				<button class="pill" class:active={activeTab === 'resources'} onclick={() => activeTab = 'resources'}>
-					<Download size={16} /> Resources
-				</button>
-				<button class="pill" class:active={activeTab === 'certs'} onclick={() => activeTab = 'certs'}>
-					<FileBadge2 size={16} /> Certifications
-				</button>
-			</div>
+<div class="catalog-container">
+	<!-- Top Bar / Toolbar Header -->
+	<header class="catalog-toolbar">
+		<div class="toolbar-title">
+			<h1>Catalog</h1>
+			<p class="subtitle">Explore courses, downloadable assets, and certification exams.</p>
 		</div>
-	</div>
 
-	<div class="container catalog-body">
-		<!-- Main Content (Full Width) -->
-		<main class="catalog-main">
-			
-			<div class="results-header">
-				<h2>
-					{#if activeTab === 'courses'}All Courses
-					{:else if activeTab === 'resources'}Digital Resources
-					{:else}Certification Exams{/if}
-				</h2>
-				
-				{#if activeTab === 'courses'}
-					<form method="GET" action="/catalog" class="inline-filters">
-						{#if data.search}
-							<input type="hidden" name="q" value={data.search} />
-						{/if}
-						<select name="category" class="filter-dropdown" value={data.category || ""} onchange={(e) => e.currentTarget.form.submit()}>
-							<option value="">All Categories</option>
-							{#each categories as cat}
-								{#if cat !== 'All'}<option value={cat}>{cat}</option>{/if}
-							{/each}
-						</select>
-						<select name="level" class="filter-dropdown" value={data.level || ""} onchange={(e) => e.currentTarget.form.submit()}>
-							<option value="">All Levels</option>
-							{#each levels as lvl}
-								<option value={lvl}>{lvl}</option>
-							{/each}
-						</select>
-					</form>
+		<form method="GET" action="/catalog" class="search-form">
+			<Search size={15} class="search-icon" />
+			<input type="text" name="q" value={data.search} placeholder="Search catalog..." />
+			{#if data.search}
+				<a href="/catalog" class="clear-search">Clear</a>
+			{/if}
+		</form>
+	</header>
+
+	<!-- Horizontal Underline Tab Strip -->
+	<nav class="catalog-tabs">
+		<button class="tab-btn" class:active={activeTab === 'courses'} onclick={() => activeTab = 'courses'}>
+			<span>Courses</span>
+		</button>
+		<button class="tab-btn" class:active={activeTab === 'resources'} onclick={() => activeTab = 'resources'}>
+			<span>Resources</span>
+		</button>
+		<button class="tab-btn" class:active={activeTab === 'certs'} onclick={() => activeTab = 'certs'}>
+			<span>Certifications</span>
+		</button>
+	</nav>
+
+	<!-- Controls & Inline Filters (Courses Tab) -->
+	{#if activeTab === 'courses'}
+		<div class="filter-bar">
+			<span class="results-count">{data.courses.length} courses</span>
+			<form method="GET" action="/catalog" class="inline-filters">
+				{#if data.search}
+					<input type="hidden" name="q" value={data.search} />
 				{/if}
-			</div>
+				<select name="category" class="select-filter" value={data.category || ""} onchange={(e) => e.currentTarget.form.submit()}>
+					<option value="">All Categories</option>
+					{#each categories as cat}
+						{#if cat !== 'All'}<option value={cat}>{cat}</option>{/if}
+					{/each}
+				</select>
+				<select name="level" class="select-filter" value={data.level || ""} onchange={(e) => e.currentTarget.form.submit()}>
+					<option value="">All Levels</option>
+					{#each levels as lvl}
+						<option value={lvl}>{lvl}</option>
+					{/each}
+				</select>
+			</form>
+		</div>
+	{/if}
 
-			<!-- Grid -->
-			<div class="item-grid" class:course-grid={activeTab === 'courses'}>
-				{#if activeTab === 'courses'}
-					{#each data.courses as course, i}
-						<a href={`/catalog/${course.id}`} class="course-card">
-							<div class="course-img-wrapper" style="position: relative; width: 100%; height: 160px; overflow: hidden; border-bottom: 1px solid var(--border);">
-								<img src={course.thumbnail || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80'} alt={course.title} fetchpriority={i === 0 ? "high" : "auto"} loading={i === 0 ? "eager" : "lazy"} style="width: 100%; height: 100%; object-fit: cover;" />
-								<span class="level-badge">{course.metadata?.level || 'Beginner'}</span>
-							</div>
-							<div class="course-content">
-								<h3 class="course-title">{course.title}</h3>
-								<p class="course-author">{course.metadata?.instructor || 'Instructor'}</p>
-								<div class="course-meta">
-									<div class="rating">
-										<Star size={14} class="star-icon" fill="currentColor" />
-										<strong>5.0</strong>
-										<span>(0)</span>
-									</div>
-									<div class="duration">
-										<Clock size={14} /> {course.metadata?.duration || 'Self-paced'}
-									</div>
-								</div>
-								<div class="course-footer">
-									<span class="course-price">{course.pricePaise === 0 ? 'Free' : `₹${(course.pricePaise / 100).toFixed(2)}`}</span>
+	<!-- Main Content Area -->
+	<main class="catalog-content">
+		{#if activeTab === 'courses'}
+			<div class="course-grid">
+				{#each data.courses as course, i}
+					<a href={`/catalog/${course.id}`} class="course-card">
+						<div class="thumbnail-wrapper">
+							<img src={course.thumbnail || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80'} alt={course.title} fetchpriority={i === 0 ? "high" : "auto"} loading={i === 0 ? "eager" : "lazy"} />
+							<span class="badge-level">{course.metadata?.level || 'Beginner'}</span>
+						</div>
+						<div class="card-body">
+							<h3>{course.title}</h3>
+							<p class="instructor">{course.metadata?.instructor || 'Instructor'}</p>
+							<div class="card-footer">
+								<span class="price">{course.pricePaise === 0 ? 'Free' : `₹${(course.pricePaise / 100).toFixed(2)}`}</span>
+								<div class="duration">
+									<Clock size={12} />
+									<span>{course.metadata?.duration || 'Self-paced'}</span>
 								</div>
 							</div>
-						</a>
-					{:else}
-						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-							<BookOpen size={48} style="opacity: 0.5;" />
-							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No courses found</h3>
-							<p>Try adjusting your search or filters.</p>
 						</div>
-					{/each}
-				{:else if activeTab === 'resources'}
-					{#each data.resources as item}
-						<div class="generic-card">
-							<div class="icon-wrap"><Download size={24} /></div>
-							<div class="generic-info">
-								<h3>{item.title}</h3>
-								<p>{item.type === 'pdf' ? 'PDF Template' : 'Resource'}</p>
-							</div>
-							<div class="generic-action">
-								<span class="price">{item.pricePaise === 0 ? 'Free' : `₹${(item.pricePaise / 100).toFixed(2)}`}</span>
-								<a href={`/checkout/${item.id}`} class="buy-btn" style="text-decoration:none;">Get Resource</a>
-							</div>
-						</div>
-					{:else}
-						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-							<Download size={48} style="opacity: 0.5;" />
-							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No resources found</h3>
-							<p>Try adjusting your search or filters.</p>
-						</div>
-					{/each}
+					</a>
 				{:else}
-					{#each data.certifications as item}
-						<div class="generic-card">
-							<div class="icon-wrap"><FileBadge2 size={24} /></div>
-							<div class="generic-info">
-								<h3>{item.title}</h3>
-								<p>{item.metadata?.questions || 0} Questions • {item.metadata?.duration || '60 Mins'}</p>
-							</div>
-							<div class="generic-action">
-								<span class="price">{item.pricePaise === 0 ? 'Free' : `₹${(item.pricePaise / 100).toFixed(2)}`}</span>
-								<a href={`/certifications/${item.id}`} class="buy-btn" style="text-decoration:none;">View Details</a>
-							</div>
-						</div>
-					{:else}
-						<div class="empty-state" style="padding: 4rem; text-align: center; color: var(--text-muted); grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-							<FileBadge2 size={48} style="opacity: 0.5;" />
-							<h3 style="color: var(--text-primary); font-size: 1.25rem;">No certifications found</h3>
-							<p>Try adjusting your search or filters.</p>
-						</div>
-					{/each}
-				{/if}
+					<div class="empty-box">
+						<BookOpen size={32} class="empty-icon" />
+						<p>No courses match your criteria.</p>
+					</div>
+				{/each}
 			</div>
-		</main>
-	</div>
+
+		{:else if activeTab === 'resources'}
+			<div class="row-list">
+				{#each data.resources as item}
+					<div class="list-row">
+						<div class="row-icon">
+							<Download size={16} />
+						</div>
+						<div class="row-main">
+							<h4>{item.title}</h4>
+							<span class="row-sub">{item.type === 'pdf' ? 'PDF Document' : 'Resource Asset'}</span>
+						</div>
+						<div class="row-side">
+							<span class="price-tag">{item.pricePaise === 0 ? 'Free' : `₹${(item.pricePaise / 100).toFixed(2)}`}</span>
+							<a href={`/checkout/${item.id}`} class="action-link">Get Resource</a>
+						</div>
+					</div>
+				{:else}
+					<div class="empty-box">
+						<Download size={32} class="empty-icon" />
+						<p>No downloadable resources found.</p>
+					</div>
+				{/each}
+			</div>
+
+		{:else}
+			<div class="row-list">
+				{#each data.certifications as item}
+					<div class="list-row">
+						<div class="row-icon">
+							<FileBadge2 size={16} />
+						</div>
+						<div class="row-main">
+							<h4>{item.title}</h4>
+							<span class="row-sub">{item.metadata?.questions || 0} Questions • {item.metadata?.duration || '60 Mins'}</span>
+						</div>
+						<div class="row-side">
+							<span class="price-tag">{item.pricePaise === 0 ? 'Free' : `₹${(item.pricePaise / 100).toFixed(2)}`}</span>
+							<a href={`/certifications/${item.id}`} class="action-link">View Exam</a>
+						</div>
+					</div>
+				{:else}
+					<div class="empty-box">
+						<FileBadge2 size={32} class="empty-icon" />
+						<p>No certification exams found.</p>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</main>
 </div>
 
 <style>
-	.catalog-page {
-		min-height: calc(100vh - var(--nav-h));
-		background: var(--bg);
-	}
-	.container {
-		max-width: 1280px;
+	.catalog-container {
+		max-width: 1040px;
 		margin: 0 auto;
-		padding: 0 1.5rem;
+		padding: 2rem 1.5rem 4rem;
 	}
 
-	/* Ultra Minimal Hero */
-	.catalog-header-minimal {
-		background: transparent;
-		padding: 4rem 0 2rem;
-		text-align: center;
-		border-bottom: 1px solid var(--border-subtle);
-	}
-	.page-title {
-		font-size: 2.5rem;
-		font-weight: 800;
-		color: var(--text-primary);
-		letter-spacing: -0.03em;
-		margin-bottom: 8px;
-	}
-	.page-subtitle {
-		font-size: 1.1rem;
-		color: var(--text-secondary);
-		margin-bottom: 2.5rem;
-	}
-
-	.search-wrapper {
-		max-width: 600px;
-		margin: 0 auto 2rem;
-		position: relative;
-	}
-	.search-icon {
-		position: absolute;
-		left: 16px;
-		top: 50%;
-		transform: translateY(-50%);
-		color: var(--text-muted);
-	}
-	.search-wrapper input {
-		width: 100%;
-		background: var(--bg-subtle);
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 16px 16px 16px 48px;
-		font-size: 1.05rem;
-		color: var(--text-primary);
-		transition: all 0.2s;
-	}
-	.search-wrapper input:focus {
-		outline: none;
-		border-color: var(--accent);
-		background: var(--bg);
-		box-shadow: 0 0 0 4px var(--accent-muted);
-	}
-
-	/* Horizontal Pill Nav */
-	.pill-nav {
-		display: flex;
-		justify-content: center;
-		gap: 12px;
-		flex-wrap: wrap;
-	}
-	.pill {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 20px;
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		color: var(--text-secondary);
-		font-size: 0.95rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all 0.2s;
-	}
-	.pill:hover {
-		border-color: var(--border-strong);
-		color: var(--text-primary);
-	}
-	.pill.active {
-		background: var(--text-primary);
-		color: var(--bg);
-		border-color: var(--text-primary);
-	}
-
-	/* Layout */
-	.catalog-body {
-		padding: 3rem 1.5rem 5rem;
-	}
-	.catalog-main {
-		width: 100%;
-	}
-	
-	.results-header {
+	.catalog-toolbar {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		flex-wrap: wrap;
+		align-items: flex-end;
 		gap: 1rem;
-		margin-bottom: 2rem;
+		margin-bottom: 1.5rem;
+		flex-wrap: wrap;
 	}
-	.results-header h2 {
-		font-size: 1.5rem;
-		font-weight: 700;
+
+	.toolbar-title h1 {
+		font-size: 1.375rem;
+		font-weight: 600;
 		color: var(--text-primary);
 		letter-spacing: -0.02em;
 	}
 
-	.inline-filters {
-		display: flex;
-		gap: 12px;
-	}
-	.filter-dropdown {
-		padding: 8px 36px 8px 16px;
-		background: var(--bg-subtle);
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		color: var(--text-primary);
-		font-size: 0.9rem;
-		font-weight: 500;
-		cursor: pointer;
-		appearance: none;
-		background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
-		background-repeat: no-repeat;
-		background-position: right 12px top 50%;
-		background-size: 10px auto;
-	}
-	.filter-dropdown:focus {
-		outline: none;
-		border-color: var(--accent);
+	.toolbar-title .subtitle {
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+		margin-top: 2px;
 	}
 
-	/* Cards & Grids (Full Width) */
-	.item-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
+	.search-form {
+		position: relative;
+		width: 280px;
 	}
-	.item-grid.course-grid {
+
+	.search-icon {
+		position: absolute;
+		left: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-muted);
+		pointer-events: none;
+	}
+
+	.search-form input {
+		width: 100%;
+		height: 34px;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		padding: 0 10px 0 32px;
+		font-size: 0.8125rem;
+		color: var(--text-primary);
+		outline: none;
+		transition: border-color var(--t-fast);
+	}
+
+	.search-form input:focus {
+		border-color: var(--border-strong);
+	}
+
+	.clear-search {
+		position: absolute;
+		right: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 0.75rem;
+		color: var(--text-muted);
+	}
+
+	.catalog-tabs {
+		display: flex;
+		gap: 20px;
+		border-bottom: 1px solid var(--border);
+		margin-bottom: 1.25rem;
+	}
+
+	.tab-btn {
+		background: none;
+		border: none;
+		padding: 8px 0;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--text-secondary);
+		cursor: pointer;
+		position: relative;
+		transition: color var(--t-fast);
+	}
+
+	.tab-btn:hover {
+		color: var(--text-primary);
+	}
+
+	.tab-btn.active {
+		color: var(--text-primary);
+		font-weight: 600;
+	}
+
+	.tab-btn.active::after {
+		content: '';
+		position: absolute;
+		bottom: -1px;
+		left: 0;
+		right: 0;
+		height: 2px;
+		background: var(--text-primary);
+	}
+
+	.filter-bar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1.25rem;
+	}
+
+	.results-count {
+		font-size: 0.8125rem;
+		color: var(--text-muted);
+	}
+
+	.inline-filters {
+		display: flex;
+		gap: 8px;
+	}
+
+	.select-filter {
+		height: 30px;
+		padding: 0 8px;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		font-size: 0.8125rem;
+		color: var(--text-primary);
+		cursor: pointer;
+	}
+
+	.course-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		gap: 2rem;
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		gap: 1.25rem;
 	}
 
 	.course-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		transition: border-color var(--t-fast);
 		display: flex;
 		flex-direction: column;
-		background: var(--bg);
-		border: none;
-		box-shadow: var(--shadow-sm);
-		border-radius: 12px;
-		overflow: hidden;
-		text-decoration: none;
-		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	}
+
 	.course-card:hover {
-		transform: translateY(-4px);
-		box-shadow: var(--shadow-lg);
+		border-color: var(--border-strong);
 	}
-	.course-card:hover img {
-		transform: scale(1.05);
+
+	.thumbnail-wrapper {
+		position: relative;
+		width: 100%;
+		height: 130px;
+		border-bottom: 1px solid var(--border-subtle);
 	}
-	.course-img-wrapper img {
-		transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+	.thumbnail-wrapper img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
-	.level-badge {
+
+	.badge-level {
 		position: absolute;
-		bottom: 12px;
-		right: 12px;
-		background: rgba(0,0,0,0.7);
-		backdrop-filter: blur(4px);
-		color: #fff;
-		padding: 4px 8px;
-		border-radius: 4px;
-		font-size: 0.75rem;
-		font-weight: 600;
+		bottom: 8px;
+		right: 8px;
+		background: rgba(9, 9, 11, 0.8);
+		color: #ffffff;
+		padding: 2px 6px;
+		border-radius: var(--radius-sm);
+		font-size: 0.7rem;
+		font-weight: 500;
 	}
-	.course-content {
-		padding: 1.25rem;
+
+	.card-body {
+		padding: 12px;
 		display: flex;
 		flex-direction: column;
 		flex: 1;
 	}
-	.course-title {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		margin-bottom: 6px;
+
+	.card-body h3 {
+		font-size: 0.9375rem;
+		font-weight: 600;
+		margin-bottom: 4px;
 		line-height: 1.3;
 	}
-	.course-author {
-		font-size: 0.85rem;
-		color: var(--text-secondary);
+
+	.instructor {
+		font-size: 0.78125rem;
+		color: var(--text-muted);
 		margin-bottom: 12px;
 	}
-	.course-meta {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		margin-bottom: 1rem;
+
+	.card-footer {
 		margin-top: auto;
-	}
-	.rating {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		font-size: 0.85rem;
+		justify-content: space-between;
+		padding-top: 8px;
+		border-top: 1px solid var(--border-subtle);
 	}
-	.star-icon {
-		color: #f59e0b;
-	}
-	.rating strong {
+
+	.price {
+		font-size: 0.875rem;
+		font-weight: 600;
 		color: var(--text-primary);
 	}
-	.rating span {
-		color: var(--text-muted);
-	}
+
 	.duration {
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		font-size: 0.85rem;
+		font-size: 0.75rem;
 		color: var(--text-muted);
 	}
-	.course-footer {
-		padding-top: 1rem;
-		border-top: 1px solid var(--border-subtle);
-	}
-	.course-price {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--text-primary);
+
+	.row-list {
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		overflow: hidden;
+		background: var(--bg);
 	}
 
-	/* Generic List Cards */
-	.generic-card {
+	.list-row {
 		display: flex;
 		align-items: center;
-		padding: 1.5rem;
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--border-subtle);
+		transition: background var(--t-fast);
+		gap: 14px;
+	}
+
+	.list-row:last-child {
+		border-bottom: none;
+	}
+
+	.list-row:hover {
 		background: var(--bg-subtle);
-		border: none;
-		box-shadow: var(--shadow-sm);
-		border-radius: 12px;
-		gap: 1.5rem;
-		transition: transform 0.2s, box-shadow 0.2s;
 	}
-	.generic-card:hover {
-		transform: translateY(-2px);
-		box-shadow: var(--shadow-md);
-	}
-	.icon-wrap {
-		width: 56px;
-		height: 56px;
+
+	.row-icon {
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius-sm);
 		background: var(--bg-elevated);
-		border-radius: 12px;
+		border: 1px solid var(--border);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--accent);
-	}
-	.generic-info {
-		flex: 1;
-	}
-	.generic-info h3 {
-		font-size: 1.1rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		margin-bottom: 4px;
-	}
-	.generic-info p {
-		font-size: 0.9rem;
-		color: var(--text-muted);
-	}
-	.generic-action {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
-	}
-	.generic-action .price {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-	.buy-btn {
-		background: var(--text-primary);
-		color: var(--bg);
-		border: none;
-		padding: 8px 16px;
-		border-radius: 8px;
-		font-weight: 600;
-		font-size: 0.9rem;
-		cursor: pointer;
-		transition: opacity 0.2s;
-	}
-	.buy-btn:hover {
-		opacity: 0.9;
+		color: var(--text-secondary);
+		flex-shrink: 0;
 	}
 
-	@media (max-width: 600px) {
-		.generic-card {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 1rem;
-		}
-		.generic-action {
-			width: 100%;
-			justify-content: space-between;
-		}
-		.inline-filters {
-			width: 100%;
-		}
-		.filter-dropdown {
-			flex: 1;
-		}
+	.row-main {
+		flex: 1;
+	}
+
+	.row-main h4 {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		margin-bottom: 2px;
+	}
+
+	.row-sub {
+		font-size: 0.75rem;
+		color: var(--text-muted);
+	}
+
+	.row-side {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+	}
+
+	.price-tag {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.action-link {
+		padding: 5px 10px;
+		background: var(--text-primary);
+		color: var(--bg);
+		border-radius: var(--radius-sm);
+		font-size: 0.78125rem;
+		font-weight: 500;
+		text-decoration: none;
+	}
+
+	.empty-box {
+		padding: 3rem 1.5rem;
+		text-align: center;
+		color: var(--text-muted);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
 	}
 </style>

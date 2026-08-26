@@ -39,8 +39,11 @@ export const Capability = {
 	ANALYTICS_VIEW:      'analytics.view',   // view analytics dashboard
 
 	// ── Mentoring ────────────────────────────────────────────────────────────
-	SESSION_BOOK:        'session.book',     // book a mentoring session
-	SESSION_MANAGE:      'session.manage',   // create/cancel sessions (instructor)
+	SESSION_BOOK:                     'session.book',     // legacy alias
+	SESSION_MANAGE:                   'session.manage',   // legacy alias
+	MENTORING_BOOK_SESSION:           'mentoring.book_session',
+	MENTORING_MANAGE_OWN_AVAILABILITY:'mentoring.manage_own_availability',
+	MENTORING_ADMIN_OVERSIGHT:        'mentoring.admin_oversight',
 
 	// ── Admin ─────────────────────────────────────────────────────────────────
 	USER_VIEW:           'user.view',        // view all users
@@ -62,6 +65,7 @@ export const ROLE_CAPABILITY_MAP: Record<string, CapabilityKey[]> = {
 		Capability.TEST_ATTEMPT,
 		Capability.CERT_VERIFY,
 		Capability.SESSION_BOOK,
+		Capability.MENTORING_BOOK_SESSION,
 	],
 	teacher: [
 		Capability.ASSET_VIEW,
@@ -81,6 +85,8 @@ export const ROLE_CAPABILITY_MAP: Record<string, CapabilityKey[]> = {
 		Capability.ANALYTICS_VIEW,
 		Capability.SESSION_BOOK,
 		Capability.SESSION_MANAGE,
+		Capability.MENTORING_BOOK_SESSION,
+		Capability.MENTORING_MANAGE_OWN_AVAILABILITY,
 	],
 	super_admin: ALL_CAPABILITIES,
 };

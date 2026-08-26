@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Users, BookOpen, GraduationCap, TrendingUp, Plus, MoreHorizontal } from 'lucide-svelte';
+	import { Users, BookOpen, GraduationCap, TrendingUp, Plus, Activity } from 'lucide-svelte';
 
 	let { data } = $props();
 
 	let metrics = $derived([
-		{ label: 'Total Students', value: data.stats.totalStudents, change: '0%', icon: Users },
-		{ label: 'Active Courses', value: data.stats.activeCourses, change: '0%', icon: BookOpen },
-		{ label: 'Avg. Rating', value: data.stats.avgRating, change: '0%', icon: GraduationCap },
-		{ label: 'Total Revenue', value: `₹${data.stats.totalRevenue}`, change: '0%', icon: TrendingUp },
+		{ label: 'Total Students', value: data.stats.totalStudents, icon: Users },
+		{ label: 'Active Courses', value: data.stats.activeCourses, icon: BookOpen },
+		{ label: 'Avg. Rating',    value: data.stats.avgRating, icon: GraduationCap },
+		{ label: 'Total Revenue',  value: `₹${data.stats.totalRevenue}`, icon: TrendingUp },
 	]);
 </script>
 
@@ -19,67 +19,53 @@
 <div class="page-content">
 	<header class="page-header">
 		<div>
-			<h1 class="page-title">Overview</h1>
-			<p class="page-subtitle">Here's what's happening with your courses today.</p>
+			<h1>Teacher Overview</h1>
+			<p class="subtitle">Course metrics and student enrollment activity.</p>
 		</div>
-		<button class="create-btn">
-			<Plus size={16} /> Create Course
-		</button>
+		<a href="/dashboard/teacher/courses" class="create-btn">
+			<Plus size={14} />
+			<span>New Course</span>
+		</a>
 	</header>
 
-	<!-- Metrics strip -->
-	<div class="metrics-grid">
+	<!-- Metrics Strip (Border-Separated) -->
+	<div class="metrics-strip">
 		{#each metrics as metric}
-			<div class="metric-card">
-				<div class="metric-top">
-					<p class="metric-label">{metric.label}</p>
-					<metric.icon size={18} class="metric-icon" />
-				</div>
-				<div class="metric-bottom">
-					<p class="metric-value">{metric.value}</p>
-					<span class="metric-change positive">{metric.change}</span>
-				</div>
+			<div class="metric-item">
+				<span class="metric-label">{metric.label}</span>
+				<span class="metric-val">{metric.value}</span>
 			</div>
 		{/each}
 	</div>
 
 	<div class="dash-grid">
-		<!-- Main Column: Activity Chart / Reports (Placeholder for now) -->
+		<!-- Main Column: Revenue Notes -->
 		<div class="main-col">
-			<section class="dash-section">
-				<div class="section-header">
-					<h2>Revenue & Enrollments</h2>
-				</div>
-				<div class="chart-placeholder">
-					<TrendingUp size={32} />
-					<p>Chart Data Unavailable</p>
-					<span class="subtext">Connect your Stripe account to view detailed revenue charts.</span>
-				</div>
+			<section class="card-section">
+				<h2>Revenue & Performance</h2>
+				<p class="info-text">Detailed revenue reports will render automatically once transaction data is received.</p>
 			</section>
 		</div>
 
 		<!-- Sidebar Column: Activity -->
 		<div class="side-col">
-			<section class="dash-section">
-				<div class="section-header">
-					<h2>Recent Activity</h2>
-				</div>
-				
+			<section class="card-section">
+				<h2>Recent Activity</h2>
 				<div class="activity-feed">
 					{#each data.recentActivity as item}
-						<div class="activity-item">
+						<div class="activity-row">
 							<div class="activity-dot"></div>
-							<div class="activity-content">
-								<p class="activity-text">
-									<strong>{item.user}</strong> {item.action} <em>{item.target}</em>
-								</p>
-								<span class="activity-time">{item.time}</span>
+							<div class="activity-main">
+								<p><strong>{item.user}</strong> {item.action} <span>{item.target}</span></p>
+								<span class="time">{item.time}</span>
 							</div>
 						</div>
+					{:else}
+						<div class="empty-feed">
+							<Activity size={20} class="empty-icon" />
+							<p>No recent activity recorded.</p>
+						</div>
 					{/each}
-					{#if data.recentActivity.length === 0}
-						<p class="text-sm text-gray-500 italic p-4">No recent activity found.</p>
-					{/if}
 				</div>
 			</section>
 		</div>
@@ -88,205 +74,158 @@
 
 <style>
 	.page-content {
-		padding: 2.5rem;
-		width: 100%;
-		max-width: 1200px;
-		margin: 0 auto;
+		padding: 2rem 2.5rem;
+		max-width: 1040px;
 	}
 
 	.page-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-end;
-		margin-bottom: 2.5rem;
+		padding-bottom: 1.25rem;
+		border-bottom: 1px solid var(--border);
+		margin-bottom: 1.5rem;
 	}
-	.page-title {
-		font-size: 1.75rem;
-		font-weight: 700;
+
+	.page-header h1 {
+		font-size: 1.375rem;
+		font-weight: 600;
 		color: var(--text-primary);
-		letter-spacing: -0.02em;
-		margin-bottom: 4px;
 	}
-	.page-subtitle {
-		font-size: 0.95rem;
+
+	.page-header .subtitle {
+		font-size: 0.8125rem;
 		color: var(--text-muted);
+		margin-top: 2px;
 	}
 
 	.create-btn {
-		display: flex;
+		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
+		padding: 6px 12px;
 		background: var(--text-primary);
 		color: var(--bg);
-		border: none;
-		padding: 10px 18px;
-		border-radius: 8px;
-		font-size: 0.9rem;
-		font-weight: 600;
-		cursor: pointer;
-		transition: opacity 0.2s;
-	}
-	.create-btn:hover {
-		opacity: 0.9;
+		border-radius: var(--radius-md);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		text-decoration: none;
 	}
 
-	/* Metrics */
-	.metrics-grid {
+	.metrics-strip {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 3rem;
+		grid-template-columns: repeat(4, 1fr);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		background: var(--bg);
+		margin-bottom: 1.5rem;
 	}
 
-	.metric-card {
-		background: var(--bg-subtle);
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 1.25rem 1.5rem;
+	.metric-item {
+		padding: 16px 20px;
+		border-right: 1px solid var(--border-subtle);
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 4px;
 	}
 
-	.metric-top {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
+	.metric-item:last-child {
+		border-right: none;
 	}
+
 	.metric-label {
-		font-size: 0.85rem;
-		font-weight: 600;
+		font-size: 0.75rem;
 		color: var(--text-muted);
+		font-weight: 500;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-	.metric-icon {
-		color: var(--text-muted);
+		letter-spacing: 0.04em;
 	}
 
-	.metric-bottom {
-		display: flex;
-		align-items: baseline;
-		gap: 12px;
-	}
-	.metric-value {
-		font-size: 2rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		line-height: 1;
-	}
-	.metric-change {
-		font-size: 0.85rem;
+	.metric-val {
+		font-size: 1.5rem;
 		font-weight: 600;
-	}
-	.metric-change.positive {
-		color: #10b981;
+		color: var(--text-primary);
+		letter-spacing: -0.02em;
 	}
 
-	/* Layout Grid */
 	.dash-grid {
 		display: grid;
-		grid-template-columns: 2fr 1.2fr;
-		gap: 2rem;
+		grid-template-columns: 1.4fr 1fr;
+		gap: 1.5rem;
 	}
 
-	.section-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 1.25rem;
-	}
-	.section-header h2 {
-		font-size: 1.1rem;
-		font-weight: 600;
-		color: var(--text-primary);
+	.card-section {
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		padding: 18px;
+		background: var(--bg);
 	}
 
-	.chart-placeholder {
-		background: var(--bg-subtle);
-		border: 1px dashed var(--border-strong);
-		border-radius: 12px;
-		height: 350px;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		color: var(--text-muted);
-		gap: 12px;
-	}
-	.chart-placeholder p {
+	.card-section h2 {
+		font-size: 0.9375rem;
 		font-weight: 600;
-		font-size: 1.1rem;
+		margin-bottom: 12px;
+	}
+
+	.info-text {
+		font-size: 0.8125rem;
 		color: var(--text-secondary);
 	}
-	.chart-placeholder .subtext {
-		font-size: 0.85rem;
-	}
 
-	/* Activity Feed */
 	.activity-feed {
-		background: var(--bg-subtle);
-		border: 1px solid var(--border);
-		border-radius: 12px;
-		padding: 1.5rem;
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
-		height: 350px;
-		overflow-y: auto;
+		gap: 12px;
 	}
 
-	.activity-item {
+	.activity-row {
 		display: flex;
-		gap: 12px;
-		position: relative;
-	}
-	.activity-item:not(:last-child)::before {
-		content: '';
-		position: absolute;
-		left: 4px;
-		top: 14px;
-		bottom: -1.5rem;
-		width: 1px;
-		background: var(--border);
+		gap: 10px;
+		align-items: flex-start;
 	}
 
 	.activity-dot {
-		width: 9px;
-		height: 9px;
+		width: 6px;
+		height: 6px;
 		border-radius: 50%;
-		background: var(--accent);
-		margin-top: 5px;
-		position: relative;
-		z-index: 2;
-		box-shadow: 0 0 0 4px var(--bg-subtle);
+		background: var(--text-primary);
+		margin-top: 6px;
+		flex-shrink: 0;
 	}
 
-	.activity-content {
-		flex: 1;
-	}
-	.activity-text {
-		font-size: 0.9rem;
+	.activity-main p {
+		font-size: 0.8125rem;
 		color: var(--text-secondary);
-		line-height: 1.4;
-		margin-bottom: 4px;
+
 	}
-	.activity-text strong {
+
+	.activity-main p strong {
+		color: var(--text-primary);
+		font-weight: 600;
+	}
+
+	.activity-main p span {
 		color: var(--text-primary);
 	}
-	.activity-text em {
-		font-style: normal;
-		color: var(--text-primary);
-		font-weight: 500;
-	}
-	.activity-time {
-		font-size: 0.75rem;
+
+	.time {
+		font-size: 0.7rem;
 		color: var(--text-muted);
 	}
 
-	@media (max-width: 1024px) {
-		.dash-grid {
-			grid-template-columns: 1fr;
-		}
+	.empty-feed {
+		text-align: center;
+		padding: 2rem 1rem;
+		color: var(--text-muted);
+		font-size: 0.8125rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+	}
+
+	@media (max-width: 768px) {
+		.metrics-strip { grid-template-columns: repeat(2, 1fr); }
+		.dash-grid { grid-template-columns: 1fr; }
 	}
 </style>

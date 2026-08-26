@@ -14,7 +14,9 @@ import {
 	timestamp,
 	boolean,
 	integer,
-	uuid
+	uuid,
+	jsonb,
+	index
 } from 'drizzle-orm/pg-core';
 
 /** Better Auth — core users table */
@@ -78,16 +80,31 @@ export const verifications = pgTable('verifications', {
  * Profile is created automatically on first sign-in via the auth hook.
  */
 export const identityProfiles = pgTable('identity_profiles', {
-	id:          text('id').primaryKey(),
-	userId:      text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
-	displayName: text('display_name'),
-	bio:         text('bio'),
-	avatarUrl:   text('avatar_url'),
-	timezone:    text('timezone').notNull().default('Asia/Kolkata'),
-	loginPreference: text('login_preference', { enum: ['otp', 'password'] }).notNull().default('otp'),
-	createdAt:   timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-	updatedAt:   timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-});
+	id:                 text('id').primaryKey(),
+	userId:             text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+	displayName:        text('display_name'),
+	bio:                text('bio'),
+	avatarUrl:          text('avatar_url'),
+	timezone:           text('timezone').notNull().default('Asia/Kolkata'),
+	loginPreference:    text('login_preference', { enum: ['otp', 'password'] }).notNull().default('otp'),
+	// Mentoring governance
+	mentoringSuspended:    boolean('mentoring_suspended').notNull().default(false),
+	mentoringPriceBounds:  jsonb('mentoring_price_bounds'),
+	// Rich mentor profile fields
+	mentoringHandle:       text('mentoring_handle').unique(), // URL slug e.g. 'anshum-srivastava'
+	mentoringHeadline:     text('mentoring_headline'),        // Short tagline shown on cards & profile hero
+	mentoringAbout:        text('mentoring_about'),           // Long-form markdown biography
+	mentoringYearsExp:     integer('mentoring_years_exp'),    // e.g. 8
+	mentoringLanguages:    text('mentoring_languages').array().default([]).notNull(), // ['English','Hindi']
+	mentoringCredentials:  jsonb('mentoring_credentials').default([]).notNull(), // [{title,issuer,year}]
+	mentoringVideoIntroUrl:text('mentoring_video_intro_url'), // YouTube/Loom embed URL
+	mentoringSocialLinks:  jsonb('mentoring_social_links').default({}).notNull(), // {linkedin,github,twitter,website}
+	mentoringIsFeatured:   boolean('mentoring_is_featured').notNull().default(false), // admin-controlled
+	createdAt:          timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt:          timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, (t) => [
+	index('ip_handle_idx').on(t.mentoringHandle)
+]);
 
 export const auditLogs = pgTable('audit_logs', {
 	id:        text('id').primaryKey(),
