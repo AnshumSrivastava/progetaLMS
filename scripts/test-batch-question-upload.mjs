@@ -6,8 +6,7 @@ import { neon } from '@neondatabase/serverless';
 import { 
   parseQuestionBatch, 
   generateSampleCsvTemplate, 
-  formatQuestionsAsTsv,
-  resolveCorrectIndex
+  formatQuestionsAsTsv
 } from '../src/lib/shared/parsers/questionBatchParser.ts';
 
 const sql = neon(process.env.DATABASE_URL);
@@ -17,23 +16,21 @@ async function runBatchQuestionTests() {
 
   // ── 1. TEST PARSER LOGIC ───────────────────────────────────────
   console.log('1. Testing TSV Parser (Excel Clipboard format)...');
-  const sampleExcelPaste = `Question\tOption A\tOption B\tOption C\tOption D\tCorrect Option\tExplanation\tPoints
-What is the primary role of a Reverse Proxy?\tLoad balancing and TLS termination\tDatabase schema migration\tCSS stylesheet compiling\tDNS registrar lookup\tA\tReverse proxies sit in front of web servers\t2
-Which OSI layer is responsible for routing packets?\tPhysical\tData Link\tNetwork\tApplication\t3\tLayer 3 handles IP routing\t1
-What does CORS stand for in web security?\tCross-Origin Resource Sharing\tCross-Object Request Socket\tCentralized Origin Routing Server\tCertified Open Relay Service\tCross-Origin Resource Sharing\tCORS is a browser security mechanism\t1`;
+  const sampleExcelPaste = `Question\tCorrect Answer\tWrong Answer 1\tWrong Answer 2\tWrong Answer 3\tExplanation
+What is the primary role of a Reverse Proxy?\tLoad balancing and TLS termination\tDatabase schema migration\tCSS stylesheet compiling\tDNS registrar lookup\tReverse proxies sit in front of web servers
+Which OSI layer is responsible for routing packets?\tNetwork\tPhysical\tData Link\tApplication\tLayer 3 handles IP routing
+What does CORS stand for in web security?\tCross-Origin Resource Sharing\tCross-Object Request Socket\tCentralized Origin Routing Server\tCertified Open Relay Service\tCORS is a browser security mechanism`;
 
   const parsedTsv = parseQuestionBatch(sampleExcelPaste);
   console.log(`   ✓ Parsed ${parsedTsv.totalParsed} questions from TSV (Valid: ${parsedTsv.validCount}, Invalid: ${parsedTsv.invalidCount})`);
   if (parsedTsv.validCount !== 3) throw new Error('Expected 3 valid questions from TSV');
 
   // Check correct option resolutions:
-  // Q1: 'A' -> idx 0
+  // All should be index 0
   if (parsedTsv.questions[0].correctOptionIndex !== 0) throw new Error('Q1 correct option index should be 0');
-  // Q2: '3' -> idx 2 ('Network')
-  if (parsedTsv.questions[1].correctOptionIndex !== 2) throw new Error('Q2 correct option index should be 2');
-  // Q3: 'Cross-Origin Resource Sharing' -> text match -> idx 0
+  if (parsedTsv.questions[1].correctOptionIndex !== 0) throw new Error('Q2 correct option index should be 0');
   if (parsedTsv.questions[2].correctOptionIndex !== 0) throw new Error('Q3 correct option index should be 0');
-  console.log('   ✓ Verified letter, numeric, and text-based correct option resolution');
+  console.log('   ✓ Verified Option A is always marked correct internally');
 
   // ── 2. TEST CSV PARSER ─────────────────────────────────────────
   console.log('\n2. Testing CSV Template Parser...');

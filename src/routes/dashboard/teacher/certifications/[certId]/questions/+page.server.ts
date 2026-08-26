@@ -57,11 +57,24 @@ export const actions: Actions = {
 
 		const data = await request.formData();
 		const content = data.get('content')?.toString();
-		const optionsJson = data.get('options')?.toString(); // [{content: string, isCorrect: boolean}]
+		const explanation = data.get('explanation')?.toString();
+		
+		const opt0 = data.get('opt_0')?.toString();
+		const opt1 = data.get('opt_1')?.toString();
+		const opt2 = data.get('opt_2')?.toString();
+		const opt3 = data.get('opt_3')?.toString();
 
-		if (!content || !optionsJson) {
-			return fail(400, { error: 'Missing content or options' });
+		if (!content || !opt0 || !opt1) {
+			return fail(400, { error: 'Missing question text, correct answer, or first wrong answer' });
 		}
+
+		const parsedOptions = [
+			{ content: opt0, isCorrect: true },
+			{ content: opt1, isCorrect: false }
+		];
+		
+		if (opt2) parsedOptions.push({ content: opt2, isCorrect: false });
+		if (opt3) parsedOptions.push({ content: opt3, isCorrect: false });
 
 		try {
 			// Verify ownership
@@ -70,11 +83,6 @@ export const actions: Actions = {
 				.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
 			
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
-
-			const parsedOptions = JSON.parse(optionsJson);
-			if (!Array.isArray(parsedOptions) || parsedOptions.length < 2) {
-				return fail(400, { error: 'At least 2 options are required' });
-			}
 
 			const questionId = createId();
 
@@ -87,6 +95,7 @@ export const actions: Actions = {
 				testId: certAsset.testId,
 				type: 'mcq',
 				content,
+				explanation: explanation || null,
 				points: 1,
 				sortOrder
 			});

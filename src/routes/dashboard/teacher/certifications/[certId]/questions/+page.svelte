@@ -11,8 +11,6 @@
 		Copy, 
 		Upload, 
 		AlertTriangle, 
-		Check, 
-		X, 
 		Sparkles, 
 		FileText,
 		Loader2
@@ -33,31 +31,13 @@
 	let showAddModal = $state(false);
 	let isSubmitting = $state(false);
 	let newQuestionContent = $state('');
-	let newOptions = $state([
-		{ content: '', isCorrect: true },
-		{ content: '', isCorrect: false },
-		{ content: '', isCorrect: false },
-		{ content: '', isCorrect: false }
-	]);
-
-	function addOption() {
-		if (newOptions.length < 6) {
-			newOptions = [...newOptions, { content: '', isCorrect: false }];
-		}
-	}
-
-	function removeOption(index: number) {
-		if (newOptions.length > 2) {
-			newOptions = newOptions.filter((_, i) => i !== index);
-		}
-	}
-
-	function setCorrectOption(index: number) {
-		newOptions = newOptions.map((opt, i) => ({
-			...opt,
-			isCorrect: i === index
-		}));
-	}
+	
+	// Pre-fill static fields for the single question modal
+	let singleOptCorrect = $state('');
+	let singleOptWrong1 = $state('');
+	let singleOptWrong2 = $state('');
+	let singleOptWrong3 = $state('');
+	let singleExplanation = $state('');
 
 	// ── BATCH IMPORT STATE ─────────────────────────────────────────────
 	let showBatchModal = $state(false);
@@ -96,7 +76,13 @@
 		}
 
 		batchQuestions = result.questions;
-		batchTab = 'grid'; // Automatically switch to the live interactive grid for review
+	}
+
+	function handlePasteInput() {
+		// Debounced parsing
+		setTimeout(() => {
+			if (pastedText.trim()) parsePastedInput();
+		}, 400);
 	}
 
 	function addBlankRowToGrid() {
@@ -131,11 +117,10 @@
 	function validateGridRow(row: ParsedBatchQuestion): ParsedBatchQuestion {
 		const errors: string[] = [];
 		if (!row.content.trim()) errors.push('Question text is missing');
+		
 		const filledOpts = row.options.filter(o => o.content.trim() !== '');
-		if (filledOpts.length < 2) errors.push('At least 2 options required');
-		if (row.correctOptionIndex < 0 || row.correctOptionIndex >= row.options.length || !row.options[row.correctOptionIndex]?.content.trim()) {
-			errors.push('Correct option is invalid or blank');
-		}
+		if (filledOpts.length < 2) errors.push('At least 1 correct and 1 wrong answer required');
+		if (!row.options[0].content.trim()) errors.push('Correct answer is required');
 
 		return {
 			...row,
@@ -149,14 +134,23 @@
 		batchQuestions = [...batchQuestions];
 	}
 
-	function setRowCorrectOption(rowIdx: number, optIdx: number) {
-		batchQuestions[rowIdx].correctOptionIndex = optIdx;
-		batchQuestions[rowIdx].options = batchQuestions[rowIdx].options.map((opt, i) => ({
-			...opt,
-			isCorrect: i === optIdx
-		}));
+	function handleWrongAnswersChange(rowIdx: number, value: string) {
+		const parts = value.split(',').map(s => s.trim()).filter(Boolean);
+		batchQuestions[rowIdx].options[1].content = parts[0] || '';
+		batchQuestions[rowIdx].options[2].content = parts[1] || '';
+		batchQuestions[rowIdx].options[3].content = parts[2] || '';
 		handleCellChange(rowIdx);
 	}
+
+	function getWrongAnswersText(row: ParsedBatchQuestion): string {
+		return [
+			row.options[1]?.content,
+			row.options[2]?.content,
+			row.options[3]?.content
+		].filter(Boolean).join(', ');
+	}
+
+
 
 	function handleFileUpload(e: Event) {
 		const input = e.target as HTMLInputElement;
@@ -305,9 +299,6 @@
 										<Circle size={16} class="incorrect-icon" />
 									{/if}
 									<span class="opt-text">{option.content}</span>
-									{#if option.isCorrect}
-										<span class="correct-pill">Correct Answer</span>
-									{/if}
 								</div>
 							{/each}
 						</div>
@@ -390,227 +381,140 @@
 					<div class="batch-tag"><FileSpreadsheet size={14} /> Batch Question Importer</div>
 					<h2>Upload Questions from Excel / Spreadsheet</h2>
 				</div>
-				<button class="btn-close-modal" onclick={() => showBatchModal = false}><X size={18} /></button>
+				<div class="header-actions">
+					<button type="button" class="btn-sample-download" onclick={downloadSampleTemplate}>
+						<Download size={14} /> Download Template
+					</button>
+					<button class="btn-close-modal" onclick={() => showBatchModal = false}>
+						<X size={18} />
+					</button>
+				</div>
 			</header>
 
-			<!-- Subtabs -->
-			<div class="batch-tabs-bar">
-				<button class="batch-tab-btn" class:active={batchTab === 'paste'} onclick={() => batchTab = 'paste'}>
-					<FileText size={14} /> 1. Paste from Excel / Google Sheets
-				</button>
-				<button class="batch-tab-btn" class:active={batchTab === 'grid'} onclick={() => batchTab = 'grid'}>
-					<FileSpreadsheet size={14} /> 2. Interactive Spreadsheet Grid ({batchQuestions.length})
-				</button>
-				<button class="batch-tab-btn" class:active={batchTab === 'file'} onclick={() => batchTab = 'file'}>
-					<Upload size={14} /> 3. Upload CSV File
-				</button>
-			</div>
+			<div class="batch-modal-body split-layout">
+				<!-- PANEL A: Input -->
+				<div class="input-panel">
+					<div class="panel-header">
+						<h4>1. Paste or Upload Data</h4>
+						<p class="format-hint">Format: Question · Correct Answer · Wrong 1 · Wrong 2 · Wrong 3 · Explanation</p>
+					</div>
+					
+					<textarea
+						bind:value={pastedText}
+						oninput={handlePasteInput}
+						class="paste-textarea full-height"
+						placeholder={`Question\tCorrect Answer\tWrong Answer 1\tWrong Answer 2\tWrong Answer 3\tExplanation\nWhat is DNS?\tDomain Name System\tDynamic Network Server\tData Node Storage\tDirect Network Sync\tResolves domain names to IP addresses\nWhich layer is TCP?\tTransport\tNetwork\tApplication\tData Link\tTCP is Layer 4`}
+					></textarea>
 
-			<div class="batch-modal-body">
-				{#if batchImportError}
-					<div class="alert-banner error"><AlertTriangle size={16} /> <span>{batchImportError}</span></div>
-				{/if}
-				{#if batchSuccessMsg}
-					<div class="alert-banner success"><Check size={16} /> <span>{batchSuccessMsg}</span></div>
-				{/if}
+					<div class="upload-bar">
+						<Upload size={16} class="text-muted" />
+						<span>Or upload CSV/TSV:</span>
+						<input type="file" accept=".csv,.tsv,.txt" onchange={handleFileUpload} />
+					</div>
 
-				<!-- TAB 1: PASTE FROM EXCEL -->
-				{#if batchTab === 'paste'}
-					<div class="paste-tab-content">
-						<div class="instruction-box">
-							<div class="inst-left">
-								<h4>How to paste from Excel / Google Sheets:</h4>
-								<p>Select your table rows in Excel and press <code>Ctrl+C</code>, then paste below. The parser automatically detects tab-separated columns.</p>
-								<div class="format-chips">
-									<span class="chip">Col 1: Question</span>
-									<span class="chip">Col 2: Option A</span>
-									<span class="chip">Col 3: Option B</span>
-									<span class="chip">Col 4: Option C</span>
-									<span class="chip">Col 5: Option D</span>
-									<span class="chip highlight">Col 6: Correct Answer (A/B/C/D)</span>
-									<span class="chip">Col 7: Explanation</span>
-								</div>
-							</div>
-							<div class="inst-right">
-								<button type="button" class="btn-sample-download" onclick={downloadSampleTemplate}>
-									<Download size={14} /> Download Sample CSV
-								</button>
-							</div>
-						</div>
+					{#if batchImportError}
+						<div class="alert-banner error mt-4"><AlertTriangle size={16} /> <span>{batchImportError}</span></div>
+					{/if}
+					{#if batchSuccessMsg}
+						<div class="alert-banner success mt-4"><Check size={16} /> <span>{batchSuccessMsg}</span></div>
+					{/if}
+				</div>
 
-						<div class="paste-input-wrap">
-							<label for="excelPasteArea" class="field-label">Paste Excel / TSV / CSV Data Below:</label>
-							<textarea
-								id="excelPasteArea"
-								bind:value={pastedText}
-								class="paste-textarea"
-								placeholder={`Question\tOption A\tOption B\tOption C\tOption D\tCorrect Option\tExplanation\nWhat is DNS?\tDomain Name System\tDynamic Network Server\tData Node Storage\tDirect Network Sync\tA\tResolves domain names to IP addresses\nWhich layer is TCP?\tTransport\tNetwork\tApplication\tData Link\tTransport\tTCP is Layer 4`}
-							></textarea>
-						</div>
-
-						<div class="paste-actions-row">
-							<button type="button" class="primary-btn" onclick={parsePastedInput}>
-								<Sparkles size={15} /> Parse & Open in Grid Editor →
+				<!-- PANEL B: Preview Grid -->
+				<div class="preview-panel">
+					<div class="grid-toolbar">
+						<div class="toolbar-left">
+							<h4>2. Preview & Edit</h4>
+							<button type="button" class="btn-grid-tool" onclick={addBlankRowToGrid}>
+								<Plus size={14} /> Add Row
 							</button>
+							<button type="button" class="btn-grid-tool" onclick={clearAllGridRows}>
+								<Trash2 size={14} /> Clear All
+							</button>
+						</div>
+						<div class="toolbar-right">
+							<span class="counter-badge ready">{validBatchCount} Ready</span>
+							{#if invalidBatchCount > 0}
+								<span class="counter-badge error">{invalidBatchCount} Invalid</span>
+							{/if}
 						</div>
 					</div>
 
-				<!-- TAB 2: INTERACTIVE SPREADSHEET GRID -->
-				{:else if batchTab === 'grid'}
-					<div class="grid-tab-content">
-						<div class="grid-toolbar">
-							<div class="toolbar-left">
-								<button type="button" class="btn-grid-tool" onclick={addBlankRowToGrid}>
-									<Plus size={14} /> Add Row
-								</button>
-								<button type="button" class="btn-grid-tool" onclick={clearAllGridRows}>
-									<Trash2 size={14} /> Clear All
-								</button>
-								<button type="button" class="btn-grid-tool" onclick={copyGridAsExcelTsv}>
-									<Copy size={14} /> {copyFeedback ? 'Copied TSV!' : 'Copy to Clipboard'}
-								</button>
-							</div>
-							<div class="toolbar-right">
-								<span class="counter-badge ready">{validBatchCount} Ready</span>
-								{#if invalidBatchCount > 0}
-									<span class="counter-badge error">{invalidBatchCount} Invalid</span>
-								{/if}
-							</div>
-						</div>
-
-						<div class="spreadsheet-container">
-							<table class="spreadsheet-table">
-								<thead>
-									<tr>
-										<th style="width: 38px;">#</th>
-										<th style="width: 80px;">Status</th>
-										<th style="min-width: 240px;">Question Text *</th>
-										<th style="min-width: 140px;">Option A *</th>
-										<th style="min-width: 140px;">Option B *</th>
-										<th style="min-width: 130px;">Option C</th>
-										<th style="min-width: 130px;">Option D</th>
-										<th style="width: 150px;">Correct Option *</th>
-										<th style="min-width: 160px;">Explanation</th>
-										<th style="width: 40px;"></th>
-									</tr>
-								</thead>
-								<tbody>
-									{#each batchQuestions as row, rIdx}
-										<tr class:row-invalid={!row.isValid}>
-											<td class="cell-index">{rIdx + 1}</td>
-											<td class="cell-status">
-												{#if row.isValid}
-													<span class="status-pill valid"><Check size={11} /> Ready</span>
-												{:else}
-													<span class="status-pill invalid" title={row.errors.join('; ')}>
-														<AlertTriangle size={11} /> Error
-													</span>
+					<div class="spreadsheet-container full-height">
+						<table class="spreadsheet-table">
+							<thead>
+								<tr>
+									<th style="width: 38px;">#</th>
+									<th style="min-width: 200px;">Question Text *</th>
+									<th style="min-width: 160px; color: #047857;">Correct Answer *</th>
+									<th style="min-width: 200px;">Wrong Answers (comma separated)</th>
+									<th style="min-width: 140px;">Explanation</th>
+									<th style="width: 40px;"></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each batchQuestions as row, rIdx}
+									<tr class:row-invalid={!row.isValid}>
+										<td class="cell-index">
+											<div class="status-stack">
+												{rIdx + 1}
+												{#if !row.isValid}
+													<AlertTriangle size={12} class="text-error" title={row.errors.join('; ')} />
 												{/if}
-											</td>
-											<td class="cell-input">
-												<input
-													type="text"
-													bind:value={row.content}
-													oninput={() => handleCellChange(rIdx)}
-													placeholder="Type question text..."
-													class="grid-cell-inp"
-												/>
-											</td>
-											<td class="cell-input">
-												<input
-													type="text"
-													bind:value={row.options[0].content}
-													oninput={() => handleCellChange(rIdx)}
-													placeholder="Option A"
-													class="grid-cell-inp"
-												/>
-											</td>
-											<td class="cell-input">
-												<input
-													type="text"
-													bind:value={row.options[1].content}
-													oninput={() => handleCellChange(rIdx)}
-													placeholder="Option B"
-													class="grid-cell-inp"
-												/>
-											</td>
-											<td class="cell-input">
-												<input
-													type="text"
-													bind:value={row.options[2].content}
-													oninput={() => handleCellChange(rIdx)}
-													placeholder="Option C"
-													class="grid-cell-inp"
-												/>
-											</td>
-											<td class="cell-input">
-												<input
-													type="text"
-													bind:value={row.options[3].content}
-													oninput={() => handleCellChange(rIdx)}
-													placeholder="Option D"
-													class="grid-cell-inp"
-												/>
-											</td>
-											<td class="cell-correct">
-												<div class="correct-pills-row">
-													{#each ['A', 'B', 'C', 'D'] as letter, optIdx}
-														<button
-															type="button"
-															class="correct-pill-btn"
-															class:selected={row.correctOptionIndex === optIdx}
-															onclick={() => setRowCorrectOption(rIdx, optIdx)}
-														>
-															{letter}
-														</button>
-													{/each}
-												</div>
-											</td>
-											<td class="cell-input">
-												<input
-													type="text"
-													bind:value={row.explanation}
-													oninput={() => handleCellChange(rIdx)}
-													placeholder="Optional explanation..."
-													class="grid-cell-inp"
-												/>
-											</td>
-											<td class="cell-actions">
-												<button
-													type="button"
-													class="btn-row-del"
-													title="Delete row"
-													onclick={() => removeRowFromGrid(rIdx)}
-												>
-													<Trash2 size={13} />
-												</button>
-											</td>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
+											</div>
+										</td>
+										<td class="cell-input">
+											<textarea
+												bind:value={row.content}
+												oninput={() => handleCellChange(rIdx)}
+												placeholder="Type question text..."
+												class="grid-cell-inp grid-textarea"
+												rows="2"
+											></textarea>
+										</td>
+										<td class="cell-input correct-bg">
+											<input
+												type="text"
+												bind:value={row.options[0].content}
+												oninput={() => handleCellChange(rIdx)}
+												placeholder="Correct Answer"
+												class="grid-cell-inp"
+											/>
+										</td>
+										<td class="cell-input">
+											<input
+												type="text"
+												value={getWrongAnswersText(row)}
+												oninput={(e) => handleWrongAnswersChange(rIdx, e.currentTarget.value)}
+												placeholder="Wrong 1, Wrong 2, Wrong 3"
+												class="grid-cell-inp"
+											/>
+										</td>
+										<td class="cell-input">
+											<input
+												type="text"
+												bind:value={row.explanation}
+												oninput={() => handleCellChange(rIdx)}
+												placeholder="Optional explanation..."
+												class="grid-cell-inp"
+											/>
+										</td>
+										<td class="cell-actions">
+											<button
+												type="button"
+												class="btn-row-del"
+												title="Delete row"
+												onclick={() => removeRowFromGrid(rIdx)}
+											>
+												<Trash2 size={13} />
+											</button>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
 					</div>
-
-				<!-- TAB 3: FILE UPLOAD -->
-				{:else if batchTab === 'file'}
-					<div class="file-tab-content">
-						<div class="upload-dropzone">
-							<Upload size={32} class="drop-icon" />
-							<h4>Upload CSV or TSV File</h4>
-							<p>Drag and drop a file or click to browse from your computer.</p>
-							<input type="file" accept=".csv,.tsv,.txt" onchange={handleFileUpload} class="file-input-hidden" id="csvFileInput" />
-							<label for="csvFileInput" class="primary-btn">Browse File</label>
-						</div>
-
-						<div class="template-download-box">
-							<p>Need a starting template?</p>
-							<button type="button" class="btn-sample-download" onclick={downloadSampleTemplate}>
-								<Download size={14} /> Download Sample CSV Template
-							</button>
-						</div>
-					</div>
-				{/if}
+				</div>
 			</div>
 
 			<footer class="batch-modal-footer">
@@ -654,12 +558,11 @@
 				isSubmitting = false;
 				showAddModal = false;
 				newQuestionContent = '';
-				newOptions = [
-					{ content: '', isCorrect: true },
-					{ content: '', isCorrect: false },
-					{ content: '', isCorrect: false },
-					{ content: '', isCorrect: false }
-				];
+				singleOptCorrect = '';
+				singleOptWrong1 = '';
+				singleOptWrong2 = '';
+				singleOptWrong3 = '';
+				singleExplanation = '';
 			};
 		}}>
 			<h3>Add Multiple Choice Question</h3>
@@ -669,28 +572,25 @@
 				<textarea id="singleQContent" class="form-input" placeholder="What is the primary purpose of..." required bind:value={newQuestionContent} name="content"></textarea>
 			</div>
 
-			<div class="options-builder">
-				<label class="form-label">Options (Click circle to select the correct answer)</label>
-				{#each newOptions as opt, i}
-					<div class="option-row">
-						<button type="button" class="radio-btn {opt.isCorrect ? 'active' : ''}" onclick={() => setCorrectOption(i)}>
-							{#if opt.isCorrect}<CheckCircle2 size={20}/>{:else}<Circle size={20}/>{/if}
-						</button>
-						<input type="text" class="form-input option-input" placeholder="Option {String.fromCharCode(65 + i)}" bind:value={opt.content} required />
-						{#if newOptions.length > 2}
-							<button type="button" class="icon-btn text-error" onclick={() => removeOption(i)}><Trash2 size={16}/></button>
-						{/if}
-					</div>
-				{/each}
-				
-				{#if newOptions.length < 6}
-					<button type="button" class="secondary-btn mt-2" onclick={addOption}>
-						<Plus size={14} /> Add Another Option
-					</button>
-				{/if}
+			<div class="form-group">
+				<label class="form-label" for="singleOptCorrect" style="color: #047857;">Correct Answer *</label>
+				<input type="text" id="singleOptCorrect" name="opt_0" class="form-input" placeholder="The correct answer goes here..." style="border-color: #a7f3d0; background: #ecfdf5;" bind:value={singleOptCorrect} required />
+				<p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">This is the only correct answer. Options will be shuffled for students automatically.</p>
 			</div>
 
-			<input type="hidden" name="options" value={JSON.stringify(newOptions)} />
+			<div class="form-group">
+				<label class="form-label">Wrong Answers *</label>
+				<div class="options-stack" style="display: flex; flex-direction: column; gap: 8px;">
+					<input type="text" name="opt_1" class="form-input" placeholder="Wrong Answer 1 (Required)" bind:value={singleOptWrong1} required />
+					<input type="text" name="opt_2" class="form-input" placeholder="Wrong Answer 2 (Optional)" bind:value={singleOptWrong2} />
+					<input type="text" name="opt_3" class="form-input" placeholder="Wrong Answer 3 (Optional)" bind:value={singleOptWrong3} />
+				</div>
+			</div>
+			
+			<div class="form-group">
+				<label class="form-label" for="singleExplanation">Explanation (Optional)</label>
+				<input type="text" id="singleExplanation" name="explanation" class="form-input" placeholder="Why is this correct?" bind:value={singleExplanation} />
+			</div>
 
 			<div class="modal-actions mt-6">
 				<button type="button" class="action-btn" onclick={() => showAddModal = false}>Cancel</button>
@@ -1122,6 +1022,71 @@
 		background: #ecfdf5;
 		color: #065f46;
 		border: 1px solid #a7f3d0;
+	}
+
+	.split-layout {
+		display: grid;
+		grid-template-columns: 350px 1fr;
+		gap: 20px;
+		height: 100%;
+		overflow: hidden;
+		padding: 20px 24px;
+	}
+	
+	.input-panel, .preview-panel {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: hidden;
+	}
+	
+	.panel-header {
+		margin-bottom: 12px;
+	}
+	.panel-header h4 {
+		margin: 0 0 4px 0;
+		font-size: 0.95rem;
+		font-weight: 700;
+	}
+	.format-hint {
+		margin: 0;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+	}
+	
+	.full-height {
+		flex: 1;
+		min-height: 0;
+	}
+	
+	.upload-bar {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 12px;
+		padding: 10px;
+		background: var(--bg-surface);
+		border: 1px dashed var(--border);
+		border-radius: 8px;
+		font-size: 0.8rem;
+		font-weight: 500;
+	}
+	
+	.correct-bg {
+		background: rgba(16, 185, 129, 0.05);
+	}
+	
+	.grid-textarea {
+		resize: none;
+		font-family: inherit;
+		line-height: 1.4;
+	}
+	
+	.status-stack {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
 	}
 
 	/* Paste Tab */

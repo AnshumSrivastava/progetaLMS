@@ -114,50 +114,32 @@ export function parseRowToQuestion(cols: string[]): ParsedBatchQuestion {
 		errors.push('Question text is missing');
 	}
 
-	// Options can span from col 1 to 4 (or up to the correct answer column)
 	// Positional format:
 	// Col 0: Question
-	// Col 1: Option A / Option 1
-	// Col 2: Option B / Option 2
-	// Col 3: Option C / Option 3 (optional)
-	// Col 4: Option D / Option 4 (optional)
-	// Col 5: Correct Answer (A/B/C/D, 1/2/3/4, or text)
-	// Col 6: Explanation (optional)
-	// Col 7: Points (optional)
+	// Col 1: Correct Answer (Option A)
+	// Col 2: Option B (Wrong)
+	// Col 3: Option C (Wrong, optional)
+	// Col 4: Option D (Wrong, optional)
+	// Col 5: Explanation (optional)
+	// Col 6: Points (optional)
 
 	const rawOptA = (cols[1] || '').trim();
 	const rawOptB = (cols[2] || '').trim();
 	const rawOptC = (cols[3] || '').trim();
 	const rawOptD = (cols[4] || '').trim();
-	const rawCorrect = (cols[5] || '').trim();
-	const rawExplanation = (cols[6] || '').trim();
-	const rawPoints = parseInt((cols[7] || '').trim(), 10);
+	const rawExplanation = (cols[5] || '').trim();
+	const rawPoints = parseInt((cols[6] || '').trim(), 10);
 
 	const rawOptions = [rawOptA, rawOptB, rawOptC, rawOptD].filter(Boolean);
 
 	if (rawOptions.length < 2) {
-		errors.push('At least 2 non-empty options are required');
+		errors.push('At least 1 correct answer and 1 wrong answer are required');
 	}
 
-	let correctIdx = resolveCorrectIndex(rawCorrect, rawOptions);
-
-	if (correctIdx === -1) {
-		if (rawOptions.length >= 2) {
-			// If missing or unparseable, default to 0 and flag error or warning
-			correctIdx = 0;
-			if (!rawCorrect) {
-				errors.push('No correct option specified (defaulted to Option A)');
-			} else {
-				errors.push(`Could not resolve correct answer "${rawCorrect}"`);
-			}
-		} else {
-			correctIdx = 0;
-		}
-	}
-
+	// Always Option A (index 0) is correct
 	const options: ParsedOption[] = rawOptions.map((content, idx) => ({
 		content,
-		isCorrect: idx === correctIdx
+		isCorrect: idx === 0
 	}));
 
 	const points = isNaN(rawPoints) || rawPoints < 1 ? 1 : rawPoints;
@@ -166,38 +148,12 @@ export function parseRowToQuestion(cols: string[]): ParsedBatchQuestion {
 	return {
 		content: questionText,
 		options,
-		correctOptionIndex: correctIdx,
+		correctOptionIndex: 0,
 		explanation: rawExplanation || undefined,
 		points,
 		isValid,
 		errors
 	};
-}
-
-/**
- * Resolves the 0-indexed correct option from various user formats (A, B, C, D, 1, 2, 3, 4, text match).
- */
-export function resolveCorrectIndex(indicator: string, options: string[]): number {
-	if (!indicator) return -1;
-	const clean = indicator.trim().toLowerCase();
-
-	// 1. Direct letter matching
-	if (clean === 'a' || clean === 'opt a' || clean === 'option a' || clean === '(a)') return 0;
-	if (clean === 'b' || clean === 'opt b' || clean === 'option b' || clean === '(b)') return 1;
-	if (clean === 'c' || clean === 'opt c' || clean === 'option c' || clean === '(c)') return options.length > 2 ? 2 : -1;
-	if (clean === 'd' || clean === 'opt d' || clean === 'option d' || clean === '(d)') return options.length > 3 ? 3 : -1;
-
-	// 2. Numeric 1-based index matching
-	if (clean === '1' || clean === 'option 1' || clean === 'opt 1') return 0;
-	if (clean === '2' || clean === 'option 2' || clean === 'opt 2') return 1;
-	if (clean === '3' || clean === 'option 3' || clean === 'opt 3') return options.length > 2 ? 2 : -1;
-	if (clean === '4' || clean === 'option 4' || clean === 'opt 4') return options.length > 3 ? 3 : -1;
-
-	// 3. String content matching
-	const matchedIdx = options.findIndex(opt => opt.toLowerCase().trim() === clean);
-	if (matchedIdx !== -1) return matchedIdx;
-
-	return -1;
 }
 
 /**
@@ -214,7 +170,8 @@ function isHeaderRow(cols: string[]): boolean {
 		first.includes('prompt') ||
 		second.includes('option') ||
 		second.includes('opt') ||
-		second.includes('answer')
+		second.includes('answer') ||
+		second.includes('correct')
 	);
 }
 
@@ -287,29 +244,27 @@ function splitLinesRespectingQuotes(text: string): string[] {
  * Generates a downloadable CSV sample template.
  */
 export function generateSampleCsvTemplate(): string {
-	return `Question,Option A,Option B,Option C,Option D,Correct Option,Explanation,Points
-"What is the primary function of an API Gateway?","Request routing and security","Database indexing","Frontend state management","CSS styling","A","API Gateways handle routing rate-limiting and auth",1
-"Which protocol operates at the Transport Layer?","TCP","HTTP","DNS","SSH","1","TCP and UDP are Transport Layer protocols",1
-"What does ACID stand for in databases?","Atomicity Consistency Isolation Durability","Automated Cache Ingestion Directory","Asynchronous Code Integration Daemon","Access Control Identity Domain","A","ACID guarantees database transaction validity",1
-"In Kubernetes what is the smallest deployable unit?","Pod","Cluster","Namespace","Ingress","Pod","A Pod encapsulates one or more containers",1
-"Which HTTP status code represents Unauthorized access?","401","403","404","500","401","401 indicates lack of valid authentication credentials",1`;
+	return `Question,Correct Answer,Wrong Answer 1,Wrong Answer 2,Wrong Answer 3,Explanation
+"What is the primary function of an API Gateway?","Request routing and security","Database indexing","Frontend state management","CSS styling","API Gateways handle routing rate-limiting and auth"
+"Which protocol operates at the Transport Layer?","TCP","HTTP","DNS","SSH","TCP and UDP are Transport Layer protocols"
+"What does ACID stand for in databases?","Atomicity Consistency Isolation Durability","Automated Cache Ingestion Directory","Asynchronous Code Integration Daemon","Access Control Identity Domain","ACID guarantees database transaction validity"
+"In Kubernetes what is the smallest deployable unit?","Pod","Cluster","Namespace","Ingress","A Pod encapsulates one or more containers"
+"Which HTTP status code represents Unauthorized access?","401","403","404","500","401 indicates lack of valid authentication credentials"`;
 }
 
 /**
  * Formats structured questions into Tab-Separated format for pasting into Excel.
  */
 export function formatQuestionsAsTsv(questions: ParsedBatchQuestion[]): string {
-	const header = 'Question\tOption A\tOption B\tOption C\tOption D\tCorrect Option\tExplanation\tPoints';
+	const header = 'Question\tCorrect Answer\tWrong Answer 1\tWrong Answer 2\tWrong Answer 3\tExplanation';
 	const rows = questions.map(q => {
 		const optA = q.options[0]?.content || '';
 		const optB = q.options[1]?.content || '';
 		const optC = q.options[2]?.content || '';
 		const optD = q.options[3]?.content || '';
-		const correctLetter = String.fromCharCode(65 + q.correctOptionIndex);
 		const explanation = q.explanation || '';
-		const points = q.points || 1;
 
-		return `${q.content}\t${optA}\t${optB}\t${optC}\t${optD}\t${correctLetter}\t${explanation}\t${points}`;
+		return `${q.content}\t${optA}\t${optB}\t${optC}\t${optD}\t${explanation}`;
 	});
 
 	return [header, ...rows].join('\n');
