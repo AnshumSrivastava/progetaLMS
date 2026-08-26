@@ -110,6 +110,37 @@
 	let teacherBookings = $state(data.teacher.mentoringBookings || []);
 	let teacherCoupons = $state<any[]>([]);
 
+	// Mentoring Opt-In Toggle State
+	let isMentoringEnabled = $state(data.profile?.mentoringEnabled ?? false);
+	let isTogglingMentoring = $state(false);
+	let mentoringToggleMsg = $state('');
+
+	async function handleToggleMentoring(enabled: boolean) {
+		isTogglingMentoring = true;
+		mentoringToggleMsg = '';
+		try {
+			const res = await fetch('/api/mentoring/my/status', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ enabled })
+			});
+			const json = await res.json();
+			if (res.ok) {
+				isMentoringEnabled = json.mentoringEnabled;
+				mentoringToggleMsg = isMentoringEnabled
+					? 'Mentoring is now LIVE on the marketplace!'
+					: 'Mentoring paused. Your profile is now unlisted.';
+				setTimeout(() => { mentoringToggleMsg = ''; }, 4000);
+			} else {
+				mentoringToggleMsg = json.error || 'Failed to update status';
+			}
+		} catch (err) {
+			mentoringToggleMsg = 'Error updating mentoring status';
+		} finally {
+			isTogglingMentoring = false;
+		}
+	}
+
 	// Calendar View State
 	let currentCalMonth = $state(new Date().getMonth());
 	let currentCalYear = $state(new Date().getFullYear());
@@ -926,6 +957,51 @@
 						</button>
 					</div>
 				</header>
+
+				<!-- Opt-in Status Banner -->
+				<div class="optin-card" class:is-live={isMentoringEnabled}>
+					<div class="optin-left">
+						<div class="optin-badge-row">
+							<span class="optin-badge" class:live={isMentoringEnabled}>
+								<span class="status-indicator-dot" class:live={isMentoringEnabled}></span>
+								{isMentoringEnabled ? 'LISTED ON MARKETPLACE' : 'UNLISTED / PAUSED'}
+							</span>
+							{#if data.profile?.mentoringHandle && isMentoringEnabled}
+								<a href={`/mentoring/${data.profile.mentoringHandle}`} target="_blank" class="optin-public-link">
+									View Public Profile ↗
+								</a>
+							{/if}
+						</div>
+						<h2 class="optin-title">1-on-1 Mentorship Offering</h2>
+						<p class="optin-desc">
+							{#if isMentoringEnabled}
+								Your profile is currently active. Students can discover your profile, view packages, and schedule 1-on-1 sessions.
+							{:else}
+								Your mentorship profile is hidden. You are not listed on the public mentoring marketplace and cannot receive new booking requests.
+							{/if}
+						</p>
+					</div>
+
+					<div class="optin-right">
+						{#if mentoringToggleMsg}
+							<span class="optin-alert-msg">{mentoringToggleMsg}</span>
+						{/if}
+						<button
+							class="btn-optin-toggle"
+							class:active={isMentoringEnabled}
+							disabled={isTogglingMentoring}
+							onclick={() => handleToggleMentoring(!isMentoringEnabled)}
+						>
+							{#if isTogglingMentoring}
+								<Loader2 size={14} class="spin" /> Updating...
+							{:else if isMentoringEnabled}
+								Pause Mentoring (Unlist)
+							{:else}
+								Enable Mentoring & Go Live
+							{/if}
+						</button>
+					</div>
+				</div>
 
 				<!-- SUBTAB 1: CALENDAR -->
 				{#if teacherMentoringSubTab === 'calendar'}
@@ -2700,6 +2776,116 @@
 		font-size: 0.75rem;
 		color: var(--text-muted);
 		text-transform: capitalize;
+	}
+
+	/* Mentoring Opt-in Banner */
+	.optin-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
+		padding: 20px 24px;
+		margin-bottom: 20px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 24px;
+		transition: border-color var(--t-fast);
+	}
+	.optin-card.is-live {
+		border-color: #10b981;
+		background: rgba(16, 185, 129, 0.02);
+	}
+	.optin-left {
+		flex: 1;
+		min-width: 0;
+	}
+	.optin-badge-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 8px;
+	}
+	.optin-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.6875rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		padding: 3px 8px;
+		border-radius: 4px;
+		background: #f4f4f5;
+		color: #71717a;
+		border: 1px solid #e4e4e7;
+	}
+	.optin-badge.live {
+		background: #ecfdf5;
+		color: #047857;
+		border-color: #a7f3d0;
+	}
+	.status-indicator-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: #a1a1aa;
+	}
+	.status-indicator-dot.live {
+		background: #10b981;
+	}
+	.optin-public-link {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		text-decoration: underline;
+		letter-spacing: -0.01em;
+	}
+	.optin-title {
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		margin-bottom: 4px;
+	}
+	.optin-desc {
+		font-size: 0.8125rem;
+		color: var(--text-secondary);
+		line-height: 1.5;
+		margin: 0;
+	}
+	.optin-right {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+		flex-shrink: 0;
+	}
+	.optin-alert-msg {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #047857;
+	}
+	.btn-optin-toggle {
+		background: var(--text-primary);
+		color: var(--bg);
+		border: none;
+		border-radius: 6px;
+		padding: 8px 16px;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		transition: background var(--t-fast);
+	}
+	.btn-optin-toggle:hover {
+		background: #27272a;
+	}
+	.btn-optin-toggle.active {
+		background: #ef4444;
+		color: #fff;
+	}
+	.btn-optin-toggle.active:hover {
+		background: #dc2626;
 	}
 
 	/* Calendar Styles */

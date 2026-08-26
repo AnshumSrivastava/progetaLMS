@@ -87,7 +87,8 @@ export const identityProfiles = pgTable('identity_profiles', {
 	avatarUrl:          text('avatar_url'),
 	timezone:           text('timezone').notNull().default('Asia/Kolkata'),
 	loginPreference:    text('login_preference', { enum: ['otp', 'password'] }).notNull().default('otp'),
-	// Mentoring governance
+	// Mentoring governance & opt-in
+	mentoringEnabled:      boolean('mentoring_enabled').notNull().default(false), // STRICTLY OPT-IN
 	mentoringSuspended:    boolean('mentoring_suspended').notNull().default(false),
 	mentoringPriceBounds:  jsonb('mentoring_price_bounds'),
 	// Rich mentor profile fields
@@ -103,7 +104,8 @@ export const identityProfiles = pgTable('identity_profiles', {
 	createdAt:          timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt:          timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, (t) => [
-	index('ip_handle_idx').on(t.mentoringHandle)
+	index('ip_handle_idx').on(t.mentoringHandle),
+	index('ip_mentoring_enabled_idx').on(t.mentoringEnabled)
 ]);
 
 export const auditLogs = pgTable('audit_logs', {

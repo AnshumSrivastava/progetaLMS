@@ -52,6 +52,7 @@ export class MentoringService {
 			.where(
 				and(
 					inArray(users.role, ['teacher', 'admin', 'owner']),
+					eq(identityProfiles.mentoringEnabled, true),
 					eq(identityProfiles.mentoringSuspended, false)
 				)
 			);
@@ -1205,6 +1206,7 @@ export class MentoringService {
 			.where(
 				and(
 					inArray(users.role, ['teacher', 'admin', 'owner']),
+					eq(identityProfiles.mentoringEnabled, true),
 					eq(identityProfiles.mentoringSuspended, false),
 					or(
 						eq(identityProfiles.mentoringHandle, handleOrId),
@@ -1354,5 +1356,50 @@ export class MentoringService {
 			.returning({ id: mentoringTestimonials.id });
 		if (updated.length === 0) throw new Error('Testimonial not found.');
 		return { success: true };
+	}
+
+	/**
+	 * Toggles mentoring opt-in status for an instructor (enable/disable marketplace listing).
+	 */
+	static async toggleInstructorMentoring(instructorId: string, enabled: boolean) {
+		const [updated] = await db
+			.update(identityProfiles)
+			.set({ mentoringEnabled: enabled, updatedAt: new Date() })
+			.where(eq(identityProfiles.userId, instructorId))
+			.returning({ userId: identityProfiles.userId, mentoringEnabled: identityProfiles.mentoringEnabled });
+
+		if (!updated) throw new Error('Instructor profile not found.');
+		return { success: true, mentoringEnabled: updated.mentoringEnabled };
+	}
+
+	/**
+	 * Updates rich profile fields for an instructor from the dashboard studio.
+	 */
+	static async updateInstructorMentoringProfile(instructorId: string, data: {
+		handle?: string;
+		headline?: string;
+		about?: string;
+		yearsExp?: number;
+		languages?: string[];
+		socialLinks?: Record<string, string | null>;
+		videoIntroUrl?: string;
+	}) {
+		const updateData: any = { updatedAt: new Date() };
+		if (data.handle !== undefined) updateData.mentoringHandle = data.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+		if (data.headline !== undefined) updateData.mentoringHeadline = data.headline.trim();
+		if (data.about !== undefined) updateData.mentoringAbout = data.about.trim();
+		if (data.yearsExp !== undefined) updateData.mentoringYearsExp = Number(data.yearsExp);
+		if (data.languages !== undefined) updateData.mentoringLanguages = data.languages;
+		if (data.socialLinks !== undefined) updateData.mentoringSocialLinks = data.socialLinks;
+		if (data.videoIntroUrl !== undefined) updateData.mentoringVideoIntroUrl = data.videoIntroUrl?.trim() || null;
+
+		const [updated] = await db
+			.update(identityProfiles)
+			.set(updateData)
+			.where(eq(identityProfiles.userId, instructorId))
+			.returning();
+
+		if (!updated) throw new Error('Instructor profile not found.');
+		return { success: true, profile: updated };
 	}
 }
