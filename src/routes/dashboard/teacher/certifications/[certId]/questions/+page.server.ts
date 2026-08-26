@@ -170,5 +170,30 @@ export const actions: Actions = {
 			console.error(e);
 			return fail(500, { error: 'Failed to delete question' });
 		}
+	},
+
+	deleteAllQuestions: async ({ locals, params }) => {
+		if (!locals.user) throw redirect(302, '/sign-in');
+		const instructorId = locals.user.id;
+		const certId = params.certId;
+
+		try {
+			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
+				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
+				.where(and(eq(assets.id, certId), eq(assets.ownerId, instructorId)));
+			if (!certAsset) return fail(403, { error: 'Unauthorized' });
+
+			const qRows = await db.select({ id: assessmentQuestions.id }).from(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId));
+			for (const q of qRows) {
+				await db.delete(assessmentAttemptAnswers).where(eq(assessmentAttemptAnswers.questionId, q.id));
+				await db.delete(assessmentOptions).where(eq(assessmentOptions.questionId, q.id));
+			}
+			await db.delete(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId));
+
+			return { success: true, message: 'All questions deleted' };
+		} catch (e) {
+			console.error(e);
+			return fail(500, { error: 'Failed to delete all questions' });
+		}
 	}
 };

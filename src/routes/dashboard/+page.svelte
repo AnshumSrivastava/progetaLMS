@@ -39,7 +39,8 @@
 		Loader2,
 		Award,
 		Power,
-		Trash2
+		Trash2,
+		FileSpreadsheet
 	} from 'lucide-svelte';
 	import type { PageData, ActionData } from './$types';
 
@@ -996,7 +997,7 @@
 							</div>
 							<div class="action-group">
 								<a href={`/dashboard/teacher/certifications/${cert.id}/questions`} class="btn-action primary">
-									Manage Questions & MCQs
+									<FileSpreadsheet size={13} /> Batch / Questions
 								</a>
 								<form method="POST" action="?/toggleCertPublish" style="display:inline;">
 									<input type="hidden" name="certId" value={cert.id} />
