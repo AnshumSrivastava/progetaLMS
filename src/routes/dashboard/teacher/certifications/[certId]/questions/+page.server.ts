@@ -8,7 +8,7 @@ import { createId } from '@paralleldrive/cuid2';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!locals.user) throw redirect(302, '/sign-in');
-	const user = locals.user;
+	const user = locals.user as any;
 	const certId = params.certId;
 
 	const [certAsset] = await db.select({
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const questions = await db.select().from(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId)).orderBy(assessmentQuestions.sortOrder);
 	const qIds = questions.map(q => q.id);
 	
-	let options = [];
+	let options: any[] = [];
 	if (qIds.length > 0) {
 		// Drizzle `inArray` can't take an empty array
 		const allOptions = await db.select().from(assessmentOptions).orderBy(assessmentOptions.sortOrder);
@@ -55,35 +55,28 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 export const actions: Actions = {
-	addQuestion: async ({ request, locals, params }) => {
+	saveAll: async ({ request, locals, params }) => {
 		if (!locals.user) throw redirect(302, '/sign-in');
-		const instructorId = locals.user.id;
 		const certId = params.certId;
 
 		const data = await request.formData();
-		const content = data.get('content')?.toString();
-		const explanation = data.get('explanation')?.toString();
-		
-		const opt0 = data.get('opt_0')?.toString();
-		const opt1 = data.get('opt_1')?.toString();
-		const opt2 = data.get('opt_2')?.toString();
-		const opt3 = data.get('opt_3')?.toString();
+		const questionsStr = data.get('questions')?.toString();
+		if (!questionsStr) return fail(400, { error: 'No questions provided' });
 
-		if (!content || !opt0 || !opt1) {
-			return fail(400, { error: 'Missing question text, correct answer, or first wrong answer' });
+		let rawQuestions: any[];
+		try {
+			rawQuestions = JSON.parse(questionsStr);
+		} catch (e) {
+			return fail(400, { error: 'Invalid JSON for questions' });
 		}
 
-		const parsedOptions = [
-			{ content: opt0, isCorrect: true },
-			{ content: opt1, isCorrect: false }
-		];
-		
-		if (opt2) parsedOptions.push({ content: opt2, isCorrect: false });
-		if (opt3) parsedOptions.push({ content: opt3, isCorrect: false });
+		if (!Array.isArray(rawQuestions)) {
+			return fail(400, { error: 'Questions must be an array' });
+		}
 
 		try {
 			// Verify ownership
-			const user = locals.user;
+			const user = locals.user as any;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
 				.where(
@@ -95,42 +88,65 @@ export const actions: Actions = {
 			
 			if (!certAsset) return fail(403, { error: 'Unauthorized' });
 
-			const questionId = createId();
+			// Filter valid rows: must have content, opt0 (correct), and at least one wrong (opt1)
+			const validQuestions = rawQuestions.filter(q => q.content && q.content.trim() && q.opt0 && q.opt0.trim() && q.opt1 && q.opt1.trim());
 
-			// Count existing for sort_order
-			const existing = await db.select().from(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId));
-			const sortOrder = existing.length;
+			await db.transaction(async (tx) => {
+				// 1. Get all question IDs for this testId
+				const existingQuestions = await tx.select({ id: assessmentQuestions.id }).from(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId));
+				const existingQIds = existingQuestions.map(q => q.id);
 
-			await db.insert(assessmentQuestions).values({
-				id: questionId,
-				testId: certAsset.testId,
-				type: 'mcq',
-				content,
-				explanation: explanation || null,
-				points: 1,
-				sortOrder
+				// 2. Delete existing attempt answers, options, and questions
+				if (existingQIds.length > 0) {
+					// We must delete attempt answers one by one or chunked if there are many, but since inArray with empty fails,
+					// and we have them in memory, we can delete them.
+					for (const qId of existingQIds) {
+						await tx.delete(assessmentAttemptAnswers).where(eq(assessmentAttemptAnswers.questionId, qId));
+						await tx.delete(assessmentOptions).where(eq(assessmentOptions.questionId, qId));
+					}
+				}
+				await tx.delete(assessmentQuestions).where(eq(assessmentQuestions.testId, certAsset.testId));
+
+				// 3. Insert new questions and options
+				let currentSortOrder = 0;
+				for (const q of validQuestions) {
+					const questionId = createId();
+					await tx.insert(assessmentQuestions).values({
+						id: questionId,
+						testId: certAsset.testId,
+						type: 'mcq',
+						content: q.content.trim(),
+						explanation: q.explanation?.trim() || null,
+						points: 1,
+						sortOrder: currentSortOrder++
+					});
+
+					const optionsToInsert = [
+						{ id: createId(), questionId, content: q.opt0.trim(), isCorrect: true, sortOrder: 0 },
+						{ id: createId(), questionId, content: q.opt1.trim(), isCorrect: false, sortOrder: 1 }
+					];
+					
+					if (q.opt2 && q.opt2.trim()) {
+						optionsToInsert.push({ id: createId(), questionId, content: q.opt2.trim(), isCorrect: false, sortOrder: 2 });
+					}
+					if (q.opt3 && q.opt3.trim()) {
+						optionsToInsert.push({ id: createId(), questionId, content: q.opt3.trim(), isCorrect: false, sortOrder: 3 });
+					}
+
+					await tx.insert(assessmentOptions).values(optionsToInsert);
+				}
 			});
-
-			const optionsToInsert = parsedOptions.map((opt, i) => ({
-				id: createId(),
-				questionId,
-				content: opt.content,
-				isCorrect: opt.isCorrect,
-				sortOrder: i
-			}));
-
-			await db.insert(assessmentOptions).values(optionsToInsert);
 
 			return { success: true };
 		} catch (e) {
-			console.error(e);
-			return fail(500, { error: 'Failed to add question' });
+			console.error('saveAll error:', e);
+			return fail(500, { error: 'Failed to save questions' });
 		}
 	},
 
 	updateSettings: async ({ request, locals, params }) => {
 		if (!locals.user) throw redirect(302, '/sign-in');
-		const instructorId = locals.user.id;
+		const instructorId = (locals.user as any).id;
 		const certId = params.certId;
 
 		const data = await request.formData();
@@ -146,7 +162,7 @@ export const actions: Actions = {
 		const maxAttempts = maxAttemptsStr ? parseInt(maxAttemptsStr, 10) : null;
 
 		try {
-			const user = locals.user;
+			const user = locals.user as any;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
 				.where(
@@ -170,7 +186,7 @@ export const actions: Actions = {
 
 	deleteQuestion: async ({ request, locals, params }) => {
 		if (!locals.user) throw redirect(302, '/sign-in');
-		const instructorId = locals.user.id;
+		const instructorId = (locals.user as any).id;
 		const certId = params.certId;
 
 		const data = await request.formData();
@@ -178,7 +194,7 @@ export const actions: Actions = {
 		if (!questionId) return fail(400, { error: 'Missing question id' });
 
 		try {
-			const user = locals.user;
+			const user = locals.user as any;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
 				.where(
@@ -206,11 +222,11 @@ export const actions: Actions = {
 
 	deleteAllQuestions: async ({ locals, params }) => {
 		if (!locals.user) throw redirect(302, '/sign-in');
-		const instructorId = locals.user.id;
+		const instructorId = (locals.user as any).id;
 		const certId = params.certId;
 
 		try {
-			const user = locals.user;
+			const user = locals.user as any;
 			const [certAsset] = await db.select({ testId: assessmentTests.id }).from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
 				.where(
