@@ -107,7 +107,7 @@
 						</p>
 						
 						<form method="POST" action="?/updatePreference" use:enhance class="flex flex-col gap-4">
-							<div class="flex items-center gap-6">
+							<div class="flex flex-wrap items-center gap-6">
 								<label class="flex items-center gap-2 cursor-pointer">
 									<input type="radio" name="preference" value="otp" checked={currentPreference === 'otp'} class="w-4 h-4 text-blue-600" />
 									<span class="text-sm font-medium text-gray-700">Email OTP (Magic Code)</span>
@@ -115,6 +115,10 @@
 								<label class="flex items-center gap-2 cursor-pointer">
 									<input type="radio" name="preference" value="password" checked={currentPreference === 'password'} class="w-4 h-4 text-blue-600" />
 									<span class="text-sm font-medium text-gray-700">Password</span>
+								</label>
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input type="radio" name="preference" value="mfa" checked={currentPreference === 'mfa'} class="w-4 h-4 text-blue-600" />
+									<span class="text-sm font-medium text-gray-700">Multi-Factor Authentication (Password + Email OTP)</span>
 								</label>
 							</div>
 							<button type="submit" class="self-start px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-medium rounded-md transition-colors">

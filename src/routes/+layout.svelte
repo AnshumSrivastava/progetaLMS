@@ -4,22 +4,57 @@
 	import Footer from '$lib/components/ui/Footer.svelte';
 	import MobileTabBar from '$lib/components/ui/MobileTabBar.svelte';
 	import ToastProvider from '$lib/components/ui/ToastProvider.svelte';
-	import { page } from '$app/stores';
+	import GlobalLoadingScreen from '$lib/components/ui/GlobalLoadingScreen.svelte';
+	import { page, navigating } from '$app/stores';
+	import { themeStore } from '$lib/stores/theme';
+	import { onMount } from 'svelte';
 
 	let { children, data } = $props();
 
-	// Don't show layout elements on specific routes (auth, splash, or dashboard pages)
-	let isAuthRoute = $derived($page.url.pathname.startsWith('/join') || $page.url.pathname === '/');
+	onMount(() => {
+		themeStore.init();
+	});
+
+	// Don't show layout elements on specific standalone routes (join classes, sign-in)
+	let isAuthRoute = $derived($page.url.pathname.startsWith('/join') || $page.url.pathname.startsWith('/sign-in'));
 	let isDashboardRoute = $derived($page.url.pathname.startsWith('/dashboard'));
+	let isNavigating = $state(false);
+	let navTimeout: any = null;
+
+	$effect(() => {
+		if ($navigating) {
+			if (!navTimeout) {
+				navTimeout = setTimeout(() => {
+					isNavigating = true;
+				}, 120);
+			}
+		} else {
+			if (navTimeout) {
+				clearTimeout(navTimeout);
+				navTimeout = null;
+			}
+			isNavigating = false;
+		}
+		return () => {
+			if (navTimeout) {
+				clearTimeout(navTimeout);
+				navTimeout = null;
+			}
+		};
+	});
 </script>
 
 <ToastProvider />
+
+{#if isNavigating}
+	<GlobalLoadingScreen text="Loading" />
+{/if}
 
 <div class="app-layout" class:is-auth={isAuthRoute}>
 	{#if !isAuthRoute}
 		<Navbar user={data.user} />
 	{/if}
-	<main class="main-content">
+	<main class="main-content" class:is-dashboard={isDashboardRoute}>
 		{@render children()}
 	</main>
 	{#if !isAuthRoute && !isDashboardRoute}
@@ -52,6 +87,14 @@
 		flex: 1;
 		width: 100%;
 		padding-top: var(--nav-h);
+	}
+	.main-content.is-dashboard {
+		padding-top: 0;
+	}
+	@media (max-width: 900px) {
+		.main-content.is-dashboard {
+			padding-top: var(--nav-h);
+		}
 	}
 	@media (max-width: 768px) {
 		.main-content {

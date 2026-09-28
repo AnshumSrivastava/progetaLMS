@@ -8,6 +8,7 @@ import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
 import { cohorts, cohortMemberships } from '$lib/server/db/schema/cohorts.schema';
 import { commerceOrders } from '$lib/server/db/schema/commerce.schema';
+import { mentoringTestimonials } from '$lib/server/db/schema/mentoring.schema';
 import { users } from '$lib/server/db/schema/identity.schema';
 import { eq, and, sql, desc, inArray } from 'drizzle-orm';
 import { redirect } from '@sveltejs/kit';
@@ -87,13 +88,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 		});
 	}
 
+	const reviews = await db
+		.select({ rating: mentoringTestimonials.rating })
+		.from(mentoringTestimonials)
+		.where(and(eq(mentoringTestimonials.instructorId, instructorId), eq(mentoringTestimonials.isPublished, true)));
+	
+	const avgRating = reviews.length > 0
+		? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+		: '—';
+
 	return {
 		user: locals.user,
 		recentActivity,
 		stats: {
 			totalStudents,
 			activeCourses: ownedAssets.length,
-			avgRating: 0, // Mock for now
+			avgRating,
 			totalRevenue: (totalRevenuePaise / 100).toFixed(2)
 		}
 	};

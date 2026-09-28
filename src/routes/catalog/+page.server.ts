@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { MentoringService } from '$lib/server/mentoring/MentoringService';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -15,6 +16,9 @@ export const load: PageServerLoad = async ({ url }) => {
 			title: assets.title,
 			description: assets.description,
 			type: assets.type,
+			deliveryFormat: assets.deliveryFormat,
+			isSelfPacedEnabled: assets.isSelfPacedEnabled,
+			isLiveBatchesEnabled: assets.isLiveBatchesEnabled,
 			pricePaise: assets.pricePaise,
 			thumbnail: assets.thumbnail,
 			metadata: assets.metadata
@@ -41,9 +45,12 @@ export const load: PageServerLoad = async ({ url }) => {
 		filtered = filtered.filter(a => (a.metadata as any)?.level === level);
 	}
 
-	const courses = filtered.filter(a => ['html', 'markdown', 'pdf'].includes(a.type));
+	const allCourses = filtered.filter(a => ['html', 'markdown', 'pdf'].includes(a.type));
+	const liveClasses = allCourses.filter(a => a.deliveryFormat === 'live_batch' || (a.isLiveBatchesEnabled && !a.isSelfPacedEnabled));
+	const courses = allCourses.filter(a => a.deliveryFormat !== 'live_batch');
 	const resources = filtered.filter(a => ['download', 'external'].includes(a.type));
 	const certifications = filtered.filter(a => a.type === 'cert_test');
+	const mentors = await MentoringService.getPublicMentors();
 
-	return { courses, resources, certifications, search, category, level };
+	return { courses, liveClasses, resources, certifications, mentors, search, category, level };
 };

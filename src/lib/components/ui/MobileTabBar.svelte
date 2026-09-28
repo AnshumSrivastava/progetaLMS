@@ -1,20 +1,29 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { LayoutDashboard, Compass, CalendarRange, User } from 'lucide-svelte';
+	import { BookOpen, Video, Award, Users, LayoutDashboard } from 'lucide-svelte';
 
 	const tabs = [
-		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-		{ href: '/catalog', icon: Compass, label: 'Catalog' },
-		{ href: '/certifications', icon: CalendarRange, label: 'Certs' },
-		{ href: '/dashboard/settings', icon: User, label: 'Profile' }
+		{ href: '/catalog', icon: BookOpen, label: 'Explore' },
+		{ href: '/live-classes', icon: Video, label: 'Live' },
+		{ href: '/courses', icon: BookOpen, label: 'Courses' },
+		{ href: '/certifications', icon: Award, label: 'Certs' },
+		{ href: '/mentoring', icon: Users, label: 'Mentoring' },
+		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' }
 	];
 </script>
 
 <div class="mobile-tab-bar">
 	{#each tabs as tab}
-		{@const isActive = $page.url.pathname.startsWith(tab.href)}
+		{@const isActive =
+		tab.href === '/courses'
+				? $page.url.pathname === '/courses'
+				: tab.href === '/catalog'
+				? $page.url.pathname === '/catalog'
+				: tab.href === '/live-classes'
+				? $page.url.pathname === '/live-classes'
+				: $page.url.pathname.startsWith(tab.href)}
 		<a href={tab.href} class="tab-item" class:active={isActive}>
-			<tab.icon size={22} class="tab-icon" />
+			<tab.icon size={19} class="tab-icon" />
 			<span class="tab-label">{tab.label}</span>
 		</a>
 	{/each}
@@ -32,10 +41,8 @@
 			bottom: 0;
 			left: 0;
 			right: 0;
-			height: 64px;
-			background: var(--glass-bg);
-			backdrop-filter: blur(16px);
-			-webkit-backdrop-filter: blur(16px);
+			height: 58px;
+			background: var(--bg);
 			border-top: 1px solid var(--border);
 			z-index: 100;
 			justify-content: space-around;
@@ -48,16 +55,16 @@
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
-			gap: 4px;
+			gap: 3px;
 			flex: 1;
 			text-decoration: none;
 			color: var(--text-muted);
-			transition: color 0.2s;
+			transition: color 0.15s ease;
 			height: 100%;
 		}
 
 		.tab-item.active {
-			color: var(--accent);
+			color: var(--color-text);
 		}
 
 		.tab-label {

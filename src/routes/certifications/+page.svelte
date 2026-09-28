@@ -1,894 +1,430 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Search, ShieldCheck, ArrowRight, X, SlidersHorizontal, Award } from 'lucide-svelte';
-	import { goto } from '$app/navigation';
+	import { Search, X, Award, ShieldCheck, Check } from 'lucide-svelte';
+	import CertificationCard from '$lib/components/ui/CertificationCard.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 
 	let { data } = $props();
 
-	let searchQuery   = $state('');
+	let searchQuery = $state('');
 	let selectedLevel = $state<string | null>(null);
 	let onlyProctored = $state(false);
-	let sortBy        = $state('default');
+	let sortBy = $state('default');
 
-	const levels = ['Beginner', 'Intermediate', 'Advanced'];
+	const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
-	let filtered = $derived(() => {
+	const filtered = $derived(() => {
 		let list = data.certs;
 
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase();
-			list = list.filter(c =>
+			list = list.filter((c: any) =>
 				c.title.toLowerCase().includes(q) ||
 				(c.description || '').toLowerCase().includes(q) ||
 				(c.metadata?.tags || []).some((t: string) => t.toLowerCase().includes(q))
 			);
 		}
 
-		if (selectedLevel) {
-			list = list.filter(c => (c.metadata?.level || 'Intermediate') === selectedLevel);
+		if (selectedLevel && selectedLevel !== 'All') {
+			list = list.filter((c: any) => (c.metadata?.level || 'Intermediate').toLowerCase() === selectedLevel?.toLowerCase());
 		}
 
 		if (onlyProctored) {
-			list = list.filter(c => c.metadata?.isProctored !== false);
+			list = list.filter((c: any) => c.metadata?.isProctored !== false);
 		}
 
-		if (sortBy === 'price-asc')  list = [...list].sort((a, b) => a.pricePaise - b.pricePaise);
-		if (sortBy === 'price-desc') list = [...list].sort((a, b) => b.pricePaise - a.pricePaise);
-		if (sortBy === 'questions')  list = [...list].sort((a, b) => (b.metadata?.questions || 0) - (a.metadata?.questions || 0));
+		if (sortBy === 'price-asc') list = [...list].sort((a: any, b: any) => (a.pricePaise || 0) - (b.pricePaise || 0));
+		if (sortBy === 'price-desc') list = [...list].sort((a: any, b: any) => (b.pricePaise || 0) - (a.pricePaise || 0));
+		if (sortBy === 'questions') list = [...list].sort((a: any, b: any) => (b.metadata?.questions || 0) - (a.metadata?.questions || 0));
 
 		return list;
 	});
 
-	const hasFilters = $derived(!!selectedLevel || onlyProctored || searchQuery.trim() !== '');
+	const hasFilters = $derived(!!selectedLevel && selectedLevel !== 'All' || onlyProctored || searchQuery.trim() !== '');
 
 	function clearAll() {
-		searchQuery   = '';
+		searchQuery = '';
 		selectedLevel = null;
 		onlyProctored = false;
-		sortBy        = 'default';
+		sortBy = 'default';
 	}
-
-	const levelConfig: Record<string, { color: string; label: string }> = {
-		Beginner:     { color: '#22c55e', label: 'Beginner'     },
-		Intermediate: { color: '#f59e0b', label: 'Intermediate' },
-		Advanced:     { color: '#8b5cf6', label: 'Advanced'     },
-	};
 </script>
 
 <svelte:head>
 	<title>Certifications — {APP_NAME}</title>
-	<meta name="description" content="Rigorous, timed certification exams with permanent verifiable credentials." />
+	<meta name="description" content="Rigorous, timed certification exams with permanent cryptographic proof of mastery." />
 </svelte:head>
 
-<div class="page">
-
-	<!-- ── HEADER ──────────────────────────────────────────── -->
-	<header class="page-header">
-		<div class="header-inner">
-			<div class="header-left">
-				<span class="kicker">Certifications</span>
-				<h1>Prove what you know.</h1>
-				<p class="header-body">
-					Rigorous skill assessments with permanent, verifiable credentials attached to your profile.
-				</p>
-			</div>
-			<div class="header-right">
-				<div class="stat-row">
-					<div class="stat-block">
-						<span class="stat-num">{data.certs.length}</span>
-						<span class="stat-desc">Exams available</span>
-					</div>
-					<div class="stat-sep"></div>
-					<div class="stat-block">
-						<span class="stat-num">{data.certs.filter(c => c.pricePaise === 0).length}</span>
-						<span class="stat-desc">Free of charge</span>
-					</div>
-					<div class="stat-sep"></div>
-					<div class="stat-block">
-						<span class="stat-num">3</span>
-						<span class="stat-desc">Difficulty tiers</span>
-					</div>
+<div class="certs-page">
+	<!-- ── WORKLY-STYLE TOP HEADER & SEARCH ──────────────── -->
+	<header class="certs-header">
+		<div class="container-custom">
+			<div class="header-main-row">
+				<div>
+					<span class="meta-label">STANDARDS & ASSESSMENTS</span>
+					<h1 class="page-title">Verifiable Certifications</h1>
+					<p class="page-subtitle">Rigorous practitioner-reviewed examinations yielding permanent cryptographic proof of mastery.</p>
 				</div>
-			</div>
-		</div>
-	</header>
 
-	<!-- ── BODY ────────────────────────────────────────────── -->
-	<div class="body-wrap">
-
-		<!-- ── SIDEBAR ─────────────────────────────────────── -->
-		<aside class="sidebar">
-
-			<div class="filter-group">
-				<div class="search-field">
-					<Search size={13} class="search-ico" />
+				<!-- Search Input (Workly Reference Style) -->
+				<div class="search-wrap">
+					<Search size={16} class="search-icon" />
 					<input
 						type="text"
-						placeholder="Search certifications..."
 						bind:value={searchQuery}
-						class="search-input"
+						placeholder="Search exams, domains, or skills..."
+						class="workly-search-input"
 					/>
 					{#if searchQuery}
-						<button class="search-clear" onclick={() => searchQuery = ''}>
-							<X size={11} />
+						<button class="clear-btn" onclick={() => (searchQuery = '')} aria-label="Clear search">
+							<X size={14} />
 						</button>
 					{/if}
 				</div>
 			</div>
 
-			<div class="filter-group">
-				<span class="group-label">Difficulty</span>
-				<div class="level-opts">
-					<button
-						class="level-opt"
-						class:active={selectedLevel === null}
-						onclick={() => selectedLevel = null}
-					>
-						<span class="l-dot" style="background: var(--border-strong);"></span>
-						<span class="l-name">All levels</span>
-						<span class="l-ct">{data.certs.length}</span>
-					</button>
+			<!-- Filter Level Pills & Proctored Toggle -->
+			<div class="filter-strip">
+				<div class="level-pills">
 					{#each levels as lvl}
-						{@const count = data.certs.filter(c => (c.metadata?.level || 'Intermediate') === lvl).length}
 						<button
-							class="level-opt"
-							class:active={selectedLevel === lvl}
-							onclick={() => selectedLevel = selectedLevel === lvl ? null : lvl}
+							type="button"
+							class="filter-pill"
+							class:active={(lvl === 'All' && !selectedLevel) || selectedLevel === lvl}
+							onclick={() => (selectedLevel = lvl === 'All' ? null : lvl)}
 						>
-							<span class="l-dot" style="background: {levelConfig[lvl].color};"></span>
-							<span class="l-name">{lvl}</span>
-							<span class="l-ct">{count}</span>
+							{lvl === 'All' ? 'All Difficulties' : lvl}
 						</button>
 					{/each}
 				</div>
-			</div>
 
-			<div class="filter-group">
-				<label class="toggle-row" for="tog-proctored">
-					<div class="toggle-info">
-						<span class="group-label" style="margin-bottom:0;">Proctored</span>
-						<span class="toggle-hint">Webcam-monitored</span>
-					</div>
-					<div class="sw" class:on={onlyProctored}>
-						<input id="tog-proctored" type="checkbox" class="sr" bind:checked={onlyProctored} />
-						<span class="sw-knob"></span>
-					</div>
-				</label>
-			</div>
-
-			<div class="filter-group">
-				<span class="group-label">Sort</span>
-				<select class="sort-dd" bind:value={sortBy}>
-					<option value="default">Default</option>
-					<option value="price-asc">Price: low to high</option>
-					<option value="price-desc">Price: high to low</option>
-					<option value="questions">Most questions</option>
-				</select>
-			</div>
-
-			{#if hasFilters}
-				<button class="clear-all" onclick={clearAll}>
-					<X size={11} /> Reset filters
+				<button
+					type="button"
+					class="proctored-toggle-pill"
+					class:active={onlyProctored}
+					onclick={() => (onlyProctored = !onlyProctored)}
+				>
+					<span class="toggle-dot" class:checked={onlyProctored}></span>
+					<span>Proctored Only</span>
 				</button>
-			{/if}
-		</aside>
-
-		<!-- ── MAIN ─────────────────────────────────────────── -->
-		<main class="main">
-
-			<!-- Results bar -->
-			<div class="results-bar">
-				<p class="result-ct">
-					<strong>{filtered().length}</strong>
-					<span> of {data.certs.length} exams</span>
-				</p>
-
-				{#if hasFilters}
-					<div class="chips">
-						{#if searchQuery}
-							<span class="chip">"{searchQuery}"<button onclick={() => searchQuery = ''}>×</button></span>
-						{/if}
-						{#if selectedLevel}
-							<span class="chip">{selectedLevel}<button onclick={() => selectedLevel = null}>×</button></span>
-						{/if}
-						{#if onlyProctored}
-							<span class="chip">Proctored<button onclick={() => onlyProctored = false}>×</button></span>
-						{/if}
-					</div>
-				{/if}
 			</div>
 
-			<!-- Cards -->
-			{#if filtered().length > 0}
-				<div class="grid">
-					{#each filtered() as cert}
-						{@const level     = cert.metadata?.level || 'Intermediate'}
-						{@const cfg       = levelConfig[level] || levelConfig.Intermediate}
-						{@const questions = cert.metadata?.questions || 0}
-						{@const duration  = cert.metadata?.duration || '—'}
-						{@const passing   = cert.metadata?.passingScore || '75%'}
-						{@const proctored = cert.metadata?.isProctored !== false}
-						{@const tags      = (cert.metadata?.tags || []) as string[]}
-						{@const free      = cert.pricePaise === 0}
-						{@const price     = free ? 'Free' : `₹${(cert.pricePaise / 100).toFixed(0)}`}
-
-						<article class="card" style="--c: {cfg.color};">
-							<!-- Accent bar — left side -->
-							<div class="card-bar"></div>
-
-							<div class="card-body">
-								<!-- Top: badges -->
-								<div class="card-head">
-									<span class="badge-lvl" style="color:{cfg.color};border-color:{cfg.color}30;background:{cfg.color}0e;">
-										{level}
-									</span>
-									{#if proctored}
-										<span class="badge-proc">
-											<ShieldCheck size={9} /> Proctored
-										</span>
-									{/if}
-								</div>
-
-								<!-- Title -->
-								<h2 class="card-title">{cert.title}</h2>
-
-								<!-- Desc -->
-								{#if cert.description}
-									<p class="card-desc">{cert.description}</p>
-								{/if}
-
-								<!-- Tags -->
-								{#if tags.length > 0}
-									<div class="card-tags">
-										{#each tags.slice(0, 4) as tag}
-											<span class="tag">#{tag}</span>
-										{/each}
-									</div>
-								{/if}
-
-								<!-- Stats -->
-								<div class="card-stats">
-									<div class="cs">
-										<span class="cs-val">{questions}</span>
-										<span class="cs-key">Questions</span>
-									</div>
-									<div class="cs-sep"></div>
-									<div class="cs">
-										<span class="cs-val">{duration}</span>
-										<span class="cs-key">Duration</span>
-									</div>
-									<div class="cs-sep"></div>
-									<div class="cs">
-										<span class="cs-val">{passing}</span>
-										<span class="cs-key">Pass mark</span>
-									</div>
-								</div>
-
-								<!-- Footer -->
-								<div class="card-foot">
-									<div class="price-col">
-										<span class="price" class:free>{price}</span>
-										{#if !free}
-											<span class="price-note">per attempt</span>
-										{/if}
-									</div>
-									<div class="card-actions">
-										<button class="btn-ghost" onclick={() => goto(`/certifications/${cert.id}`)}>
-											Details
-										</button>
-										<button class="btn-solid" onclick={() => goto(`/checkout/${cert.id}`)}>
-											{free ? 'Enroll' : 'Buy'} <ArrowRight size={12} />
-										</button>
-									</div>
-								</div>
-							</div>
-						</article>
-					{/each}
+			<!-- Meta & Secondary Controls Strip -->
+			<div class="header-sub-strip">
+				<div class="results-count">
+					Showing <strong>{filtered().length}</strong> of {data.certs.length} certifications
 				</div>
-			{:else}
-				<div class="empty">
-					<span class="empty-icon"><SlidersHorizontal size={20} /></span>
-					<h3>No results</h3>
-					<p>
-						{#if searchQuery}No exams match "<strong>{searchQuery}</strong>".
-						{:else if selectedLevel}No <strong>{selectedLevel}</strong> exams with active filters.
-						{:else}Adjust or clear your filters to see exams.{/if}
-					</p>
-					<button class="empty-btn" onclick={clearAll}>Reset filters</button>
+
+				<div class="filter-controls">
+					<!-- Sort Selector -->
+					<div class="select-wrap">
+						<span class="select-label">Sort by:</span>
+						<select bind:value={sortBy} class="control-select">
+							<option value="default">Recommended</option>
+							<option value="price-asc">Price: Low to High</option>
+							<option value="price-desc">Price: High to Low</option>
+							<option value="questions">Question Count</option>
+						</select>
+					</div>
+
+					{#if hasFilters}
+						<button type="button" class="btn-reset" onclick={clearAll}>
+							Reset filters
+						</button>
+					{/if}
 				</div>
-			{/if}
-		</main>
-	</div>
+			</div>
+		</div>
+	</header>
+
+	<!-- ── CERTIFICATION CARDS CANVAS ─────────────────────── -->
+	<main class="container-custom content-canvas">
+		{#if filtered().length > 0}
+			<div class="workly-grid">
+				{#each filtered() as cert}
+					<CertificationCard {cert} />
+				{/each}
+			</div>
+		{:else}
+			<EmptyState
+				title="No certifications found"
+				description="No assessment exams match your chosen search query or difficulty filters."
+				actionText="Clear all filters"
+				onaction={clearAll}
+			/>
+		{/if}
+	</main>
 </div>
 
 <style>
-	/* ── Shell ─────────────────────────────────────────────── */
-	.page {
-		min-height: calc(100vh - var(--nav-h));
-		background: var(--bg);
+	.certs-page {
+		min-height: 100vh;
+		background: var(--bg, #f8fafc);
 	}
 
-	/* ── Header ─────────────────────────────────────────────── */
-	.page-header {
-		background: var(--bg-subtle);
+	.certs-header {
+		background: var(--bg-elevated, #ffffff);
 		border-bottom: 1px solid var(--border);
+		padding: 32px 0 20px 0;
 	}
 
-	.header-inner {
-		max-width: 1160px;
-		margin: 0 auto;
-		padding: 3.5rem 2rem 3rem;
+	.header-main-row {
 		display: flex;
-		justify-content: space-between;
-		align-items: flex-end;
-		gap: 3rem;
-		flex-wrap: wrap;
+		flex-direction: column;
+		gap: 20px;
+		margin-bottom: 24px;
 	}
 
-	.kicker {
-		display: block;
-		font-size: 0.5625rem;
+	@media (min-width: 768px) {
+		.header-main-row {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+		}
+	}
+
+	.meta-label {
+		font-size: 0.72rem;
 		font-weight: 700;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-		margin-bottom: 16px;
-	}
-
-	.header-left h1 {
-		font-size: clamp(1.875rem, 4vw, 2.625rem);
-		font-weight: 700;
-		letter-spacing: -0.04em;
-		color: var(--text-primary);
-		line-height: 1.1;
-		margin-bottom: 14px;
-	}
-
-	.header-body {
-		font-size: 0.875rem;
-		color: var(--text-secondary);
-		line-height: 1.65;
-		max-width: 380px;
-	}
-
-	.stat-row {
-		display: flex;
-		align-items: center;
-		gap: 22px;
-		padding: 20px 24px;
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-	}
-
-	.stat-block { text-align: center; }
-
-	.stat-num {
-		display: block;
-		font-size: 1.875rem;
-		font-weight: 700;
-		letter-spacing: -0.04em;
-		color: var(--text-primary);
-		line-height: 1;
-	}
-
-	.stat-desc {
-		display: block;
-		font-size: 0.625rem;
-		font-weight: 600;
 		letter-spacing: 0.08em;
+		color: #7c3aed;
 		text-transform: uppercase;
-		color: var(--text-muted);
+	}
+
+	.page-title {
+		font-size: clamp(1.75rem, 3vw, 2.25rem);
+		font-weight: 800;
+		color: var(--text-primary, #0f172a);
+		letter-spacing: -0.03em;
 		margin-top: 4px;
 	}
 
-	.stat-sep {
-		width: 1px;
-		height: 32px;
-		background: var(--border);
+	.page-subtitle {
+		font-size: 0.875rem;
+		color: var(--text-secondary, #64748b);
+		margin-top: 4px;
+		max-width: 580px;
 	}
 
-	/* ── Body ────────────────────────────────────────────────── */
-	.body-wrap {
-		max-width: 1160px;
-		margin: 0 auto;
-		padding: 2.75rem 2rem 6rem;
-		display: grid;
-		grid-template-columns: 200px 1fr;
-		gap: 3rem;
-		align-items: start;
-	}
-
-	/* ── Sidebar ─────────────────────────────────────────────── */
-	.sidebar {
-		position: sticky;
-		top: calc(var(--nav-h) + 2rem);
-		display: flex;
-		flex-direction: column;
-		gap: 0;
-	}
-
-	.filter-group {
-		padding: 16px 0;
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
-	.filter-group:first-child { padding-top: 0; }
-	.filter-group:last-of-type { border-bottom: none; }
-
-	.group-label {
-		display: block;
-		font-size: 0.5625rem;
-		font-weight: 700;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-		margin-bottom: 10px;
-	}
-
-	/* Search */
-	.search-field {
+	.search-wrap {
 		position: relative;
-		display: flex;
-		align-items: center;
+		width: 100%;
+		max-width: 420px;
 	}
 
-	.search-field :global(.search-ico) {
+	.workly-search-input {
+		width: 100%;
+		height: 46px;
+		background: var(--bg, #f1f5f9);
+		border: 1px solid var(--border);
+		border-radius: 9999px;
+		padding: 0 40px 0 42px;
+		font-size: 0.9375rem;
+		color: var(--text-primary);
+		outline: none;
+		transition: all 0.2s ease;
+	}
+
+	.workly-search-input:focus {
+		background: var(--bg-elevated, #ffffff);
+		border-color: #7c3aed;
+		box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+	}
+
+	:global(.search-icon) {
 		position: absolute;
-		left: 9px;
-		color: var(--text-muted);
+		left: 16px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-muted, #94a3b8);
 		pointer-events: none;
 	}
 
-	.search-input {
-		width: 100%;
-		height: 34px;
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		padding: 0 28px 0 28px;
-		font-size: 0.78125rem;
-		color: var(--text-primary);
-		font-family: inherit;
-		outline: none;
-		transition: border-color var(--t-fast), background var(--t-fast);
-	}
-
-	.search-input:focus { border-color: var(--border-strong); background: var(--bg); }
-
-	.search-input::placeholder { color: var(--text-muted); }
-
-	.search-clear {
+	.clear-btn {
 		position: absolute;
-		right: 7px;
+		right: 14px;
+		top: 50%;
+		transform: translateY(-50%);
 		background: none;
 		border: none;
-		padding: 3px;
-		cursor: pointer;
-		color: var(--text-muted);
-		display: flex;
-		border-radius: 3px;
-	}
-
-	/* Level options */
-	.level-opts { display: flex; flex-direction: column; gap: 1px; }
-
-	.level-opt {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		height: 32px;
-		padding: 0 7px;
-		border-radius: var(--radius-sm);
-		background: none;
-		border: none;
-		font-size: 0.8125rem;
-		color: var(--text-secondary);
-		text-align: left;
-		cursor: pointer;
-		font-family: inherit;
-		transition: background var(--t-fast), color var(--t-fast);
-	}
-
-	.level-opt:hover { background: var(--bg-elevated); color: var(--text-primary); }
-
-	.level-opt.active {
-		background: var(--bg-elevated);
-		color: var(--text-primary);
-		font-weight: 600;
-	}
-
-	.l-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-
-	.l-name { flex: 1; }
-
-	.l-ct {
-		font-size: 0.6875rem;
-		color: var(--text-muted);
-		font-variant-numeric: tabular-nums;
-		margin-left: auto;
-	}
-
-	/* Toggle */
-	.toggle-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		cursor: pointer;
-		user-select: none;
-		gap: 10px;
-	}
-
-	.toggle-hint {
-		display: block;
-		font-size: 0.6875rem;
-		color: var(--text-muted);
-		margin-top: 1px;
-	}
-
-	.sw {
-		width: 36px;
-		height: 20px;
-		border-radius: 999px;
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		position: relative;
-		flex-shrink: 0;
-		transition: background var(--t-normal), border-color var(--t-normal);
-	}
-
-	.sw.on { background: var(--text-primary); border-color: var(--text-primary); }
-
-	.sw-knob {
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		width: 14px;
-		height: 14px;
-		border-radius: 50%;
-		background: var(--border-strong);
-		transition: transform var(--t-normal), background var(--t-normal);
-	}
-
-	.sw.on .sw-knob { transform: translateX(16px); background: var(--bg); }
-
-	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
-
-	/* Sort */
-	.sort-dd {
-		width: 100%;
-		height: 34px;
-		padding: 0 8px;
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		font-size: 0.78125rem;
-		color: var(--text-primary);
-		font-family: inherit;
-		cursor: pointer;
-		outline: none;
-	}
-
-	/* Clear all */
-	.clear-all {
-		display: inline-flex;
-		align-items: center;
-		gap: 5px;
-		margin-top: 14px;
-		background: none;
-		border: none;
-		padding: 0;
-		font-size: 0.71875rem;
 		color: var(--text-muted);
 		cursor: pointer;
-		font-family: inherit;
-		transition: color var(--t-fast);
-	}
-
-	.clear-all:hover { color: var(--text-primary); }
-
-	/* ── Main ───────────────────────────────────────────────── */
-	.main { min-width: 0; }
-
-	.results-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 1.375rem;
-		flex-wrap: wrap;
-		gap: 8px;
-	}
-
-	.result-ct { font-size: 0.8125rem; color: var(--text-muted); }
-	.result-ct strong { color: var(--text-primary); font-weight: 700; }
-
-	.chips { display: flex; gap: 5px; flex-wrap: wrap; }
-
-	.chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
-		padding: 2px 8px;
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		font-size: 0.71875rem;
-		color: var(--text-secondary);
-	}
-
-	.chip button {
-		background: none; border: none; cursor: pointer;
-		color: var(--text-muted); padding: 0; font-size: 1rem; line-height: 1; display: flex;
-	}
-
-	/* ── Grid ────────────────────────────────────────────────── */
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(295px, 1fr));
-		gap: 1rem;
-	}
-
-	/* ── Card ────────────────────────────────────────────────── */
-	.card {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		overflow: hidden;
-		display: flex;
-		flex-direction: row;
-		transition: border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
-	}
-
-	.card:hover {
-		border-color: var(--border-strong);
-		box-shadow: 0 6px 24px rgba(0,0,0,0.08);
-		transform: translateY(-2px);
-	}
-
-	/* Left vertical accent bar */
-	.card-bar {
-		width: 3px;
-		flex-shrink: 0;
-		background: var(--c);
-		align-self: stretch;
-	}
-
-	.card-body {
-		padding: 20px 20px 18px;
-		display: flex;
-		flex-direction: column;
-		gap: 13px;
-		flex: 1;
-		min-width: 0;
-	}
-
-	/* Head */
-	.card-head { display: flex; align-items: center; gap: 6px; }
-
-	.badge-lvl {
-		font-size: 0.5625rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		padding: 3px 7px;
-		border-radius: var(--radius-sm);
-		border: 1px solid;
-	}
-
-	.badge-proc {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
-		font-size: 0.5625rem;
-		font-weight: 600;
-		color: var(--text-muted);
-		background: var(--bg-subtle);
-		border: 1px solid var(--border);
-		padding: 3px 7px;
-		border-radius: var(--radius-sm);
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-
-	/* Title */
-	.card-title {
-		font-size: 0.9375rem;
-		font-weight: 600;
-		letter-spacing: -0.015em;
-		color: var(--text-primary);
-		line-height: 1.35;
-	}
-
-	/* Desc */
-	.card-desc {
-		font-size: 0.8125rem;
-		color: var(--text-secondary);
-		line-height: 1.55;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-		margin-top: -4px;
-	}
-
-	/* Tags */
-	.card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
-
-	.tag {
-		font-size: 0.5625rem;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		color: var(--text-muted);
-		padding: 2px 5px;
-		background: var(--bg-subtle);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-sm);
-	}
-
-	/* Stats */
-	.card-stats {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 10px 12px;
-		background: var(--bg-subtle);
-		border: 1px solid var(--border-subtle);
-		border-radius: var(--radius-sm);
-	}
-
-	.cs { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-
-	.cs-val {
-		font-size: 0.9375rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		letter-spacing: -0.02em;
-		line-height: 1;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.cs-key {
-		font-size: 0.5625rem;
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--text-muted);
-	}
-
-	.cs-sep {
-		width: 1px;
-		height: 28px;
-		background: var(--border-subtle);
-		flex-shrink: 0;
-	}
-
-	/* Footer */
-	.card-foot {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 10px;
-		padding-top: 12px;
-		border-top: 1px solid var(--border-subtle);
-		margin-top: auto;
-	}
-
-	.price-col { display: flex; flex-direction: column; gap: 1px; }
-
-	.price {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: var(--text-primary);
-		letter-spacing: -0.025em;
-		line-height: 1;
-	}
-
-	.price.free { color: #16a34a; }
-
-	.price-note {
-		font-size: 0.5rem;
-		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		font-weight: 600;
-	}
-
-	.card-actions { display: flex; gap: 5px; }
-
-	.btn-ghost {
-		height: 32px;
-		padding: 0 11px;
-		background: none;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--text-secondary);
-		cursor: pointer;
-		font-family: inherit;
-		transition: border-color var(--t-fast), color var(--t-fast);
-	}
-
-	.btn-ghost:hover { border-color: var(--border-strong); color: var(--text-primary); }
-
-	.btn-solid {
-		height: 32px;
-		padding: 0 12px;
-		background: var(--text-primary);
-		border: 1px solid var(--text-primary);
-		border-radius: var(--radius-sm);
-		font-size: 0.75rem;
-		font-weight: 600;
-		color: var(--bg);
-		cursor: pointer;
-		font-family: inherit;
-		display: inline-flex;
-		align-items: center;
-		gap: 4px;
-		transition: opacity var(--t-fast);
-	}
-
-	.btn-solid:hover { opacity: 0.86; }
-
-	/* ── Empty ───────────────────────────────────────────────── */
-	.empty {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		text-align: center;
-		padding: 5rem 2rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		background: var(--bg-subtle);
-		gap: 10px;
-	}
-
-	.empty-icon {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		width: 46px;
-		height: 46px;
-		border-radius: var(--radius-md);
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		color: var(--text-muted);
-		margin-bottom: 4px;
 	}
 
-	.empty h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+	/* Filter Strip */
+	.filter-strip {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		flex-wrap: wrap;
+		margin-bottom: 20px;
+	}
 
-	.empty p { font-size: 0.875rem; color: var(--text-secondary); max-width: 280px; line-height: 1.5; }
+	.level-pills {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
 
-	.empty-btn {
-		margin-top: 8px;
-		height: 34px;
-		padding: 0 16px;
-		background: var(--text-primary);
-		color: var(--bg);
-		border: none;
-		border-radius: var(--radius-sm);
+	.filter-pill {
+		display: inline-flex;
+		align-items: center;
+		padding: 6px 14px;
+		border-radius: 9999px;
 		font-size: 0.8125rem;
-		font-weight: 500;
+		font-weight: 600;
+		color: var(--text-secondary, #64748b);
+		background: var(--bg, #f8fafc);
+		border: 1px solid var(--border);
 		cursor: pointer;
-		font-family: inherit;
+		white-space: nowrap;
+		transition: all 0.15s ease;
 	}
 
-	/* ── Responsive ──────────────────────────────────────────── */
-	@media (max-width: 900px) {
-		.body-wrap { grid-template-columns: 1fr; padding: 2rem 1.5rem 4rem; }
-		.sidebar { position: static; }
-		.header-inner { flex-direction: column; align-items: flex-start; padding: 2.5rem 1.5rem 2.25rem; gap: 2rem; }
-		.stat-row { gap: 16px; padding: 16px 18px; }
+	.filter-pill:hover {
+		color: #7c3aed;
+		border-color: rgba(124, 58, 237, 0.3);
+		background: rgba(124, 58, 237, 0.04);
 	}
 
-	@media (max-width: 520px) {
-		.grid { grid-template-columns: 1fr; }
-		.stat-num { font-size: 1.5rem; }
+	.filter-pill.active {
+		color: #ffffff;
+		background: #7c3aed;
+		border-color: #7c3aed;
+		box-shadow: 0 2px 8px -2px rgba(124, 58, 237, 0.4);
+	}
+
+	.proctored-toggle-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 14px;
+		border-radius: 9999px;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--text-secondary, #64748b);
+		background: var(--bg, #f8fafc);
+		border: 1px solid var(--border);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.proctored-toggle-pill:hover {
+		border-color: #7c3aed;
+		color: var(--text-primary);
+	}
+
+	.proctored-toggle-pill.active {
+		border-color: #7c3aed;
+		background: rgba(124, 58, 237, 0.08);
+		color: #7c3aed;
+	}
+
+	.toggle-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--text-muted);
+		transition: background 0.15s ease;
+	}
+
+	.toggle-dot.checked {
+		background: #7c3aed;
+		box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
+	}
+
+	/* Sub-strip */
+	.header-sub-strip {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		padding-top: 16px;
+		border-top: 1px solid var(--border);
+	}
+
+	@media (min-width: 768px) {
+		.header-sub-strip {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+		}
+	}
+
+	.results-count {
+		font-size: 0.875rem;
+		color: var(--text-secondary, #64748b);
+	}
+
+	.results-count strong {
+		color: var(--text-primary, #0f172a);
+	}
+
+	.filter-controls {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+
+	.select-wrap {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.8125rem;
+	}
+
+	.select-label {
+		color: var(--text-muted, #94a3b8);
+		font-weight: 500;
+	}
+
+	.control-select {
+		background: var(--bg, #f1f5f9);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		padding: 5px 10px;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--text-primary);
+		outline: none;
+		cursor: pointer;
+		transition: border-color 0.15s ease;
+	}
+
+	.control-select:focus {
+		border-color: #7c3aed;
+	}
+
+	.btn-reset {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: #7c3aed;
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 4px 8px;
+		border-radius: 6px;
+		transition: background 0.15s ease;
+	}
+
+	.btn-reset:hover {
+		background: rgba(124, 58, 237, 0.08);
+	}
+
+	/* Grid Canvas */
+	.content-canvas {
+		padding-top: 36px;
+		padding-bottom: 80px;
+	}
+
+	.workly-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+		gap: 20px;
 	}
 </style>

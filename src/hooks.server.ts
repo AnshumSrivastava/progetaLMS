@@ -1,7 +1,7 @@
 import { auth } from '$lib/server/auth/auth.config';
 import { redirect, type Handle } from '@sveltejs/kit';
 import { db } from '$lib/server/db/client';
-import { users } from '$lib/server/db/schema/identity.schema';
+import { users, identityProfiles } from '$lib/server/db/schema/identity.schema';
 import { platformSettings } from '$lib/server/db/schema/platform.schema';
 import { eq } from 'drizzle-orm';
 import { processOutbox } from '$lib/server/events/outbox.processor';
@@ -88,8 +88,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 
 		// Enforce setting a name if missing (common for OTP logins)
-		if ((!freshUser?.name || freshUser.name.trim() === '') && !path.startsWith('/onboarding') && !path.startsWith('/api/auth') && !path.startsWith('/dashboard/change-password')) {
+		if ((!freshUser?.name || freshUser.name.trim() === '') && !path.startsWith('/onboarding') && !path.startsWith('/api/auth') && !path.startsWith('/dashboard/change-password') && !path.startsWith('/sign-in')) {
 			throw redirect(302, '/onboarding');
+		}
+
+		// Enforce Multi-Factor Authentication if account has MFA enabled
+		if (!path.startsWith('/sign-in') && !path.startsWith('/api/auth')) {
+			const [profile] = await db
+				.select({ loginPreference: identityProfiles.loginPreference })
+				.from(identityProfiles)
+				.where(eq(identityProfiles.userId, session.user.id))
+				.limit(1);
+
+			if (profile?.loginPreference === 'mfa') {
+				const mfaSessionToken = event.cookies.get('mfa_verified');
+				if (mfaSessionToken !== session.session.id) {
+					throw redirect(302, '/sign-in/mfa');
+				}
+			}
 		}
 	}
 	

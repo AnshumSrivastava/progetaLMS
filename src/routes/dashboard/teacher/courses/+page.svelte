@@ -42,8 +42,26 @@
 				};
 			}}>
 				<h3>Create New Course</h3>
-				<p>Enter a title to start drafting your new curriculum.</p>
+				<p>Enter a title and select whether it is a live cohort or self-paced course.</p>
 				<input type="text" name="title" class="modal-input" placeholder="e.g. Advanced Cybersecurity" required />
+				
+				<div style="display: flex; gap: 12px; margin-bottom: 1.25rem;">
+					<label style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+						<input type="radio" name="deliveryFormat" value="self_paced" checked />
+						<div>
+							<strong>Self-Paced</strong>
+							<div style="font-size: 0.72rem; color: var(--text-muted);">Default: ₹5,999</div>
+						</div>
+					</label>
+					<label style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">
+						<input type="radio" name="deliveryFormat" value="live_batch" />
+						<div>
+							<strong style="color: #10b981;">Live Cohort</strong>
+							<div style="font-size: 0.72rem; color: var(--text-muted);">Default: ₹16,999</div>
+						</div>
+					</label>
+				</div>
+
 				<div class="modal-actions">
 					<button type="button" class="action-btn" onclick={() => showCreateModal = false}>Cancel</button>
 					<button type="submit" class="create-btn" disabled={isSubmitting}>
@@ -103,6 +121,7 @@
 			<thead>
 				<tr>
 					<th>Course Name</th>
+					<th>Mode</th>
 					<th>Status</th>
 					<th>Price</th>
 					<th>Students</th>
@@ -118,6 +137,17 @@
 								<div class="course-icon"><BookOpen size={16} /></div>
 								{course.title}
 							</div>
+						</td>
+						<td>
+							{#if course.deliveryFormat === 'live_batch'}
+								<span class="status-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); font-weight: 700;">
+									● LIVE COHORT
+								</span>
+							{:else}
+								<span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25);">
+									SELF-PACED
+								</span>
+							{/if}
 						</td>
 						<td>
 							<span class="status-badge" class:published={course.status === 'Published'} class:draft={course.status === 'Draft'}>

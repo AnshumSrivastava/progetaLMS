@@ -1,40 +1,55 @@
-// Theme store — default light mode, persisted to localStorage
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark' | 'system';
 
 function createThemeStore() {
-	const stored = browser ? (localStorage.getItem('lms-theme') as Theme | null) : null;
-	const initial: Theme = stored ?? 'light';
+	const initial: Theme = browser
+		? ((localStorage.getItem('launchpad-theme') as Theme) || 'system')
+		: 'system';
 
-	const { subscribe, set, update } = writable<Theme>(initial);
+	const { subscribe, set } = writable<Theme>(initial);
 
-	if (browser) {
-		// Apply initial theme to <html>
-		document.documentElement.setAttribute('data-theme', initial);
+	function apply(theme: Theme) {
+		if (!browser) return;
+		let effectiveTheme = theme;
+		if (theme === 'system') {
+			effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		}
+		document.documentElement.setAttribute('data-theme', effectiveTheme);
+		if (effectiveTheme === 'dark') {
+			document.documentElement.classList.add('dark');
+		} else {
+			document.documentElement.classList.remove('dark');
+		}
 	}
 
 	return {
 		subscribe,
-		toggle() {
-			update(current => {
-				const next: Theme = current === 'light' ? 'dark' : 'light';
-				if (browser) {
-					localStorage.setItem('lms-theme', next);
-					document.documentElement.setAttribute('data-theme', next);
-				}
-				return next;
-			});
-		},
-		set(value: Theme) {
+		setTheme: (newTheme: Theme) => {
 			if (browser) {
-				localStorage.setItem('lms-theme', value);
-				document.documentElement.setAttribute('data-theme', value);
+				localStorage.setItem('launchpad-theme', newTheme);
 			}
-			set(value);
+			set(newTheme);
+			apply(newTheme);
+		},
+		init: () => {
+			if (browser) {
+				const saved = (localStorage.getItem('launchpad-theme') as Theme) || 'system';
+				set(saved);
+				apply(saved);
+
+				// Listen for OS scheme change if user is on system
+				window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+					const current = (localStorage.getItem('launchpad-theme') as Theme) || 'system';
+					if (current === 'system') {
+						apply('system');
+					}
+				});
+			}
 		}
 	};
 }
 
-export const theme = createThemeStore();
+export const themeStore = createThemeStore();
+export const theme = themeStore;

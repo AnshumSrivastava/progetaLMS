@@ -71,6 +71,15 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const name = data.get('className')?.toString();
 		const courseId = data.get('courseId')?.toString();
+		const rawPrice = data.get('price')?.toString();
+		
+		let pricePaise: number | null = null;
+		if (rawPrice && rawPrice.trim() !== '') {
+			const parsed = parseFloat(rawPrice);
+			if (!isNaN(parsed) && parsed >= 0) {
+				pricePaise = Math.floor(parsed * 100);
+			}
+		}
 
 		if (!name || !courseId) {
 			return fail(400, { error: 'Missing name or course' });
@@ -85,6 +94,7 @@ export const actions: Actions = {
 				name,
 				courseId,
 				instructorId,
+				pricePaise,
 				isActive: false
 			});
 			return { success: true };

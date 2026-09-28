@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db/client';
 import { users, auditLogs } from '$lib/server/db/schema/identity.schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { createId } from '@paralleldrive/cuid2';
@@ -17,13 +17,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const limit = 20;
 	const offset = (page - 1) * limit;
 
-	const allUsers = await db.select({
+	const rawUsers = await db.select({
 		id: users.id,
 		name: users.name,
 		email: users.email,
 		role: users.role,
+		banned: users.banned,
+		emailVerified: users.emailVerified,
 		createdAt: users.createdAt
-	}).from(users).limit(limit).offset(offset);
+	}).from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+
+	const allUsers = rawUsers.map(u => ({
+		...u,
+		role: u.role === 'user' ? 'student' : u.role,
+		rawRole: u.role
+	}));
 
 	const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(users);
 

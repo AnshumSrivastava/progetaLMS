@@ -79,6 +79,20 @@
 					</select>
 				</div>
 				
+				<div class="form-group">
+					<label class="form-label" for="classPrice">Batch Price Override (Optional)</label>
+					<input
+						id="classPrice"
+						type="number"
+						name="price"
+						min="0"
+						step="0.01"
+						placeholder="Leave blank to use base course price"
+						class="modal-input"
+					/>
+					<span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Set a specific price for this batch, or leave empty to use the course's default price.</span>
+				</div>
+				
 				<div class="modal-actions">
 					<button type="button" class="action-btn" onclick={() => showCreateModal = false}>Cancel</button>
 					<button type="submit" class="create-btn" disabled={isSubmitting}>

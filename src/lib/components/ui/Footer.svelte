@@ -1,23 +1,20 @@
 <script lang="ts">
 	import { APP_COMPANY, APP_DOMAIN, SUPPORT_EMAIL } from '$lib/shared/constants';
+	import LaunchpadLogo from './LaunchpadLogo.svelte';
 
-	const navCols = [
-		{
-			heading: 'Platform',
-			links: [
-				{ href: '/catalog',        label: 'Asset Catalog' },
-				{ href: '/certifications', label: 'Certifications' },
-				{ href: '/mentoring',      label: 'Mentoring' },
-			],
-		},
-		{
-			heading: 'Legal',
-			links: [
-				{ href: '/terms',   label: 'Terms of Service' },
-				{ href: '/privacy', label: 'Privacy Policy' },
-				{ href: '/refunds', label: 'Refund Policy' },
-			],
-		},
+	const platformLinks = [
+		{ href: '/catalog', label: 'Explore' },
+		{ href: '/live-classes', label: 'Live Classes' },
+		{ href: '/courses', label: 'Courses' },
+		{ href: '/certifications', label: 'Certifications' },
+		{ href: '/mentoring', label: 'Mentoring' },
+		{ href: '/resources', label: 'Resources' }
+	];
+
+	const legalLinks = [
+		{ href: '/terms', label: 'Terms' },
+		{ href: '/privacy', label: 'Privacy' },
+		{ href: '/refunds', label: 'Refunds' }
 	];
 
 	const year = new Date().getFullYear();
@@ -25,50 +22,46 @@
 
 <footer class="footer">
 	<div class="f-inner">
-
-		<!-- ── Statement Row ─────────────────────────────── -->
-		<div class="statement-row">
-			<div class="brand-block">
-				<a href="/" class="wordmark">
-					<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-						<rect width="20" height="20" rx="5" fill="currentColor"/>
-						<path d="M5.5 14.5L10 5.5l4.5 9" stroke="var(--bg)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-					</svg>
-					Launchpad
-				</a>
-			</div>
-			<p class="statement">
-				Skills that are provable.<br />
-				Credentials that are permanent.
-			</p>
-		</div>
-
-		<!-- ── Main Footer Grid ──────────────────────────── -->
-		<div class="footer-grid">
-
-			<!-- Brand info column -->
-			<div class="brand-col">
-				<p class="brand-copy">
-					A professional learning platform built for clarity. Browse, learn, certify.
-				</p>
-				<a href="mailto:{SUPPORT_EMAIL}" class="email-link">{SUPPORT_EMAIL}</a>
-			</div>
-
-			<!-- Nav columns -->
-			{#each navCols as col}
-				<div class="nav-col">
-					<p class="nav-heading">{col.heading}</p>
-					<ul class="nav-links">
-						{#each col.links as link}
-							<li><a href={link.href}>{link.label}</a></li>
-						{/each}
-					</ul>
+		<!-- ── Compact Main Row ──────────────────────────── -->
+		<div class="footer-main">
+			<!-- Brand & Tagline -->
+			<div class="brand-section">
+				<div class="brand-row">
+					<a href="/" class="wordmark">
+						<LaunchpadLogo class="w-5 h-5 text-[var(--text-primary)]" />
+						<span>Launchpad</span>
+					</a>
+					<span class="tagline">Provable skills & permanent certifications.</span>
 				</div>
-			{/each}
+				<p class="brand-contact">
+					<span>A professional learning platform built for clarity.</span>
+					<a href="mailto:{SUPPORT_EMAIL}" class="email-link">{SUPPORT_EMAIL}</a>
+				</p>
+			</div>
 
+			<!-- Horizontal Navigation Groups -->
+			<div class="nav-groups">
+				<div class="nav-group">
+					<span class="group-label">Platform</span>
+					<nav class="links-horizontal" aria-label="Platform navigation">
+						{#each platformLinks as link}
+							<a href={link.href}>{link.label}</a>
+						{/each}
+					</nav>
+				</div>
+
+				<div class="nav-group">
+					<span class="group-label">Legal</span>
+					<nav class="links-horizontal" aria-label="Legal navigation">
+						{#each legalLinks as link}
+							<a href={link.href}>{link.label}</a>
+						{/each}
+					</nav>
+				</div>
+			</div>
 		</div>
 
-		<!-- ── Bottom bar ────────────────────────────────── -->
+		<!-- ── Bottom Strip ──────────────────────────────── -->
 		<div class="footer-bottom">
 			<span class="copy">&copy; {year} {APP_COMPANY}. All rights reserved.</span>
 			<span class="domain">{APP_DOMAIN}</span>
@@ -79,157 +72,165 @@
 <style>
 	.footer {
 		border-top: 1px solid var(--border);
-		background: var(--bg-subtle);
+		background: var(--bg-subtle, #f8fafc);
 	}
 
 	.f-inner {
-		max-width: 1160px;
+		max-width: 1200px;
 		margin: 0 auto;
-		padding: 0 2rem;
+		padding: 1.5rem 2rem 1.25rem;
 	}
 
-	/* ── Statement Row ───────────────────────────────────────── */
-	.statement-row {
+	.footer-main {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		justify-content: space-between;
-		gap: 3rem;
-		padding: 3rem 0 2.5rem;
-		border-bottom: 1px solid var(--border);
+		gap: 2rem;
 		flex-wrap: wrap;
+		padding-bottom: 1.25rem;
+		border-bottom: 1px solid var(--border);
 	}
 
-	.brand-block {
-		flex-shrink: 0;
+	/* Brand & Tagline */
+	.brand-section {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.brand-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-wrap: wrap;
 	}
 
 	.wordmark {
 		display: inline-flex;
 		align-items: center;
-		gap: 9px;
+		gap: 8px;
 		color: var(--text-primary);
 		text-decoration: none;
-		font-size: 1.375rem;
+		font-size: 1.15rem;
 		font-weight: 700;
-		letter-spacing: -0.03em;
-		line-height: 1;
-		transition: opacity var(--t-fast);
+		letter-spacing: -0.02em;
+		transition: opacity var(--t-fast, 0.15s ease);
 	}
 
-	.wordmark:hover { opacity: 0.65; }
-
-	.statement {
-		font-size: 0.9375rem;
-		font-weight: 500;
-		color: var(--text-secondary);
-		line-height: 1.6;
-		letter-spacing: -0.01em;
-		text-align: right;
-		flex-shrink: 0;
+	.wordmark:hover {
+		opacity: 0.75;
 	}
 
-	/* ── Footer Grid ─────────────────────────────────────────── */
-	.footer-grid {
-		display: grid;
-		grid-template-columns: 1fr auto auto;
-		gap: 4rem;
-		padding: 2.75rem 0 2.5rem;
-		border-bottom: 1px solid var(--border);
-	}
-
-	/* Brand col */
-	.brand-col {
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-	}
-
-	.brand-copy {
+	.tagline {
 		font-size: 0.8125rem;
+		color: var(--text-secondary);
+		font-weight: 500;
+	}
+
+	.brand-contact {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 0.75rem;
 		color: var(--text-muted);
-		line-height: 1.65;
-		max-width: 260px;
+		flex-wrap: wrap;
 	}
 
 	.email-link {
-		font-size: 0.78125rem;
-		color: var(--text-muted);
+		color: var(--text-secondary);
 		text-decoration: none;
-		width: fit-content;
-		transition: color var(--t-fast);
+		transition: color var(--t-fast, 0.15s ease);
 	}
 
-	.email-link:hover { color: var(--text-primary); }
+	.email-link:hover {
+		color: var(--text-primary);
+		text-decoration: underline;
+	}
 
-	/* Nav cols */
-	.nav-col { display: flex; flex-direction: column; }
+	/* Horizontal Nav Groups */
+	.nav-groups {
+		display: flex;
+		align-items: center;
+		gap: 2.5rem;
+		flex-wrap: wrap;
+	}
 
-	.nav-heading {
+	.nav-group {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.group-label {
 		font-size: 0.625rem;
 		font-weight: 700;
-		letter-spacing: 0.1em;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-muted);
-		margin-bottom: 16px;
 	}
 
-	.nav-links {
-		list-style: none;
-		padding: 0;
-		margin: 0;
+	.links-horizontal {
 		display: flex;
-		flex-direction: column;
-		gap: 11px;
+		align-items: center;
+		gap: 14px;
 	}
 
-	.nav-links a {
+	.links-horizontal a {
 		font-size: 0.8125rem;
+		font-weight: 500;
 		color: var(--text-secondary);
 		text-decoration: none;
 		white-space: nowrap;
-		transition: color var(--t-fast);
+		transition: color var(--t-fast, 0.15s ease);
 	}
 
-	.nav-links a:hover { color: var(--text-primary); }
+	.links-horizontal a:hover {
+		color: var(--text-primary);
+	}
 
-	/* ── Bottom Bar ──────────────────────────────────────────── */
+	/* Bottom Bar */
 	.footer-bottom {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 20px 0;
+		padding-top: 1rem;
+		font-size: 0.75rem;
+		color: var(--text-muted);
 	}
 
-	.copy {
+	.copy, .domain {
 		font-size: 0.71875rem;
 		color: var(--text-muted);
 	}
 
-	.domain {
-		font-size: 0.71875rem;
-		color: var(--text-muted);
-		letter-spacing: 0.02em;
-	}
-
-	/* ── Responsive ──────────────────────────────────────────── */
-	@media (max-width: 768px) {
-		.f-inner { padding: 0 1.5rem; }
-
-		.statement-row {
+	@media (max-width: 860px) {
+		.footer-main {
 			flex-direction: column;
+			align-items: flex-start;
 			gap: 1.25rem;
-			padding: 2.25rem 0 2rem;
 		}
 
-		.statement { text-align: left; }
-
-		.footer-grid {
-			grid-template-columns: 1fr 1fr;
-			gap: 2.5rem;
+		.nav-groups {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.75rem;
 		}
 
-		.brand-col { grid-column: 1 / -1; }
+		.links-horizontal {
+			flex-wrap: wrap;
+			gap: 10px;
+		}
+	}
 
-		.footer-bottom { flex-direction: column; align-items: flex-start; gap: 4px; }
+	@media (max-width: 640px) {
+		.f-inner {
+			padding: 1.25rem 1rem 1rem;
+		}
+
+		.footer-bottom {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 4px;
+		}
 	}
 </style>

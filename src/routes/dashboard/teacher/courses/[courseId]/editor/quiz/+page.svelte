@@ -1,25 +1,12 @@
 <script lang="ts">
 	import { Plus, GripVertical, CheckCircle2, Circle, Trash2, Save, ArrowLeft } from 'lucide-svelte';
-	import { page } from '$app/stores';
+	import { enhance } from '$app/forms';
 
-	const courseId = $page.params.courseId;
+	let { data, form } = $props();
 
-	// Mock Quiz Data
-	let quizTitle = 'Module 1 Quiz';
-	let passingScore = 80;
-	
-	let questions = $state([
-		{
-			id: 'q1',
-			text: 'Which of the following best describes a Zero Day vulnerability?',
-			options: [
-				{ id: 'o1', text: 'A vulnerability that has been patched for zero days.', isCorrect: false },
-				{ id: 'o2', text: 'A vulnerability known to the vendor but not yet patched.', isCorrect: true },
-				{ id: 'o3', text: 'A type of malware that self-replicates.', isCorrect: false },
-				{ id: 'o4', text: 'An attack that occurs precisely at midnight.', isCorrect: false }
-			]
-		}
-	]);
+	let quizTitle = $state(data.title || 'Course Quiz');
+	let passingScore = $state(data.passingScore || 80);
+	let questions = $state(data.questions || []);
 
 	function addQuestion() {
 		questions = [...questions, {
@@ -72,13 +59,18 @@
 </svelte:head>
 
 <div class="editor-header">
-	<a href={`/dashboard/teacher/courses/${courseId}/curriculum`} class="back-btn">
+	<a href={`/dashboard/teacher/courses/${data.course.id}/curriculum`} class="back-btn">
 		<ArrowLeft size={16} /> Back to Curriculum
 	</a>
 	<div class="header-actions">
-		<button class="save-btn">
-			<Save size={16} /> Save Quiz
-		</button>
+		<form method="POST" action="?/save" use:enhance>
+			<input type="hidden" name="quizTitle" value={quizTitle} />
+			<input type="hidden" name="passingScore" value={passingScore} />
+			<input type="hidden" name="questions" value={JSON.stringify(questions)} />
+			<button class="save-btn" type="submit">
+				<Save size={16} /> Save Quiz
+			</button>
+		</form>
 	</div>
 </div>
 
@@ -92,6 +84,14 @@
 	</div>
 
 	<div class="questions-list">
+		{#if questions.length === 0}
+			<div style="padding: 40px; text-align: center; background: white; border: 1px dashed #cbd5e1; border-radius: 12px; margin-bottom: 20px;">
+				<p style="color: #64748b; margin-bottom: 16px;">No questions created yet for this quiz.</p>
+				<button class="add-q-btn" onclick={addQuestion} type="button">
+					<Plus size={16} /> Add First Question
+				</button>
+			</div>
+		{/if}
 		{#each questions as question, qIdx}
 			<div class="question-card">
 				<div class="question-header">

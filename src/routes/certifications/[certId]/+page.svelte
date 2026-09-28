@@ -1,307 +1,188 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { page } from '$app/stores';
-	import { CheckCircle2, AlertTriangle, ShieldCheck, Clock, BookOpen, GraduationCap } from 'lucide-svelte';
+	import { CheckCircle2, AlertTriangle, ShieldCheck, Clock, BookOpen, ArrowLeft, Check, Shield } from 'lucide-svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Badge from '$lib/components/ui/Badge.svelte';
+	import VerifiedBadge from '$lib/components/ui/VerifiedBadge.svelte';
 
 	let { data } = $props();
+
+	const isFree = $derived(!data.cert.pricePaise || data.cert.pricePaise === 0);
+	const formattedPrice = $derived(isFree ? 'Free' : `₹${(data.cert.pricePaise / 100).toLocaleString('en-IN')}`);
+	const passingScore = $derived(data.cert.metadata?.passingScore || '75%');
+	const durationMins = $derived(data.cert.metadata?.duration || 45);
+	const questionCount = $derived(data.cert.metadata?.questions || 20);
+	const isProctored = $derived(data.cert.metadata?.isProctored !== false);
+	const tags = $derived((data.cert.metadata?.tags || ['Intermediate']) as string[]);
 </script>
 
 <svelte:head>
 	<title>{data.cert.title} — {APP_NAME} Certifications</title>
+	<meta name="description" content="{data.cert.description || 'Verified technical certification exam on Launchpad.'}" />
 </svelte:head>
 
-<div class="cert-page">
-	<div class="cert-header">
-		<div class="container">
-			<a href="/certifications" class="back-link">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-				Back to Certifications
+<div class="cert-detail-page bg-[var(--background)] min-h-screen">
+	<!-- Back Bar -->
+	<div class="border-b border-[var(--border)] bg-[var(--surface)]">
+		<div class="container-custom py-3.5">
+			<a href="/certifications" class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+				<ArrowLeft size={14} />
+				<span>All Certifications</span>
 			</a>
-			<h1>{data.cert.title}</h1>
-			<div class="tags-row">
-				{#each (data.cert.metadata?.tags || ['Advanced']) as tag}
-					<div class="badge">{tag}</div>
-				{/each}
-			</div>
-			<p class="desc">{data.cert.description}</p>
-			
-			<div class="meta-stats">
-				<div class="stat"><Clock size={18} /> {data.cert.metadata?.duration || 120} min</div>
-				<div class="stat"><BookOpen size={18} /> {data.cert.metadata?.questions || 80} Questions</div>
-				{#if data.cert.metadata?.isProctored !== false}
-					<div class="stat"><ShieldCheck size={18} /> Proctored</div>
-				{/if}
-			</div>
 		</div>
 	</div>
 
-	<div class="container content-grid">
-		<div class="main-column">
-			{#if data.cert.metadata?.syllabus && data.cert.metadata.syllabus.length > 0}
-				<section class="info-section">
-					<h2>Exam Syllabus</h2>
-					<ul class="syllabus-list">
-						{#each data.cert.metadata.syllabus as topic}
-							<li><CheckCircle2 size={18} class="icon-check" /> {topic}</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-
-			{#if data.cert.metadata?.rules && data.cert.metadata.rules.length > 0}
-				<section class="info-section rules-section">
-					<h2><AlertTriangle size={20} class="icon-warn" /> Exam Rules & Conditions</h2>
-					{#if data.cert.metadata?.isProctored !== false}
-						<p class="rules-intro">This is a strictly proctored exam. Please read the following conditions carefully before purchasing.</p>
-					{/if}
-					<ul class="rules-list">
-						{#each data.cert.metadata.rules as rule}
-							<li>{rule}</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-		</div>
-
-		<div class="sidebar">
-			<div class="purchase-card">
-				<h3>Purchase Exam</h3>
-				<div class="price-row">
-					<span class="price">{data.cert.pricePaise === 0 ? 'Free' : `₹${(data.cert.pricePaise / 100).toFixed(2)}`}</span>
-					<span class="passing-score">Passing Score: <strong>{data.cert.metadata?.passingScore || '75%'}</strong></span>
+	<!-- ── ARCHETYPE B: DETAIL HEADER & GRID ──────────────── -->
+	<div class="container-custom py-10">
+		<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+			
+			<!-- Left Column: Editorial Information Architecture -->
+			<div class="lg:col-span-8">
+				
+				<!-- Meta Pre-title -->
+				<div class="flex items-center gap-2 mb-3">
+					<span class="meta-mono">ASSESSMENT & CREDENTIAL</span>
+					<span class="text-[var(--text-muted)]">·</span>
+					<span class="text-[12px] text-[var(--text-secondary)] font-medium">VERIFIED EXAM</span>
 				</div>
-				<p class="card-note">Includes one exam attempt and a verifiable digital certificate upon passing.</p>
-				
-				<a href={`/checkout/${data.cert.id}`} class="buy-btn">Buy Exam</a>
-				
-				<div class="guarantee">
-					<ShieldCheck size={16} /> 100% Secure Checkout
+
+				<!-- Exam Title -->
+				<h1 class="text-[2rem] md:text-[2.25rem] font-bold text-[var(--text-primary)] tracking-tight leading-[1.2] mb-4">
+					{data.cert.title}
+				</h1>
+
+				<!-- Tags & Badges -->
+				<div class="flex flex-wrap items-center gap-2 mb-4">
+					{#each tags as tag}
+						<Badge variant="neutral">{tag}</Badge>
+					{/each}
+					{#if isProctored}
+						<Badge variant="verified">PROCTORED</Badge>
+					{/if}
+				</div>
+
+				<!-- Exam Description -->
+				<p class="text-[15px] leading-relaxed text-[var(--text-secondary)] max-w-2xl mb-6">
+					{data.cert.description || 'Demonstrate hands-on technical proficiency through rigorous, scenario-driven assessment standards recognized across the industry.'}
+				</p>
+
+				<!-- Specification Strip (Unified 3-box spec) -->
+				<div class="grid grid-cols-3 gap-3 p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] mb-8">
+					<div class="text-center">
+						<span class="block text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Questions</span>
+						<span class="block text-[18px] font-bold text-[var(--text-primary)] mt-0.5">{questionCount} Qs</span>
+					</div>
+					<div class="text-center border-x border-[var(--border)]">
+						<span class="block text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Duration</span>
+						<span class="block text-[18px] font-bold text-[var(--text-primary)] mt-0.5">{durationMins} min</span>
+					</div>
+					<div class="text-center">
+						<span class="block text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Pass Mark</span>
+						<span class="block text-[18px] font-bold text-[var(--text-primary)] mt-0.5">{passingScore}</span>
+					</div>
+				</div>
+
+				<!-- ── EXAM SYLLABUS & TOPICS ────────────────────── -->
+				{#if data.cert.metadata?.syllabus && data.cert.metadata.syllabus.length > 0}
+					<section class="mb-10">
+						<h2 class="text-[18px] font-bold text-[var(--text-primary)] mb-4 tracking-tight">Exam Syllabus & Tested Domains</h2>
+						<div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] divide-y divide-[var(--border)]">
+							{#each data.cert.metadata.syllabus as topic}
+								<div class="p-3.5 flex items-start gap-3">
+									<Check size={16} class="text-[var(--lp-accent)] shrink-0 mt-0.5" strokeWidth={2.5} />
+									<span class="text-[14px] text-[var(--text-primary)] font-medium">{topic}</span>
+								</div>
+							{/each}
+						</div>
+					</section>
+				{/if}
+
+				<!-- ── EXAM RULES & CONDITIONS ───────────────────── -->
+				{#if data.cert.metadata?.rules && data.cert.metadata.rules.length > 0}
+					<section class="mb-10">
+						<div class="flex items-center gap-2 mb-3">
+							<AlertTriangle size={18} class="text-[var(--text-secondary)]" />
+							<h2 class="text-[18px] font-bold text-[var(--text-primary)] tracking-tight">Exam Rules & Proctoring Standards</h2>
+						</div>
+						<div class="p-5 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] space-y-3">
+							{#if isProctored}
+								<p class="text-[13px] text-[var(--text-secondary)] leading-relaxed pb-3 border-b border-[var(--border)]">
+									This is a strictly proctored assessment. Ensure a stable internet connection, single-monitor environment, and quiet setting prior to launching the exam environment.
+								</p>
+							{/if}
+							<ul class="space-y-2.5">
+								{#each data.cert.metadata.rules as rule}
+									<li class="flex items-start gap-2.5 text-[13px] text-[var(--text-secondary)]">
+										<span class="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] shrink-0 mt-1.5"></span>
+										<span>{rule}</span>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</section>
+				{/if}
+
+				<!-- ── VERIFICATION & INTEGRITY ──────────────────── -->
+				<section class="p-5 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-[var(--radius-md)]">
+					<div class="flex items-start gap-3.5">
+						<ShieldCheck size={20} class="text-[var(--lp-accent)] shrink-0 mt-0.5" />
+						<div>
+							<h3 class="text-[14px] font-bold text-[var(--text-primary)]">Launchpad Verifiable Credential</h3>
+							<p class="text-[12px] text-[var(--text-secondary)] leading-relaxed mt-1">
+								Upon scoring {passingScore} or higher, a unique cryptographic credential ID and digital certificate are issued instantly. This credential can be publicly verified and shared on professional profiles.
+							</p>
+						</div>
+					</div>
+				</section>
+			</div>
+
+			<!-- Right Column: Sticky Purchase Panel (Archetype B) -->
+			<div class="lg:col-span-4">
+				<div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] p-6 sticky top-24 shadow-sm">
+					
+					<span class="meta-mono text-[10px] text-[var(--text-muted)] block mb-1">EXAM ENROLLMENT</span>
+					
+					<div class="flex items-baseline justify-between mb-4 pb-4 border-b border-[var(--border)]">
+						<div class="text-[2rem] font-bold text-[var(--text-primary)] tracking-tight">
+							{formattedPrice}
+						</div>
+						<span class="text-[12px] text-[var(--text-secondary)]">/ attempt</span>
+					</div>
+
+					<!-- Highlights List -->
+					<div class="space-y-3 mb-6">
+						<div class="flex items-center gap-2.5 text-[13px] text-[var(--text-secondary)]">
+							<Check size={14} class="text-[var(--lp-accent)] shrink-0" strokeWidth={2.5} />
+							<span>Single exam attempt voucher</span>
+						</div>
+						<div class="flex items-center gap-2.5 text-[13px] text-[var(--text-secondary)]">
+							<Check size={14} class="text-[var(--lp-accent)] shrink-0" strokeWidth={2.5} />
+							<span>Instant grading and automated scorecard</span>
+						</div>
+						<div class="flex items-center gap-2.5 text-[13px] text-[var(--text-secondary)]">
+							<Check size={14} class="text-[var(--lp-accent)] shrink-0" strokeWidth={2.5} />
+							<span>Verifiable digital certificate on passing</span>
+						</div>
+						<div class="flex items-center gap-2.5 text-[13px] text-[var(--text-secondary)]">
+							<Check size={14} class="text-[var(--lp-accent)] shrink-0" strokeWidth={2.5} />
+							<span>Passing score requirement: {passingScore}</span>
+						</div>
+					</div>
+
+					<!-- Primary CTA Button -->
+					<div class="space-y-2.5">
+						<Button href={`/checkout/${data.cert.id}`} variant="primary" size="lg" fullWidth>
+							Buy Exam Voucher
+						</Button>
+					</div>
+
+					<div class="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-center gap-2 text-[11px] text-[var(--text-muted)]">
+						<Shield size={13} class="text-[var(--lp-accent)]" />
+						<span>Encrypted Checkout · Instant Activation</span>
+					</div>
 				</div>
 			</div>
+
 		</div>
 	</div>
 </div>
-
-<style>
-	.cert-page {
-		min-height: calc(100vh - var(--nav-h));
-		background: var(--bg);
-	}
-	.container {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: 0 1.5rem;
-	}
-
-	.cert-header {
-		background: var(--bg-subtle);
-		border-bottom: 1px solid var(--border);
-		padding: 3rem 0;
-	}
-	.back-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		color: var(--text-secondary);
-		text-decoration: none;
-		font-size: 0.9rem;
-		font-weight: 500;
-		margin-bottom: 2rem;
-		transition: color 0.2s;
-	}
-	.back-link:hover {
-		color: var(--text-primary);
-	}
-	.tags-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		margin-bottom: 1.5rem;
-	}
-	.badge {
-		display: inline-block;
-		background: var(--accent-muted);
-		color: var(--accent);
-		padding: 4px 12px;
-		border-radius: 999px;
-		font-size: 0.75rem;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-	.cert-header h1 {
-		font-size: 2.5rem;
-		font-weight: 800;
-		color: var(--text-primary);
-		margin-bottom: 1rem;
-		letter-spacing: -0.02em;
-	}
-	.desc {
-		font-size: 1.1rem;
-		color: var(--text-secondary);
-		max-width: 700px;
-		line-height: 1.6;
-		margin-bottom: 2rem;
-	}
-	.meta-stats {
-		display: flex;
-		gap: 24px;
-		align-items: center;
-		flex-wrap: wrap;
-	}
-	.stat {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		color: var(--text-primary);
-		font-weight: 500;
-		font-size: 0.95rem;
-	}
-
-	.content-grid {
-		display: grid;
-		grid-template-columns: 1fr 380px;
-		gap: 4rem;
-		padding-top: 4rem;
-		padding-bottom: 6rem;
-	}
-
-	.info-section {
-		margin-bottom: 3.5rem;
-	}
-	.info-section h2 {
-		font-size: 1.5rem;
-		font-weight: 700;
-		margin-bottom: 1.5rem;
-		color: var(--text-primary);
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-
-	.syllabus-list {
-		list-style: none;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-	}
-	.syllabus-list li {
-		display: flex;
-		align-items: flex-start;
-		gap: 12px;
-		font-size: 1.05rem;
-		color: var(--text-secondary);
-	}
-	.icon-check {
-		color: #10b981;
-		flex-shrink: 0;
-		margin-top: 2px;
-	}
-
-	.rules-section {
-		background: rgba(245, 158, 11, 0.05);
-		border: 1px solid rgba(245, 158, 11, 0.2);
-		border-radius: 12px;
-		padding: 2rem;
-	}
-	.icon-warn {
-		color: #f59e0b;
-	}
-	.rules-intro {
-		color: var(--text-secondary);
-		margin-bottom: 1.5rem;
-		font-size: 0.95rem;
-	}
-	.rules-list {
-		padding-left: 20px;
-		color: var(--text-secondary);
-		font-size: 0.95rem;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-
-	/* Sidebar Purchase Card */
-	.purchase-card {
-		background: var(--bg);
-		border-radius: 16px;
-		padding: 2rem;
-		box-shadow: var(--shadow-xl);
-		border: 1px solid var(--border-subtle);
-		position: sticky;
-		top: calc(var(--nav-h) + 2rem);
-	}
-	.purchase-card h3 {
-		font-size: 1.2rem;
-		font-weight: 700;
-		margin-bottom: 1.5rem;
-		color: var(--text-primary);
-	}
-	.price-row {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		margin-bottom: 1rem;
-		border-bottom: 1px solid var(--border);
-		padding-bottom: 1rem;
-	}
-	.price {
-		font-size: 2.5rem;
-		font-weight: 800;
-		color: var(--text-primary);
-		line-height: 1;
-	}
-	.passing-score {
-		font-size: 0.85rem;
-		color: var(--text-muted);
-	}
-	.passing-score strong {
-		color: var(--text-primary);
-	}
-	.card-note {
-		font-size: 0.85rem;
-		color: var(--text-secondary);
-		line-height: 1.5;
-		margin-bottom: 2rem;
-	}
-	.buy-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 100%;
-		padding: 14px;
-		background: var(--accent-gradient);
-		color: #fff;
-		text-decoration: none;
-		border-radius: 8px;
-		font-weight: 700;
-		font-size: 1.05rem;
-		transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
-		box-shadow: var(--shadow-md);
-		margin-bottom: 1rem;
-	}
-	.buy-btn:hover {
-		transform: translateY(-2px);
-		box-shadow: var(--shadow-lg);
-	}
-	.guarantee {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 6px;
-		color: var(--text-muted);
-		font-size: 0.8rem;
-		font-weight: 500;
-	}
-
-	@media (max-width: 900px) {
-		.content-grid {
-			grid-template-columns: 1fr;
-			gap: 2rem;
-		}
-		.purchase-card {
-			position: static;
-		}
-	}
-</style>

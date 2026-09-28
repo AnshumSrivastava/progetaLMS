@@ -2,7 +2,8 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
+		<link rel="alternate icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 		<!-- SEO defaults (overridden per-page via svelte:head) -->
@@ -22,6 +23,20 @@
 		<!-- Twitter -->
 		<meta name="twitter:card" content="summary_large_image" />
 
+		<!-- Anti-FOUC Theme Pre-initialization -->
+		<script>
+			try {
+				var saved = localStorage.getItem('launchpad-theme') || 'system';
+				var isDark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+				if (isDark) {
+					document.documentElement.setAttribute('data-theme', 'dark');
+					document.documentElement.classList.add('dark');
+				} else {
+					document.documentElement.setAttribute('data-theme', 'light');
+					document.documentElement.classList.remove('dark');
+				}
+			} catch (_) {}
+		</script>
 
 		%sveltekit.head%
 	</head>

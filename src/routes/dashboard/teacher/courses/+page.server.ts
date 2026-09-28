@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db/client';
-import { assets } from '$lib/server/db/schema/assets.schema';
+import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { cohortMemberships, cohorts } from '$lib/server/db/schema/cohorts.schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, inArray, sql } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
@@ -11,14 +11,25 @@ export const load: PageServerLoad = async ({ locals }) => {
 		id: assets.id,
 		title: assets.title,
 		status: assets.status,
+		deliveryFormat: assets.deliveryFormat,
 		pricePaise: assets.pricePaise,
 		currency: assets.currency
 	})
 	.from(assets)
 	.where(and(eq(assets.type, 'html'), eq(assets.ownerId, locals.user!.id), isNull(assets.deletedAt)));
 
-	// Calculate student count (dummy approximation: count cohorts and multiply or fetch real)
-	// In a real system, course students = sum of students in all cohorts of this course
+	const assetIds = allAssets.map(a => a.id);
+	const ownershipCounts = assetIds.length > 0
+		? await db
+			.select({
+				assetId: assetOwnership.assetId,
+				count: sql<number>`count(distinct ${assetOwnership.ownerId})`
+			})
+			.from(assetOwnership)
+			.where(and(inArray(assetOwnership.assetId, assetIds), isNull(assetOwnership.revokedAt)))
+			.groupBy(assetOwnership.assetId)
+		: [];
+	const countMap = new Map(ownershipCounts.map(o => [o.assetId, Number(o.count) || 0]));
 	
 	const courses = allAssets.map(a => {
 		let formattedPrice = 'Free';
@@ -31,7 +42,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			id: a.id,
 			title: a.title,
 			status: a.status === 'published' ? 'Published' : (a.status === 'draft' ? 'Draft' : 'Unpublished'),
-			students: 0, // Mock for now, requires complex join or subquery
+			deliveryFormat: a.deliveryFormat,
+			students: countMap.get(a.id) || 0,
 			price: formattedPrice,
 			rawCurrency: a.currency,
 			rawPrice: a.pricePaise / 100,
@@ -48,6 +60,7 @@ export const actions: Actions = {
 	createCourse: async ({ request, locals }) => {
 		const data = await request.formData();
 		const title = data.get('title')?.toString();
+		const deliveryFormat = (data.get('deliveryFormat')?.toString() as 'self_paced' | 'live_batch') || 'self_paced';
 
 		if (!title) {
 			return fail(400, { error: 'Missing title' });
@@ -60,15 +73,19 @@ export const actions: Actions = {
 			const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 			const uniqueSuffix = Math.random().toString(36).substring(2, 7);
 			const slug = baseSlug ? `${baseSlug}-${uniqueSuffix}` : createId();
+			const pricePaise = deliveryFormat === 'live_batch' ? 1699900 : 599900;
 
 			await db.insert(assets).values({
 				id: createId(),
 				slug: slug,
 				title,
 				type: 'html',
+				deliveryFormat,
+				isSelfPacedEnabled: deliveryFormat === 'self_paced',
+				isLiveBatchesEnabled: deliveryFormat === 'live_batch',
 				ownerId,
 				status: 'draft',
-				pricePaise: 0
+				pricePaise
 			});
 			return { success: true };
 		} catch (e) {

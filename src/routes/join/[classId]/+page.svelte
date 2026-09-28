@@ -87,24 +87,13 @@
 		}
 	}
 
-	function socialLogin(provider: string) {
+	async function socialLogin(provider: string) {
 		isAuthenticating = true;
 		if (provider === 'Google') {
-			signIn.social({
+			await signIn.social({
 				provider: 'google',
-				callbackURL: '/dashboard'
+				callbackURL: `/join/${classId}`
 			});
-			// Note: OAuth will redirect away. The profile completion for OAuth usually
-			// happens upon return to the callbackURL if data is missing, 
-			// or we can handle it here if it's a popup flow.
-			// For this demo, we'll just mock the transition:
-			setTimeout(() => {
-				authProvider = 'Google';
-				emailAddress = 'jane@gmail.com';
-				fullName = 'Jane Doe';
-				step = 'profile_details';
-				isAuthenticating = false;
-			}, 1000);
 		}
 	}
 </script>

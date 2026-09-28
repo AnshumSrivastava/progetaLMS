@@ -86,7 +86,7 @@ export const identityProfiles = pgTable('identity_profiles', {
 	bio:                text('bio'),
 	avatarUrl:          text('avatar_url'),
 	timezone:           text('timezone').notNull().default('Asia/Kolkata'),
-	loginPreference:    text('login_preference', { enum: ['otp', 'password'] }).notNull().default('otp'),
+	loginPreference:    text('login_preference', { enum: ['otp', 'password', 'mfa'] }).notNull().default('otp'),
 	// Mentoring governance & opt-in
 	mentoringEnabled:      boolean('mentoring_enabled').notNull().default(false), // STRICTLY OPT-IN
 	mentoringSuspended:    boolean('mentoring_suspended').notNull().default(false),

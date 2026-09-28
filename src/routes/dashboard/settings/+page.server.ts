@@ -68,13 +68,13 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const preference = data.get('preference') as string;
 		
-		if (preference !== 'otp' && preference !== 'password') {
+		if (preference !== 'otp' && preference !== 'password' && preference !== 'mfa') {
 			return fail(400, { error: 'Invalid preference' });
 		}
 		
 		try {
 			await db.update(identityProfiles)
-				.set({ loginPreference: preference as 'otp' | 'password', updatedAt: new Date() })
+				.set({ loginPreference: preference as 'otp' | 'password' | 'mfa', updatedAt: new Date() })
 				.where(eq(identityProfiles.userId, locals.user.id));
 				
 			return { success: true, message: 'Preference updated successfully.' };

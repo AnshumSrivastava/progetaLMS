@@ -223,5 +223,85 @@ export const emailService = {
 		} catch (err) {
 			console.error('Error sending window cancellation email:', err);
 		}
+	},
+
+	async sendCheckoutOtp(to: string, otp: string, userName?: string) {
+		console.log('\n=============================================');
+		console.log(`🔒 CHECKOUT VERIFICATION CODE`);
+		console.log(`To: ${to}`);
+		console.log(`Code: ${otp}`);
+		console.log('=============================================\n');
+
+		if (!apiKey || apiKey.startsWith('re_123456')) {
+			return;
+		}
+
+		try {
+			await resend.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to,
+				subject: `Your ${APP_NAME} Checkout Verification Code: ${otp}`,
+				html: `
+					<div style="font-family: system-ui, -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #ffffff; color: #1a1a2e; border: 1px solid #eee; border-radius: 12px;">
+						<h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">${APP_NAME}</h2>
+						<p style="color: #555; font-size: 14px; margin-bottom: 24px;">
+							Hi ${userName || 'Learner'}, enter this verification code to confirm your email and proceed to enrollment:
+						</p>
+						<div style="background: #f4f4f6; border-radius: 8px; padding: 20px; text-align: center; letter-spacing: 8px; font-size: 32px; font-weight: 700; color: #111;">
+							${otp}
+						</div>
+						<p style="color: #888; font-size: 12px; margin-top: 24px; line-height: 1.5;">
+							This code will expire in 10 minutes. If you did not initiate this checkout, please ignore this email.
+						</p>
+					</div>
+				`
+			});
+		} catch (error) {
+			console.error('Error sending checkout OTP email:', error);
+		}
+	},
+
+	async sendEnrollmentWithMagicLink(to: string, userName: string, courseTitle: string, magicUrl: string) {
+		console.log('\n=============================================');
+		console.log(`✨ ENROLLMENT MAGIC LOGIN LINK`);
+		console.log(`To: ${to}`);
+		console.log(`Course: ${courseTitle}`);
+		console.log(`Link: ${magicUrl}`);
+		console.log('=============================================\n');
+
+		if (!apiKey || apiKey.startsWith('re_123456')) {
+			return;
+		}
+
+		try {
+			await resend.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to,
+				subject: `You're enrolled in ${courseTitle}! Access your course now`,
+				html: `
+					<div style="font-family: system-ui, -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 36px 32px; background: #ffffff; color: #1a1a2e; border: 1px solid #eee; border-radius: 12px;">
+						<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4f46e5; margin-bottom: 8px;">
+							Enrollment Confirmed
+						</div>
+						<h2 style="font-size: 22px; font-weight: 700; line-height: 1.3; margin-top: 0; margin-bottom: 16px;">
+							Welcome to ${courseTitle}
+						</h2>
+						<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+							Hi ${userName || 'Learner'}, your payment has been confirmed and your course access is unlocked. Click the button below to sign in instantly as a Student and begin learning:
+						</p>
+						<div style="text-align: center; margin: 32px 0;">
+							<a href="${magicUrl}" style="display: inline-block; background: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 28px; border-radius: 8px; letter-spacing: -0.01em;">
+								Access Your Dashboard & Course →
+							</a>
+						</div>
+						<p style="color: #9ca3af; font-size: 12px; line-height: 1.6; border-top: 1px solid #f3f4f6; padding-top: 20px;">
+							This direct login link expires in 24 hours. You can also sign in anytime using your email address (<strong>${to}</strong>) via OTP, Gmail, or your account password.
+						</p>
+					</div>
+				`
+			});
+		} catch (error) {
+			console.error('Error sending enrollment magic link email:', error);
+		}
 	}
 };

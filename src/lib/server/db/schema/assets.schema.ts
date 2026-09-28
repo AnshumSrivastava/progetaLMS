@@ -38,8 +38,11 @@ export const assets = pgTable('assets', {
 			'cert_test', 'certificate', 'mentoring'
 		]
 	}).notNull(),
+	deliveryFormat: text('delivery_format', { enum: ['self_paced', 'live_batch'] }).notNull().default('self_paced'),
 	status:      text('status', { enum: ['draft', 'published', 'archived'] }).notNull().default('draft'),
 	visibility:  text('visibility', { enum: ['public', 'private', 'unlisted'] }).notNull().default('private'),
+	isSelfPacedEnabled: boolean('is_self_paced_enabled').notNull().default(true),
+	isLiveBatchesEnabled: boolean('is_live_batches_enabled').notNull().default(false),
 	ownerId:     text('owner_id').notNull().references(() => users.id),
 	currency:    text('currency').notNull().default('INR'),
 	pricePaise:  integer('price_paise').notNull().default(0),

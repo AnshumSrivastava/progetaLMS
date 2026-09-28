@@ -45,22 +45,51 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		alreadyOwned = ownership.length > 0;
 	}
 
-	// Load public cohorts
-	const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
-	const availableCohorts = await db
-		.select()
-		.from(cohorts)
-		.where(
-			and(
-				eq(cohorts.courseId, courseId),
-				eq(cohorts.isActive, true)
+	// Load public cohorts with live capacity: 1 batch at a time, once filled the next unlocks
+	const { CohortService } = await import('$lib/server/cohorts/CohortService');
+	const allBatches = await CohortService.getCourseBatches(courseId);
+	const eligibleBatches = allBatches.filter(b => b.isActive && b.status !== 'completed');
+
+	// Determine sequential batch availability:
+	// Find the earliest upcoming batch that is not sold out.
+	// Allow sold out batches to be shown as "Full", the active open batch as available,
+	// and lock subsequent batches until the current batch is full.
+	const activeBatches: typeof eligibleBatches = [];
+	let foundOpenBatch = false;
+
+	for (const batch of eligibleBatches) {
+		if (batch.isSoldOut) {
+			activeBatches.push(batch);
+		} else if (!foundOpenBatch) {
+			activeBatches.push(batch);
+			foundOpenBatch = true;
+		}
+		// If foundOpenBatch is true, subsequent batches are kept in reserve until this batch fills
+	}
+
+	let userEnrolledCohortId: string | null = null;
+	if (locals.user) {
+		const { cohortMemberships } = await import('$lib/server/db/schema/cohorts.schema');
+		const [membership] = await db
+			.select({ cohortId: cohortMemberships.cohortId })
+			.from(cohortMemberships)
+			.where(
+				and(
+					eq(cohortMemberships.userId, locals.user.id),
+					eq(cohortMemberships.status, 'active')
+				)
 			)
-		);
+			.limit(1);
+		if (membership) {
+			userEnrolledCohortId = membership.cohortId;
+		}
+	}
 
 	return {
 		asset: record.asset,
 		instructorName: record.instructor?.name || 'Instructor',
 		alreadyOwned,
-		cohorts: availableCohorts
+		userEnrolledCohortId,
+		cohorts: activeBatches
 	};
 };

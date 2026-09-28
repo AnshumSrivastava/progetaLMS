@@ -1,8 +1,10 @@
 import { db } from '$lib/server/db/client';
 import { users } from '$lib/server/db/schema/identity.schema';
 import { cohortMemberships, cohorts } from '$lib/server/db/schema/cohorts.schema';
+import { assetOwnership } from '$lib/server/db/schema/assets.schema';
+import { certificates } from '$lib/server/db/schema/certificates.schema';
 import { commerceCoupons } from '$lib/server/db/schema/commerce.schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull, sql } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
@@ -30,12 +32,37 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.where(inArray(cohortMemberships.cohortId, myCohortIds))
 		: [];
 
+	const memberIds = Array.from(new Set(members.map(m => m.id)));
+	const enrollCounts = memberIds.length > 0
+		? await db
+			.select({
+				ownerId: assetOwnership.ownerId,
+				count: sql<number>`count(*)`
+			})
+			.from(assetOwnership)
+			.where(and(inArray(assetOwnership.ownerId, memberIds), isNull(assetOwnership.revokedAt)))
+			.groupBy(assetOwnership.ownerId)
+		: [];
+	const enrollMap = new Map(enrollCounts.map(e => [e.ownerId, Number(e.count) || 0]));
+
+	const certCounts = memberIds.length > 0
+		? await db
+			.select({
+				userId: certificates.userId,
+				count: sql<number>`count(*)`
+			})
+			.from(certificates)
+			.where(inArray(certificates.userId, memberIds))
+			.groupBy(certificates.userId)
+		: [];
+	const certMap = new Map(certCounts.map(c => [c.userId, Number(c.count) || 0]));
+
 	const mappedStudents = members.map(m => ({
 		id: m.id,
 		name: m.name || 'Unknown',
 		email: m.email,
-		enrolled: 1, // Mock
-		completed: 0, // Mock
+		enrolled: enrollMap.get(m.id) || 1,
+		completed: certMap.get(m.id) || 0,
 		access: 'Active',
 		joined: m.joinedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 	}));

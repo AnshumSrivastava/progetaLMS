@@ -9,9 +9,6 @@ import { CASHFREE_ENV } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const user = locals.user;
-	if (!user) {
-		throw redirect(302, '/sign-in');
-	}
 
 	const itemId = params.itemId;
 	let asset: any = null;
@@ -32,28 +29,22 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	if (!asset) {
-		// Mock asset if not found (so UI doesn't crash while testing)
-		return {
-			asset: {
-				id: itemId,
-				title: 'Certification Exam: Network Defense Associate',
-				type: 'Certification Exam',
-				pricePaise: 15000 // $150.00
-			},
-			cohort,
-			alreadyOwned: false,
-			cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
-		};
+		throw error(404, 'Item not found in catalog');
 	}
 
-	// Check if already owned
-	const [ownership] = await db.select().from(assetOwnership)
-		.where(and(eq(assetOwnership.assetId, asset.id), eq(assetOwnership.ownerId, user.id)));
+	// Check if already owned (only if user is logged in)
+	let alreadyOwned = false;
+	if (user) {
+		const [ownership] = await db.select().from(assetOwnership)
+			.where(and(eq(assetOwnership.assetId, asset.id), eq(assetOwnership.ownerId, user.id)));
+		alreadyOwned = !!ownership;
+	}
 
 	return {
 		asset,
 		cohort,
-		alreadyOwned: !!ownership,
+		alreadyOwned,
+		user: user ? { id: user.id, email: user.email, name: user.name } : null,
 		cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
 	};
 };
@@ -95,16 +86,30 @@ export const actions: Actions = {
 	},
 
 	checkout: async ({ request, params, locals }) => {
-		const user = locals.user;
-		if (!user) throw redirect(302, '/sign-in');
+		let user = locals.user;
 
 		const data = await request.formData();
 		const couponCode = data.get('couponCode') as string;
-		const name = data.get('firstName') + ' ' + data.get('lastName');
-		const email = data.get('email') as string;
+		const firstName = (data.get('firstName') as string || '').trim();
+		const lastName = (data.get('lastName') as string || '').trim();
+		const name = [firstName, lastName].filter(Boolean).join(' ') || 'Student';
+		const email = (data.get('email') as string || '').trim().toLowerCase();
 		
+		if (!email) {
+			return fail(400, { checkoutError: 'A valid email address is required for checkout.' });
+		}
+
+		// If not already authenticated in session, check if user exists and is verified
+		if (!user) {
+			const { users } = await import('$lib/server/db/schema/identity.schema');
+			const [foundUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+			if (!foundUser) {
+				return fail(400, { checkoutError: 'Please verify your email address before completing payment.' });
+			}
+			user = foundUser;
+		}
+
 		const itemId = params.itemId;
-		
 		let assetId = itemId;
 		let cohortId: string | undefined = undefined;
 

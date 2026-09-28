@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { ArrowLeft, Save, Play, LayoutList, Settings, Users } from 'lucide-svelte';
+	import { ArrowLeft, Save, Play, LayoutList, Settings, Users, Calendar } from 'lucide-svelte';
 
 	let { children } = $props();
 
@@ -9,8 +9,8 @@
 
 	const tabs = [
 		{ name: 'Curriculum', path: `/dashboard/teacher/courses/${courseId}/curriculum`, icon: LayoutList },
-		{ name: 'Settings & Pricing', path: `/dashboard/teacher/courses/${courseId}/settings`, icon: Settings },
-		{ name: 'Access Control', path: `/dashboard/teacher/courses/${courseId}/access`, icon: Users },
+		{ name: 'Batches & Live Classes', path: `/dashboard/teacher/courses/${courseId}/batches`, icon: Calendar },
+		{ name: 'Settings & Mentors', path: `/dashboard/teacher/courses/${courseId}/settings`, icon: Settings },
 	];
 </script>
 
@@ -19,7 +19,7 @@
 	<!-- Top Navbar -->
 	<header class="builder-header">
 		<div class="header-left">
-			<a href="/dashboard/teacher/courses" class="back-btn">
+			<a href="/dashboard?tab=teacher_courses" class="back-btn">
 				<ArrowLeft size={18} />
 				<span>Back to Courses</span>
 			</a>

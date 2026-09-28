@@ -2,10 +2,12 @@ import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { commerceOrders, commerceCoupons, commerceCouponUses } from '$lib/server/db/schema/commerce.schema';
 import { cohorts, cohortMemberships } from '$lib/server/db/schema/cohorts.schema';
+import { users, verifications } from '$lib/server/db/schema/identity.schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 import { CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV } from '$env/static/private';
 import { PUBLIC_APP_URL } from '$env/static/public';
+import { emailService } from '$lib/server/emails';
 
 const CASHFREE_API = CASHFREE_ENV === 'production' 
 	? 'https://api.cashfree.com/pg/orders'
@@ -22,6 +24,28 @@ export class OrderService {
 		if (!asset) throw new Error('Asset not found');
 
 		let amountPaise = asset.pricePaise;
+
+		// 1b. If cohortId is provided, verify batch validity and seat capacity
+		if (cohortId) {
+			const [batch] = await db.select().from(cohorts).where(eq(cohorts.id, cohortId));
+			if (!batch || !batch.isActive || batch.status === 'completed') {
+				throw new Error('This batch is closed and no longer accepting enrollments.');
+			}
+			if (batch.maxStudents !== null) {
+				const [{ count }] = await db
+					.select({ count: sql<number>`count(*)` })
+					.from(cohortMemberships)
+					.where(and(eq(cohortMemberships.cohortId, cohortId), eq(cohortMemberships.status, 'active')));
+				if (Number(count) >= batch.maxStudents) {
+					throw new Error('This batch has reached its maximum student capacity. Please select another batch.');
+				}
+			}
+			
+			// Override price if this cohort has a specific price
+			if (batch.pricePaise !== null && batch.pricePaise !== undefined) {
+				amountPaise = batch.pricePaise;
+			}
+		}
 		let discountPaise = 0;
 		let appliedCouponId = null;
 
@@ -83,6 +107,9 @@ export class OrderService {
 				]);
 			}
 			
+			// Send instant magic login link and confirmation email
+			await OrderService.sendMagicLoginEmail(userId, assetId);
+
 			return { 
 				isFree: true, 
 				orderId,
@@ -171,6 +198,8 @@ export class OrderService {
 						.where(eq(commerceCoupons.id, appliedCouponId))
 				]);
 			}
+			// Send instant magic login link and confirmation email in mock mode
+			await OrderService.sendMagicLoginEmail(userId, assetId);
 		}
 
 		return {
@@ -231,6 +260,40 @@ export class OrderService {
 
 		await db.batch(batch as any);		
 		console.log(`[OrderService] Successfully processed payment and unlocked asset for order ${cashfreeOrderId}`);
+
+		// 3. Send magic login link & confirmation email so learner can jump in immediately
+		await OrderService.sendMagicLoginEmail(order.userId, order.assetId);
+	}
+
+	/**
+	 * Generates a single-use magic login link and sends it with enrollment confirmation.
+	 */
+	static async sendMagicLoginEmail(userId: string, assetId: string) {
+		try {
+			const [user] = await db.select().from(users).where(eq(users.id, userId));
+			const [asset] = await db.select().from(assets).where(eq(assets.id, assetId));
+			if (!user?.email) return;
+
+			const magicToken = randomBytes(32).toString('hex');
+			const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+			await db.insert(verifications).values({
+				id: randomUUID(),
+				identifier: `magic-login:${magicToken}`,
+				value: user.id,
+				expiresAt
+			});
+
+			const magicUrl = `${PUBLIC_APP_URL}/api/auth/magic-login?token=${magicToken}&redirect=/dashboard`;
+			await emailService.sendEnrollmentWithMagicLink(
+				user.email,
+				user.name || 'Learner',
+				asset?.title || 'Your Course',
+				magicUrl
+			);
+		} catch (e) {
+			console.error('[OrderService] Failed to send magic login email:', e);
+		}
 	}
 
 	private static async grantAccess(orderId: string, assetId: string, userId: string, source: 'purchase' | 'free' | 'coupon') {
@@ -249,6 +312,11 @@ export class OrderService {
 	}
 
 	private static async grantCohortAccess(cohortId: string, userId: string) {
+		const [batch] = await db.select().from(cohorts).where(eq(cohorts.id, cohortId));
+		const accessExpiresAt = batch?.completedAt
+			? new Date(new Date(batch.completedAt).getTime() + 90 * 24 * 60 * 60 * 1000)
+			: null;
+
 		const [existing] = await db.select().from(cohortMemberships)
 			.where(and(eq(cohortMemberships.cohortId, cohortId), eq(cohortMemberships.userId, userId)));
 		
@@ -257,8 +325,15 @@ export class OrderService {
 				id: randomUUID(),
 				cohortId,
 				userId,
-				role: 'student'
+				role: 'student',
+				status: 'active',
+				accessExpiresAt
 			});
+		} else {
+			await db.update(cohortMemberships).set({
+				status: 'active',
+				accessExpiresAt: accessExpiresAt ?? existing.accessExpiresAt
+			}).where(eq(cohortMemberships.id, existing.id));
 		}
 	}
 }
