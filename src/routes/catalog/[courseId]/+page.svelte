@@ -552,7 +552,7 @@
 				<!-- MSET Academy -->
 				<div class="partner-card">
 					<div class="partner-logo-box">
-						<img src="/mset-logo.png" alt="MSET Academy" class="partner-svg" />
+						<img src="/mset-logo.svg" alt="MSET Academy" class="partner-svg" />
 					</div>
 					<div class="partner-text-block">
 						<div class="partner-sub-label">Offered by</div>
@@ -596,7 +596,7 @@
 			<div class="mset-partner-badge-container">
 				<!-- Start MSET Academy Partner Badge -->
 				<a href="https://mset.io" target="_blank" rel="noopener" title="Explore Online Courses at MSET Academy" class="mset-badge-link">
-					<img src="/mset-logo.png" alt="MSET Academy Official Knowledge Partner" width="180" height="180" style="border: none; display: block; margin: 0 auto; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+					<img src="/mset-logo.svg" alt="MSET Academy Official Knowledge Partner" width="180" height="48" style="border: none; display: block; margin: 0 auto; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
 				</a>
 				<!-- End MSET Academy Partner Badge -->
 				<div class="mset-badge-caption">Official Knowledge Partner &middot; Accredited Program</div>
