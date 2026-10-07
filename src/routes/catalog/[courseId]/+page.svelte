@@ -596,7 +596,7 @@
 			<div class="mset-partner-badge-container">
 				<!-- Start MSET Academy Partner Badge -->
 				<a href="https://mset.io" target="_blank" rel="noopener" title="Explore Online Courses at MSET Academy" class="mset-badge-link">
-					<img src="/mset-logo.svg" alt="MSET Academy Official Knowledge Partner" width="180" height="48" style="border: none; display: block; margin: 0 auto; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+					<img src="/mset-logo.svg" alt="MSET Academy Official Knowledge Partner" width="180" height="48" class="mset-badge-img">
 				</a>
 				<!-- End MSET Academy Partner Badge -->
 				<div class="mset-badge-caption">Official Knowledge Partner &middot; Accredited Program</div>
@@ -1578,6 +1578,17 @@
 	.mset-badge-link {
 		display: inline-block;
 		text-decoration: none;
+	}
+
+	.mset-badge-img {
+		border: none;
+		display: block;
+		margin: 0 auto;
+		transition: transform 0.2s ease;
+	}
+
+	.mset-badge-link:hover .mset-badge-img {
+		transform: scale(1.05);
 	}
 
 	.mset-badge-caption {
