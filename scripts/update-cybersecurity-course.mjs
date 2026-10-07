@@ -33,7 +33,7 @@ async function updatePracticalCybersecurity() {
   const slug = 'practical-cybersecurity';
   const title = 'Practical Cybersecurity · Beginner to Intermediate';
   const description = 'Build. Break. Detect. Respond. A practical, project-led cybersecurity program where students learn through one continuous security problem and progressively build a working defensive system.';
-  const pricePaise = 1699900; // Rs 16,999 for live cohorts
+  const pricePaise = 1599900; // Rs 15,999 for live cohorts
 
   const metadata = {
     category: 'Cybersecurity',

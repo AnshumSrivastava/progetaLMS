@@ -76,13 +76,12 @@
 	// Preview modal state
 	let isPreviewOpen = $state(false);
 
-	// Curriculum data mapped to the 5 modules shown in the mockup
+	// Curriculum modules without timeline
 	const curriculumModules = [
 		{
 			num: '01',
 			title: 'Foundations & Finding the Attack',
 			desc: 'System fundamentals, Linux, networking basics and information gathering.',
-			week: 'Week 1–2',
 			hours: '6 Hours',
 			concepts: [
 				'Attacker vs. defender mental model and threat landscape',
@@ -101,7 +100,6 @@
 			num: '02',
 			title: 'Web Security, Attacks & Evidence',
 			desc: 'Web application security, common vulnerabilities and how to find, exploit and analyze them.',
-			week: 'Week 3–4',
 			hours: '6 Hours',
 			concepts: [
 				'HTTP/HTTPS request-response cycles, headers, cookies, sessions',
@@ -120,7 +118,6 @@
 			num: '03',
 			title: 'Logs, Parsing & Detection',
 			desc: 'Work with logs, build parsers using regex and detect suspicious behaviour.',
-			week: 'Week 5–6',
 			hours: '6 Hours',
 			concepts: [
 				'Log sources: auth.log, syslog, web server logs, firewall drops',
@@ -139,7 +136,6 @@
 			num: '04',
 			title: 'Response, Automation & Defence',
 			desc: 'Incident response, automation with Bash/Python and system hardening.',
-			week: 'Week 7–8',
 			hours: '7 Hours',
 			concepts: [
 				'Incident response lifecycle (NIST framework: Preparation → Containment → Eradication → Recovery)',
@@ -158,7 +154,6 @@
 			num: '05',
 			title: 'Capstone Project',
 			desc: 'Build a Security Monitoring & Automated Response System.',
-			week: 'Week 9–10',
 			hours: 'Guided Lab',
 			concepts: [
 				'Architecture: Complete pipeline from log generator to containment action',
@@ -207,7 +202,7 @@
 			<div class="hero-left">
 				<!-- Institution Badge -->
 				<div class="partner-badge-wrap">
-					<span class="partner-badge">NSET ACADEMY &times; PROGETA TECHNOLOGIES</span>
+					<span class="partner-badge">MSET ACADEMY &times; PROGETA TECHNOLOGIES</span>
 				</div>
 
 				<!-- Course Main Titles -->
@@ -309,7 +304,7 @@
 								<Shield size={16} />
 							</div>
 							<div class="spec-text-wrap">
-								<span class="spec-label">Certificate by NSET Academy &times; Progeta</span>
+								<span class="spec-label">Certificate by MSET Academy &times; Progeta</span>
 							</div>
 						</div>
 					</div>
@@ -480,7 +475,6 @@
 							</div>
 
 							<div class="acc-right">
-								<span class="acc-week-tag">{mod.week}</span>
 								<div class="acc-chevron {expandedModule === index ? 'rotated' : ''}">
 									<ChevronDown size={17} />
 								</div>
@@ -555,14 +549,14 @@
 		<!-- ── ISSUING AUTHORITIES / PARTNERS BAR ─────────────────── -->
 		<section class="partners-section">
 			<div class="partners-grid">
-				<!-- NSET Academy -->
+				<!-- MSET Academy -->
 				<div class="partner-card">
 					<div class="partner-logo-box">
-						<img src="/nset-logo.svg" alt="NSET Academy" class="partner-svg" />
+						<img src="/mset-logo.png" alt="MSET Academy" class="partner-svg" />
 					</div>
 					<div class="partner-text-block">
 						<div class="partner-sub-label">Offered by</div>
-						<h3 class="partner-main-name">NSET Academy</h3>
+						<h3 class="partner-main-name">MSET Academy</h3>
 						<p class="partner-sub-desc">
 							Academic delivery, content curation and certification.
 						</p>
@@ -596,6 +590,16 @@
 						</p>
 					</div>
 				</div>
+			</div>
+
+			<!-- MSET Academy Official Knowledge Partner Badge -->
+			<div class="mset-partner-badge-container">
+				<!-- Start MSET Academy Partner Badge -->
+				<a href="https://mset.io" target="_blank" rel="noopener" title="Explore Online Courses at MSET Academy" class="mset-badge-link">
+					<img src="/mset-logo.png" alt="MSET Academy Official Knowledge Partner" width="180" height="180" style="border: none; display: block; margin: 0 auto; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+				</a>
+				<!-- End MSET Academy Partner Badge -->
+				<div class="mset-badge-caption">Official Knowledge Partner &middot; Accredited Program</div>
 			</div>
 		</section>
 	</div>
@@ -639,7 +643,7 @@
 						</div>
 						<div class="modal-detail-item">
 							<h4 class="modal-detail-head">Certification</h4>
-							<p class="modal-detail-text">Dual accreditation signed and issued by NSET Academy and Progeta Technologies upon capstone completion.</p>
+							<p class="modal-detail-text">Dual accreditation signed and issued by MSET Academy and Progeta Technologies upon capstone completion.</p>
 						</div>
 						<div class="modal-detail-item">
 							<h4 class="modal-detail-head">Prerequisites</h4>
@@ -657,7 +661,7 @@
 						Close Preview
 					</button>
 					<button class="btn-modal-enroll" onclick={() => { isPreviewOpen = false; enroll(); }}>
-						<span>{data.alreadyOwned ? 'Go to Course' : 'Reserve Seat Now (₹16,999)'}</span>
+						<span>{data.alreadyOwned ? 'Go to Course' : 'Reserve Seat Now (₹15,999)'}</span>
 						<ArrowRight size={15} />
 					</button>
 				</div>
@@ -1517,7 +1521,7 @@
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
-		padding: 6px;
+		padding: 4px;
 	}
 
 	.partner-svg {
@@ -1557,6 +1561,32 @@
 		line-height: 1.45;
 		color: #71717a;
 		margin: 0;
+	}
+
+	.mset-partner-badge-container {
+		margin-top: 36px;
+		padding: 24px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		background: #fafafa;
+		border: 1px solid #e4e4e7;
+		border-radius: 12px;
+	}
+
+	.mset-badge-link {
+		display: inline-block;
+		text-decoration: none;
+	}
+
+	.mset-badge-caption {
+		margin-top: 10px;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: #71717a;
 	}
 
 	/* ── Modal Dialog ─────────────────────────────────────────────────────── */
