@@ -143,3 +143,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	return resolve(event);
 };
+
+export const handleError = ({ error, event, status, message }: any) => {
+	console.error(`[SERVER ERROR ${status || 500}] ${event.url.pathname}:`, error);
+	return {
+		message: error?.message || message || 'An unexpected error occurred. Please try again.',
+		code: error?.code
+	};
+};

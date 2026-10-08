@@ -10,7 +10,7 @@ import { PUBLIC_APP_URL } from '$env/static/public';
 import { emailService } from '$lib/server/emails';
 import { CohortService } from '$lib/server/cohorts/CohortService';
 
-const CASHFREE_API = CASHFREE_ENV === 'production' 
+const CASHFREE_API = (CASHFREE_ENV || 'production') === 'production' 
 	? 'https://api.cashfree.com/pg/orders'
 	: 'https://sandbox.cashfree.com/pg/orders';
 

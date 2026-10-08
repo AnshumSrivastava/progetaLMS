@@ -11,7 +11,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { Resend } from 'resend';
 import { RESEND_API_KEY, RESEND_FROM_ADDRESS } from '$env/static/private';
 
-const resend = new Resend(RESEND_API_KEY);
+const resend = RESEND_API_KEY && !RESEND_API_KEY.startsWith('re_123456') ? new Resend(RESEND_API_KEY) : null;
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) throw redirect(302, '/sign-in');
@@ -145,7 +145,7 @@ export const actions: Actions = {
 			}
 
 			// Send invitation emails
-			if (RESEND_API_KEY && !RESEND_API_KEY.startsWith('re_123456')) {
+			if (resend) {
 				for (const email of emails) {
 					await resend.emails.send({
 						from: RESEND_FROM_ADDRESS,

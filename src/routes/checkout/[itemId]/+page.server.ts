@@ -1,58 +1,62 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect, isRedirect, isHttpError } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { commerceCoupons } from '$lib/server/db/schema/commerce.schema';
+import { cohorts } from '$lib/server/db/schema/cohorts.schema';
+import { CohortService } from '$lib/server/cohorts/CohortService';
 import { eq, and } from 'drizzle-orm';
-import { OrderService } from '$lib/server/commerce/OrderService';
 import { CASHFREE_ENV } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const user = locals.user;
+	try {
+		const user = locals.user;
+		const itemId = params.itemId;
+		let asset: any = null;
+		let cohort: any = null;
 
-	const itemId = params.itemId;
-	let asset: any = null;
-	let cohort: any = null;
+		// First try to find a cohort
+		const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
+		
+		if (foundCohort) {
+			cohort = foundCohort;
+			const [foundAsset] = await db.select().from(assets).where(eq(assets.id, cohort.courseId));
+			asset = foundAsset;
 
-	// First try to find a cohort
-	const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
-	const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
-	
-	if (foundCohort) {
-		cohort = foundCohort;
-		const [foundAsset] = await db.select().from(assets).where(eq(assets.id, cohort.courseId));
-		asset = foundAsset;
-
-		// Batch enrollment window has closed — send the buyer back to pick the current open batch
-		const { CohortService } = await import('$lib/server/cohorts/CohortService');
-		if (!CohortService.isEnrollmentOpen(foundCohort)) {
-			throw redirect(303, `/catalog/${foundCohort.courseId}`);
+			// Batch enrollment window has closed — send the buyer back to pick the current open batch
+			if (!CohortService.isEnrollmentOpen(foundCohort)) {
+				redirect(303, `/catalog/${foundCohort.courseId}`);
+			}
+		} else {
+			// Fallback to searching for the asset directly
+			const [foundAsset] = await db.select().from(assets).where(eq(assets.id, itemId));
+			asset = foundAsset;
 		}
-	} else {
-		// Fallback to searching for the asset directly
-		const [foundAsset] = await db.select().from(assets).where(eq(assets.id, itemId));
-		asset = foundAsset;
-	}
 
-	if (!asset) {
-		throw error(404, 'Item not found in catalog');
-	}
+		if (!asset) {
+			throw error(404, 'Item not found in catalog');
+		}
 
-	// Check if already owned (only if user is logged in)
-	let alreadyOwned = false;
-	if (user) {
-		const [ownership] = await db.select().from(assetOwnership)
-			.where(and(eq(assetOwnership.assetId, asset.id), eq(assetOwnership.ownerId, user.id)));
-		alreadyOwned = !!ownership;
-	}
+		// Check if already owned (only if user is logged in)
+		let alreadyOwned = false;
+		if (user) {
+			const [ownership] = await db.select().from(assetOwnership)
+				.where(and(eq(assetOwnership.assetId, asset.id), eq(assetOwnership.ownerId, user.id)));
+			alreadyOwned = !!ownership;
+		}
 
-	return {
-		asset,
-		cohort,
-		alreadyOwned,
-		user: user ? { id: user.id, email: user.email, name: user.name } : null,
-		cashfreeEnv: CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
-	};
+		return {
+			asset,
+			cohort,
+			alreadyOwned,
+			user: user ? { id: user.id, email: user.email, name: user.name } : null,
+			cashfreeEnv: (CASHFREE_ENV || 'production') === 'production' ? 'production' : 'sandbox'
+		};
+	} catch (e: any) {
+		if (isRedirect(e) || isHttpError(e)) throw e;
+		console.error('[Checkout Load Error]', e);
+		throw error(500, e?.message || 'Failed to load checkout');
+	}
 };
 
 export const actions: Actions = {
@@ -73,7 +77,6 @@ export const actions: Actions = {
 		const itemId = params.itemId;
 		let assetId = itemId;
 
-		const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
 		const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
 		if (foundCohort) {
 			assetId = foundCohort.courseId;
@@ -119,7 +122,6 @@ export const actions: Actions = {
 		let assetId = itemId;
 		let cohortId: string | undefined = undefined;
 
-		const { cohorts } = await import('$lib/server/db/schema/cohorts.schema');
 		const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
 		if (foundCohort) {
 			cohortId = foundCohort.id;
@@ -127,10 +129,13 @@ export const actions: Actions = {
 		}
 
 		try {
+			const { OrderService } = await import('$lib/server/commerce/OrderService');
 			const result = await OrderService.createOrder(assetId, user.id, { name, email, phone: '9999999999' }, couponCode, cohortId, url.origin);
 			return { success: true, paymentSessionId: result.paymentSessionId, isFree: result.isFree, isMockMode: result.isMockMode };
 		} catch (e: any) {
-			return fail(500, { checkoutError: e.message });
+			console.error('[Checkout Action Error]', e);
+			return fail(500, { checkoutError: e.message || 'Payment initiation failed' });
 		}
 	}
 };
+

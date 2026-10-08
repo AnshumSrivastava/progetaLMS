@@ -6,7 +6,26 @@ import { db } from '../db/client';
 import { users } from '../db/schema/identity.schema';
 import { inArray } from 'drizzle-orm';
 
-const resend = new Resend(RESEND_API_KEY);
+function getResend() {
+	if (!RESEND_API_KEY || RESEND_API_KEY.startsWith('re_123456')) return null;
+	try {
+		return new Resend(RESEND_API_KEY);
+	} catch (e) {
+		return null;
+	}
+}
+const resend = {
+	emails: {
+		send: async (args: any) => {
+			const client = getResend();
+			if (!client) {
+				console.warn('[events/handlers] Resend not configured. Skipping email to', args?.to);
+				return;
+			}
+			return client.emails.send(args);
+		}
+	}
+};
 
 const resourceTemplate = (payload: any) => `
 <div style="font-family:system-ui,sans-serif;padding:32px">

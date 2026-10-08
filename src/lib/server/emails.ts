@@ -1,21 +1,30 @@
 import { Resend } from 'resend';
 import { env } from '$env/dynamic/private';
+import { RESEND_API_KEY as STATIC_RESEND_API_KEY } from '$env/static/private';
 import { APP_NAME } from '$lib/shared/constants';
-
-// Use env.RESEND_API_KEY if available, fallback to process.env (for direct script execution)
-const apiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY;
-const resend = new Resend(apiKey);
 
 const fromEmail = `noreply@progeta.in`;
 
+function getResendClient(): { client: Resend; key: string } | null {
+	const key = env.RESEND_API_KEY || STATIC_RESEND_API_KEY || process.env.RESEND_API_KEY;
+	if (!key || key.startsWith('re_123456')) return null;
+	try {
+		return { client: new Resend(key), key };
+	} catch (e) {
+		console.warn('[emailService] Resend initialization failed:', e);
+		return null;
+	}
+}
+
 export const emailService = {
 	async sendWelcomeEmail(to: string, name: string) {
-		if (!apiKey) {
-			console.warn('RESEND_API_KEY not found. Skipping welcome email to', to);
+		const resend = getResendClient();
+		if (!resend) {
+			console.warn('RESEND_API_KEY not configured. Skipping welcome email to', to);
 			return;
 		}
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
 				subject: `Welcome to ${APP_NAME}!`,
@@ -27,12 +36,13 @@ export const emailService = {
 	},
 
 	async sendEnrollmentEmail(to: string, userName: string, courseName: string) {
-		if (!apiKey) {
-			console.warn('RESEND_API_KEY not found. Skipping enrollment email to', to);
+		const resend = getResendClient();
+		if (!resend) {
+			console.warn('RESEND_API_KEY not configured. Skipping enrollment email to', to);
 			return;
 		}
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
 				subject: `You have successfully enrolled in ${courseName}`,
@@ -44,12 +54,13 @@ export const emailService = {
 	},
 
 	async sendCertificationEmail(to: string, userName: string, certName: string, score: number) {
-		if (!apiKey) {
-			console.warn('RESEND_API_KEY not found. Skipping certification email to', to);
+		const resend = getResendClient();
+		if (!resend) {
+			console.warn('RESEND_API_KEY not configured. Skipping certification email to', to);
 			return;
 		}
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
 				subject: `Congratulations on passing ${certName}!`,
@@ -70,8 +81,9 @@ export const emailService = {
 		meetingUrl: string;
 		notes?: string;
 	}) {
-		if (!apiKey) {
-			console.log('Local dev: skipping booking confirmation email to', opts.studentEmail, opts.instructorEmail);
+		const resend = getResendClient();
+		if (!resend) {
+			console.log('RESEND_API_KEY not configured: skipping booking confirmation email');
 			return;
 		}
 		const timeFormatted = new Intl.DateTimeFormat('en-IN', {
@@ -82,7 +94,7 @@ export const emailService = {
 
 		// Email to student
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to: opts.studentEmail,
 				subject: `Mentoring Session Confirmed with ${opts.instructorName}`,
@@ -106,7 +118,7 @@ export const emailService = {
 
 		// Email to instructor
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to: opts.instructorEmail,
 				subject: `New Mentoring Booking from ${opts.studentName}`,
@@ -139,12 +151,10 @@ export const emailService = {
 		meetingUrl: string;
 		isInstructor?: boolean;
 	}) {
-		if (!apiKey) {
-			console.log('Local dev: skipping reminder email to', opts.recipientEmail);
-			return;
-		}
+		const resend = getResendClient();
+		if (!resend) return;
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to: opts.recipientEmail,
 				subject: `Starting in 5 minutes: Mentoring Session with ${opts.otherPartyName}`,
@@ -172,7 +182,8 @@ export const emailService = {
 		startsAt: Date;
 		durationMins: number;
 	}) {
-		if (!apiKey) return;
+		const resend = getResendClient();
+		if (!resend) return;
 		const timeFormatted = new Intl.DateTimeFormat('en-IN', {
 			dateStyle: 'full',
 			timeStyle: 'short',
@@ -180,7 +191,7 @@ export const emailService = {
 		}).format(opts.startsAt);
 
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to: opts.instructorEmail,
 				subject: `Session Cancelled by ${opts.studentName}`,
@@ -205,9 +216,10 @@ export const emailService = {
 		windowEnd: string;
 		reason?: string;
 	}) {
-		if (!apiKey) return;
+		const resend = getResendClient();
+		if (!resend) return;
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to: opts.studentEmail,
 				subject: `Mentoring Availability Update: Session Cancelled`,
@@ -232,12 +244,13 @@ export const emailService = {
 		console.log(`Code: ${otp}`);
 		console.log('=============================================\n');
 
-		if (!apiKey || apiKey.startsWith('re_123456')) {
+		const resend = getResendClient();
+		if (!resend) {
 			return;
 		}
 
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
 				subject: `Your ${APP_NAME} Checkout Verification Code: ${otp}`,
@@ -269,12 +282,13 @@ export const emailService = {
 		console.log(`Link: ${magicUrl}`);
 		console.log('=============================================\n');
 
-		if (!apiKey || apiKey.startsWith('re_123456')) {
+		const resend = getResendClient();
+		if (!resend) {
 			return;
 		}
 
 		try {
-			await resend.emails.send({
+			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
 				subject: `You're enrolled in ${courseTitle}! Access your course now`,

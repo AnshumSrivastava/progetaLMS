@@ -18,7 +18,7 @@
 
 	let isCheckingOut = $state(false);
 	
-	let basePricePaise = $derived(data.cohort && data.cohort.pricePaise !== null && data.cohort.pricePaise !== undefined ? data.cohort.pricePaise : item.pricePaise);
+	let basePricePaise = $derived(data.cohort && data.cohort.pricePaise !== null && data.cohort.pricePaise !== undefined ? data.cohort.pricePaise : (item?.pricePaise ?? 0));
 	let total = $derived(Math.max(0, (basePricePaise / 100) - discountAmount));
 
 	// Form values
@@ -477,7 +477,7 @@
 						<!-- Product Item -->
 						<div class="item-summary-box">
 							<div class="flex items-center justify-between">
-								<span class="meta-mono text-[10px]">{data.cohort ? 'LIVE CLASSROOM BATCH' : item.type}</span>
+								<span class="meta-mono text-[10px]">{data.cohort ? 'LIVE CLASSROOM BATCH' : (item?.type || 'COURSE')}</span>
 								{#if data.cohort}
 									<span class="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
 										Live Batch
@@ -485,7 +485,7 @@
 								{/if}
 							</div>
 							<h4 class="text-[0.9375rem] font-semibold text-[var(--text-primary)] mt-1 leading-snug">
-								{item.title}
+								{item?.title || 'Selected Offering'}
 							</h4>
 
 							{#if data.cohort}
