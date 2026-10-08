@@ -263,7 +263,7 @@
 							</div>
 							<div class="spec-text-wrap flex items-center justify-between flex-1">
 								<span class="spec-label">
-									{activeBatch?.name || 'October 2025 (Batch 1)'}
+									{activeBatch?.name || 'Next batch announcing soon'}
 								</span>
 								<span class="spec-badge-live">LIVE</span>
 							</div>
@@ -282,11 +282,8 @@
 							<div class="spec-icon-wrap">
 								<Users size={16} />
 							</div>
-							<div class="spec-text-wrap flex items-center justify-between flex-1">
+							<div class="spec-text-wrap">
 								<span class="spec-label">Upto 25 Students</span>
-								{#if activeBatch}
-									<span class="spec-seats-counter">{activeBatch.enrolledCount} / {activeBatch.maxStudents} enrolled</span>
-								{/if}
 							</div>
 						</div>
 
@@ -632,7 +629,7 @@
 							<p class="term-line-dim">[INIT] Connecting to live defensive lab environment...</p>
 							<p class="term-line-dim">[INFO] 25 Total Hours Live &middot; 4 Modular Milestones &middot; 1 Capstone Defense</p>
 							<p class="term-line-white">&gt; "Build. Break. Detect. Respond."</p>
-							<p class="term-line-dim">[STATUS] Cohort 1 starting October 2025. Seat cap: 25 students.</p>
+							<p class="term-line-dim">[STATUS] {activeBatch ? `Now enrolling: ${activeBatch.name}.` : 'Next batch announcing soon.'}</p>
 						</div>
 					</div>
 
@@ -962,12 +959,6 @@
 		background: #111111;
 		color: #ffffff;
 		border-radius: 4px;
-	}
-
-	.spec-seats-counter {
-		font-size: 11.5px;
-		color: #71717a;
-		font-family: ui-monospace, monospace;
 	}
 
 	.whatsapp-note {

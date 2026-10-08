@@ -22,7 +22,24 @@ export interface SessionLinkItem {
 	notes?: string;
 }
 
+/**
+ * Enrollment for a batch closes this many days before its start date.
+ * The public catalog automatically rolls over to the next batch once a batch
+ * enters this window (or fills up).
+ */
+export const ENROLLMENT_CUTOFF_DAYS = 7;
+
 export class CohortService {
+	/**
+	 * Whether a batch is still accepting enrollments based on its start date.
+	 * Batches without a start date are considered open.
+	 */
+	static isEnrollmentOpen(batch: { startDate: Date | string | null }, now: Date = new Date()): boolean {
+		if (!batch.startDate) return true;
+		const cutoffMs = new Date(batch.startDate).getTime() - ENROLLMENT_CUTOFF_DAYS * 24 * 60 * 60 * 1000;
+		return now.getTime() < cutoffMs;
+	}
+
 	// ── 1. COURSE ADMIN & COLLABORATORS MANAGEMENT ──────────────────────────
 
 	/**

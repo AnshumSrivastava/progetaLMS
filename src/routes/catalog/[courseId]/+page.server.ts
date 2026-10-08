@@ -48,7 +48,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// Load public cohorts with live capacity: 1 batch at a time, once filled the next unlocks
 	const { CohortService } = await import('$lib/server/cohorts/CohortService');
 	const allBatches = await CohortService.getCourseBatches(courseId);
-	const eligibleBatches = allBatches.filter(b => b.isActive && b.status !== 'completed');
+	// Batches that have started (or are within the enrollment cutoff window) are hidden,
+	// so the catalog automatically rolls over to the next upcoming batch.
+	const now = new Date();
+	const eligibleBatches = allBatches.filter(
+		b => b.isActive && b.status !== 'completed' && CohortService.isEnrollmentOpen(b, now)
+	);
 
 	// Determine sequential batch availability:
 	// Find the earliest upcoming batch that is not sold out.
@@ -66,6 +71,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		}
 		// If foundOpenBatch is true, subsequent batches are kept in reserve until this batch fills
 	}
+
+	// Do not expose live seat / enrolment counts to the public page
+	const publicBatches = activeBatches.map(({ enrolledCount, seatsLeft, ...b }) => b);
 
 	let userEnrolledCohortId: string | null = null;
 	if (locals.user) {
@@ -90,6 +98,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		instructorName: record.instructor?.name || 'Instructor',
 		alreadyOwned,
 		userEnrolledCohortId,
-		cohorts: activeBatches
+		cohorts: publicBatches
 	};
 };

@@ -8,17 +8,33 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV } from '$env/static/private';
 import { PUBLIC_APP_URL } from '$env/static/public';
 import { emailService } from '$lib/server/emails';
+import { CohortService } from '$lib/server/cohorts/CohortService';
 
 const CASHFREE_API = CASHFREE_ENV === 'production' 
 	? 'https://api.cashfree.com/pg/orders'
 	: 'https://sandbox.cashfree.com/pg/orders';
+
+const stripTrailingSlash = (u: string) => (u || '').replace(/\/+$/, '');
+
+/**
+ * Resolves the public base URL used for Cashfree return/notify URLs.
+ * Cashfree (production) rejects non-HTTPS URLs, and PUBLIC_APP_URL is baked in
+ * at build time, so prefer the live request origin when it is HTTPS.
+ */
+function resolveBaseUrl(requestOrigin?: string): string {
+	const origin = stripTrailingSlash(requestOrigin || '');
+	const configured = stripTrailingSlash(PUBLIC_APP_URL);
+	if (origin.startsWith('https://')) return origin;
+	if (configured.startsWith('https://')) return configured;
+	return origin || configured;
+}
 
 export class OrderService {
 	
 	/**
 	 * Creates a pending order in the database and generates a Cashfree payment session.
 	 */
-	static async createOrder(assetId: string, userId: string, customerDetails: { name: string, email: string, phone: string }, couponCode?: string, cohortId?: string) {
+	static async createOrder(assetId: string, userId: string, customerDetails: { name: string, email: string, phone: string }, couponCode?: string, cohortId?: string, requestOrigin?: string) {
 		// 1. Fetch the asset
 		const [asset] = await db.select().from(assets).where(eq(assets.id, assetId));
 		if (!asset) throw new Error('Asset not found');
@@ -28,7 +44,7 @@ export class OrderService {
 		// 1b. If cohortId is provided, verify batch validity and seat capacity
 		if (cohortId) {
 			const [batch] = await db.select().from(cohorts).where(eq(cohorts.id, cohortId));
-			if (!batch || !batch.isActive || batch.status === 'completed') {
+			if (!batch || !batch.isActive || batch.status === 'completed' || !CohortService.isEnrollmentOpen(batch)) {
 				throw new Error('This batch is closed and no longer accepting enrollments.');
 			}
 			if (batch.maxStudents !== null) {
@@ -120,6 +136,7 @@ export class OrderService {
 		// 3. Create Cashfree Order
 		const cashfreeOrderId = `ORD_${randomUUID()}`;
 		const amountRupees = amountPaise / 100;
+		const baseUrl = resolveBaseUrl(requestOrigin);
 
 		const requestBody = {
 			order_id: cashfreeOrderId,
@@ -132,8 +149,8 @@ export class OrderService {
 				customer_phone: customerDetails.phone || '9999999999'
 			},
 			order_meta: {
-				return_url: `${PUBLIC_APP_URL}/dashboard?order_id={order_id}`,
-				notify_url: `${PUBLIC_APP_URL}/api/webhooks/cashfree`
+				return_url: `${baseUrl}/dashboard?order_id={order_id}`,
+				notify_url: `${baseUrl}/api/webhooks/cashfree`
 			}
 		};
 
@@ -153,8 +170,10 @@ export class OrderService {
 
 			if (!cfResponse.ok) {
 				const error = await cfResponse.text();
-				console.error('[Cashfree API Error]', error);
-				throw new Error('Failed to initialize payment gateway');
+				console.error('[Cashfree API Error]', cfResponse.status, error, { returnUrl: requestBody.order_meta.return_url });
+				let reason = '';
+				try { reason = JSON.parse(error)?.message || ''; } catch { /* non-JSON body */ }
+				throw new Error(`Failed to initialize payment gateway${reason ? `: ${reason}` : ''}`);
 			}
 			const cfData = await cfResponse.json();
 			paymentSessionId = cfData.payment_session_id;
@@ -284,7 +303,7 @@ export class OrderService {
 				expiresAt
 			});
 
-			const magicUrl = `${PUBLIC_APP_URL}/api/auth/magic-login?token=${magicToken}&redirect=/dashboard`;
+			const magicUrl = `${stripTrailingSlash(PUBLIC_APP_URL)}/api/auth/magic-login?token=${magicToken}&redirect=/dashboard`;
 			await emailService.sendEnrollmentWithMagicLink(
 				user.email,
 				user.name || 'Learner',

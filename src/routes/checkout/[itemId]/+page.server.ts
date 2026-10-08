@@ -22,6 +22,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		cohort = foundCohort;
 		const [foundAsset] = await db.select().from(assets).where(eq(assets.id, cohort.courseId));
 		asset = foundAsset;
+
+		// Batch enrollment window has closed — send the buyer back to pick the current open batch
+		const { CohortService } = await import('$lib/server/cohorts/CohortService');
+		if (!CohortService.isEnrollmentOpen(foundCohort)) {
+			throw redirect(303, `/catalog/${foundCohort.courseId}`);
+		}
 	} else {
 		// Fallback to searching for the asset directly
 		const [foundAsset] = await db.select().from(assets).where(eq(assets.id, itemId));
@@ -85,7 +91,7 @@ export const actions: Actions = {
 		};
 	},
 
-	checkout: async ({ request, params, locals }) => {
+	checkout: async ({ request, params, locals, url }) => {
 		let user = locals.user;
 
 		const data = await request.formData();
@@ -121,7 +127,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await OrderService.createOrder(assetId, user.id, { name, email, phone: '9999999999' }, couponCode, cohortId);
+			const result = await OrderService.createOrder(assetId, user.id, { name, email, phone: '9999999999' }, couponCode, cohortId, url.origin);
 			return { success: true, paymentSessionId: result.paymentSessionId, isFree: result.isFree, isMockMode: result.isMockMode };
 		} catch (e: any) {
 			return fail(500, { checkoutError: e.message });
