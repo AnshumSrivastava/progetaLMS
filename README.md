@@ -1,5 +1,7 @@
 # Launchpad
 
+![Launchpad by Progeta Technologies](static/launchpadLogo.svg)
+
 Launchpad is a modern learning, certification, and mentoring platform built by Progeta Technologies. It focuses on the ownership of digital assets (PDFs, HTML, Markdown, external links, etc.) rather than traditional video courses.
 
 ## Architecture
