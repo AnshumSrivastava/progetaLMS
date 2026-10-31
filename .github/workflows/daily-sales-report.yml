@@ -1,0 +1,31 @@
+name: Daily Sales Digest (10:00 PM IST)
+
+on:
+  schedule:
+    # 16:30 UTC = 22:00 (10:00 PM) IST every day
+    - cron: '30 16 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force send even if 0 sales'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  send-sales-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Daily Sales Report API
+        run: |
+          FORCE="${{ github.event.inputs.force || 'false' }}"
+          echo "Triggering Daily Sales Digest at 10 PM IST (force=$FORCE)..."
+          
+          RESPONSE=$(curl -fsSL -X POST "https://lms.progeta.in/api/cron/daily-sales-report?force=$FORCE" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET || 'progeta-daily-sales-2026' }}" \
+            -H "Content-Type: application/json")
+          
+          echo "Response: $RESPONSE"

@@ -373,5 +373,120 @@ export const emailService = {
 		} catch (error) {
 			console.error('Error sending enrollment magic link email:', error);
 		}
+	},
+
+	async sendDailySalesDigest(opts: {
+		dateStr: string;
+		totalStudents: number;
+		totalOrders: number;
+		totalRevenuePaise: number;
+		sales: Array<{
+			userName: string;
+			userEmail: string;
+			courseTitle: string;
+			amountPaise: number;
+			status: string;
+			timeFormatted: string;
+			orderId: string;
+		}>;
+	}) {
+		const targetEmail = 'progetatechnologies@gmail.com';
+		const resend = getResendClient();
+		if (!resend) {
+			console.warn('[emailService] Resend not configured. Skipping daily sales digest.');
+			return { success: false, error: 'Resend not configured' };
+		}
+
+		const totalRupees = (opts.totalRevenuePaise / 100).toLocaleString('en-IN');
+		const subject = `📊 Daily Sales Digest [${opts.dateStr}] — ${opts.totalStudents} Student(s) | ₹${totalRupees}`;
+
+		const rowsHtml = opts.sales.map((sale, idx) => `
+			<tr style="border-bottom: 1px solid #e4e4e7; ${idx % 2 === 1 ? 'background-color: #fafafa;' : ''}">
+				<td style="padding: 12px 14px; font-weight: 600; color: #18181b; font-size: 13px;">
+					${sale.userName}
+					<div style="font-size: 11px; font-weight: normal; color: #71717a;">${sale.userEmail}</div>
+				</td>
+				<td style="padding: 12px 14px; color: #27272a; font-size: 13px;">
+					${sale.courseTitle}
+				</td>
+				<td style="padding: 12px 14px; font-weight: 700; color: #18181b; font-size: 13px; text-align: right;">
+					₹${(sale.amountPaise / 100).toLocaleString('en-IN')}
+				</td>
+				<td style="padding: 12px 14px; font-size: 12px; color: #71717a; text-align: right; white-space: nowrap;">
+					${sale.timeFormatted}
+				</td>
+			</tr>
+		`).join('');
+
+		const html = `
+			<div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 680px; margin: 0 auto; padding: 36px 32px; background: #ffffff; color: #18181b; border: 1px solid #e4e4e7; border-radius: 12px;">
+				<div style="border-bottom: 1px solid #e4e4e7; padding-bottom: 16px; margin-bottom: 24px;">
+					<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #71717a; margin-bottom: 4px;">
+						Automated Daily Digest (10:00 PM IST)
+					</div>
+					<h1 style="font-size: 22px; font-weight: 800; margin: 0; color: #09090b;">
+						Daily Sales & Enrollments
+					</h1>
+					<div style="font-size: 13px; color: #71717a; margin-top: 4px;">
+						Reporting Cycle: ${opts.dateStr}
+					</div>
+				</div>
+
+				<!-- Metric Summary Cards -->
+				<div style="margin: 20px 0 28px 0;">
+					<table style="width: 100%; border-collapse: separate; border-spacing: 12px 0;">
+						<tr>
+							<td style="width: 33.3%; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; padding: 16px; text-align: center;">
+								<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; font-weight: 600;">Students Enrolled</div>
+								<div style="font-size: 24px; font-weight: 800; color: #09090b; margin-top: 4px;">${opts.totalStudents}</div>
+							</td>
+							<td style="width: 33.3%; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; padding: 16px; text-align: center;">
+								<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; font-weight: 600;">Total Orders</div>
+								<div style="font-size: 24px; font-weight: 800; color: #09090b; margin-top: 4px;">${opts.totalOrders}</div>
+							</td>
+							<td style="width: 33.3%; background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; padding: 16px; text-align: center;">
+								<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; font-weight: 600;">Total Revenue</div>
+								<div style="font-size: 24px; font-weight: 800; color: #09090b; margin-top: 4px;">₹${totalRupees}</div>
+							</td>
+						</tr>
+					</table>
+				</div>
+
+				<!-- Sales Table -->
+				<div style="border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden; margin-bottom: 28px;">
+					<table style="width: 100%; border-collapse: collapse; text-align: left;">
+						<thead>
+							<tr style="background: #f4f4f5; border-bottom: 1px solid #e4e4e7;">
+								<th style="padding: 12px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #52525b;">Student</th>
+								<th style="padding: 12px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #52525b;">Course / Product</th>
+								<th style="padding: 12px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #52525b; text-align: right;">Amount Paid</th>
+								<th style="padding: 12px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #52525b; text-align: right;">Time (IST)</th>
+							</tr>
+						</thead>
+						<tbody>
+							${rowsHtml}
+						</tbody>
+					</table>
+				</div>
+
+				<div style="border-top: 1px solid #f4f4f5; padding-top: 16px; font-size: 12px; color: #a1a1aa; line-height: 1.5;">
+					This email is automatically generated every day at 10:00 PM IST by Progeta LMS. If no sales occur during a 24-hour cycle, this email is automatically suppressed.
+				</div>
+			</div>
+		`;
+
+		try {
+			await resend.client.emails.send({
+				from: `${APP_NAME} Reports <${fromEmail}>`,
+				to: targetEmail,
+				subject,
+				html
+			});
+			console.log(`[DailyReportService] Daily sales digest sent successfully to ${targetEmail}`);
+			return { success: true, count: opts.totalOrders };
+		} catch (error) {
+			console.error('[DailyReportService] Error sending daily sales digest:', error);
+			return { success: false, error };
+		}
 	}
 };

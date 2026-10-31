@@ -8,6 +8,9 @@
 		"directory": ".svelte-kit/cloudflare",
 		"binding": "ASSETS"
 	},
+	"triggers": {
+		"crons": ["30 16 * * *"]
+	},
 	"observability": {
 		"enabled": true
 	}
