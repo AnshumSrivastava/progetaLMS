@@ -19,12 +19,6 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			}
 		}
 
-		if (locals.user.role === 'admin' || locals.user.role === 'owner') {
-			throw redirect(302, '/dashboard/settings');
-		}
-		if (locals.user.role === 'teacher') {
-			throw redirect(302, '/dashboard/teacher');
-		}
 		throw redirect(302, '/dashboard');
 	}
 

@@ -2,14 +2,8 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// If signed in, take user to their dashboard
+	// If signed in, take user to their unified dashboard
 	if (locals.user) {
-		if (locals.user.role === 'admin' || locals.user.role === 'owner') {
-			throw redirect(302, '/dashboard/settings');
-		}
-		if (locals.user.role === 'teacher') {
-			throw redirect(302, '/dashboard/teacher');
-		}
 		throw redirect(302, '/dashboard');
 	}
 
