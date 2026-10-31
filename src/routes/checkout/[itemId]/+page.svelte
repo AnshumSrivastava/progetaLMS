@@ -316,14 +316,14 @@
 							</div>
 
 							<div>
-								<div class="flex items-center justify-between mb-1">
+								<div class="flex flex-wrap items-center justify-between gap-1 mb-1">
 									<label for="email" class="form-label !mb-0">Email Address (Credential Delivery)</label>
 									{#if !isEmailVerified && email.trim()}
 										<button
 											type="button"
 											onclick={sendVerificationOtp}
 											disabled={otpSending}
-											class="text-[11px] font-semibold text-[var(--lp-accent)] hover:underline flex items-center gap-1"
+											class="text-[11px] font-semibold text-[var(--text-primary)] underline hover:text-white flex items-center gap-1"
 										>
 											{#if otpSending}
 												<RefreshCw size={11} class="animate-spin" /> Sending Code...
@@ -377,35 +377,41 @@
 										</div>
 									{/if}
 
-									<div class="flex items-center gap-2 mt-3">
-										<input
-											type="text"
-											maxlength="6"
-											placeholder="123456"
-											bind:value={otpValue}
-											class="otp-digit-input"
-											onkeydown={(e) => {
-												if (e.key === 'Enter') {
-													e.preventDefault();
-													confirmOtpAndProceed();
-												}
-											}}
-										/>
+									<div class="otp-input-row">
+										<div class="otp-input-wrap">
+											<input
+												type="text"
+												inputmode="numeric"
+												autocomplete="one-time-code"
+												pattern="[0-9]*"
+												maxlength="6"
+												placeholder="Enter 6-digit code"
+												bind:value={otpValue}
+												class="otp-digit-input"
+												onkeydown={(e) => {
+													if (e.key === 'Enter') {
+														e.preventDefault();
+														confirmOtpAndProceed();
+													}
+												}}
+											/>
+										</div>
 										<button
 											type="button"
 											onclick={() => confirmOtpAndProceed()}
 											disabled={otpVerifying || otpValue.trim().length !== 6}
 											class="btn-verify-otp"
+											title="Verify email code and proceed to payment"
 										>
 											{#if otpVerifying}
-												<RefreshCw size={13} class="animate-spin" /> Verifying...
+												<RefreshCw size={14} class="animate-spin" /> Verifying...
 											{:else}
-												Confirm & Pay
+												Verify Code & Pay →
 											{/if}
 										</button>
 									</div>
 
-									<div class="flex items-center justify-between text-[11px] mt-3 pt-2.5 border-t border-[var(--border-subtle)]">
+									<div class="flex flex-wrap items-center justify-between gap-2 text-[11px] mt-3 pt-2.5 border-t border-[var(--border-subtle)]">
 										<button
 											type="button"
 											onclick={sendVerificationOtp}
@@ -674,47 +680,98 @@
 	/* OTP Box */
 	.otp-verification-card {
 		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+		overflow: hidden;
+	}
+
+	.otp-input-row {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-top: 12px;
+		width: 100%;
+	}
+
+	@media (min-width: 540px) {
+		.otp-input-row {
+			flex-direction: row;
+			align-items: center;
+			gap: 8px;
+		}
+	}
+
+	.otp-input-wrap {
+		flex: 1;
+		min-width: 0;
+		width: 100%;
 	}
 
 	.otp-digit-input {
-		flex: 1;
-		height: 40px;
-		background: var(--bg);
+		width: 100%;
+		height: 44px;
+		background: #09090b;
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		font-family: var(--font-mono);
 		font-size: 1.15rem;
 		font-weight: 700;
-		letter-spacing: 0.35em;
+		letter-spacing: 0.3em;
 		text-align: center;
-		color: var(--text-primary);
+		color: #ffffff;
 		outline: none;
+		transition: border-color var(--t-fast);
+		box-sizing: border-box;
+		padding: 0 12px;
 	}
 
 	.otp-digit-input:focus {
-		border-color: var(--lp-accent);
+		border-color: #ffffff;
+	}
+
+	.otp-digit-input::placeholder {
+		letter-spacing: normal;
+		font-size: 0.85rem;
+		font-weight: 400;
+		color: var(--text-muted);
 	}
 
 	.btn-verify-otp {
-		height: 40px;
-		padding: 0 16px;
-		background: var(--text-primary);
-		color: var(--surface);
-		font-size: 0.8125rem;
-		font-weight: 600;
-		border: none;
+		height: 44px;
+		width: 100%;
+		padding: 0 18px;
+		background: #ffffff;
+		color: #09090b;
+		font-size: 0.875rem;
+		font-weight: 700;
+		border: 1px solid #ffffff;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		justify-content: center;
+		gap: 8px;
 		white-space: nowrap;
-		transition: opacity var(--t-fast);
+		transition: all var(--t-fast);
+		flex-shrink: 0;
+		box-sizing: border-box;
+	}
+
+	@media (min-width: 540px) {
+		.btn-verify-otp {
+			width: auto;
+		}
+	}
+
+	.btn-verify-otp:hover:not(:disabled) {
+		background: #e4e4e7;
+		border-color: #e4e4e7;
 	}
 
 	.btn-verify-otp:disabled {
-		opacity: 0.5;
+		opacity: 0.45;
 		cursor: not-allowed;
+		background: #27272a;
+		border-color: #3f3f46;
+		color: #a1a1aa;
 	}
 
 	.payment-info-box {
