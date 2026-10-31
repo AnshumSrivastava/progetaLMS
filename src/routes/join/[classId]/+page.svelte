@@ -145,12 +145,13 @@
 					<h2>Registration Complete</h2>
 					<p>You are officially enrolled in <strong>{classDetails.name}</strong>.</p>
 					
-					<div class="next-steps">
-						<h3>What's Next?</h3>
-						<ul>
-							<li>Check your email for your welcome package.</li>
-							<li>Log in to access your dashboard.</li>
-						</ul>
+					<div class="next-steps" style="margin: 24px 0; text-align: center; background: rgba(37, 211, 102, 0.08); border: 1px solid rgba(37, 211, 102, 0.3); border-radius: 8px; padding: 20px;">
+						<p style="font-size: 0.9rem; color: var(--color-text, #ffffff); margin-bottom: 14px; font-weight: 500; line-height: 1.5;">
+							All live class links, batch schedules, and announcements will be shared directly in the official WhatsApp group.
+						</p>
+						<a href={data.cohort?.communityUrl || 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i'} target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #25D366; color: #ffffff; padding: 12px 24px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.95rem;">
+							Join WhatsApp Group →
+						</a>
 					</div>
 					<a href="/dashboard" class="return-link">Go to Dashboard</a>
 				</div>

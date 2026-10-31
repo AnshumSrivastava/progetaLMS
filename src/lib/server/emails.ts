@@ -35,7 +35,7 @@ export const emailService = {
 		}
 	},
 
-	async sendEnrollmentEmail(to: string, userName: string, courseName: string) {
+	async sendEnrollmentEmail(to: string, userName: string, courseName: string, whatsappUrl: string = 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i') {
 		const resend = getResendClient();
 		if (!resend) {
 			console.warn('RESEND_API_KEY not configured. Skipping enrollment email to', to);
@@ -45,8 +45,46 @@ export const emailService = {
 			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
-				subject: `You have successfully enrolled in ${courseName}`,
-				html: `<h1>Hi ${userName},</h1><p>You are now enrolled in <strong>${courseName}</strong>. Happy learning!</p>`
+				subject: `Enrollment Confirmed: ${courseName} — Join the WhatsApp Group`,
+				html: `
+					<div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 36px 32px; background: #ffffff; color: #18181b; border: 1px solid #e4e4e7; border-radius: 12px;">
+						<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #16a34a; margin-bottom: 8px;">
+							✓ Enrollment Confirmed
+						</div>
+						<h1 style="font-size: 22px; font-weight: 700; line-height: 1.3; margin: 0 0 16px; color: #09090b;">
+							Welcome to ${courseName}
+						</h1>
+						<p style="color: #3f3f46; font-size: 15px; line-height: 1.6; margin-bottom: 16px;">
+							Hi ${userName || 'Learner'},
+						</p>
+						<p style="color: #3f3f46; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+							Your enrollment in <strong>${courseName}</strong> is confirmed! All batch schedules, live class links, study materials, announcements, and session recordings will be shared directly in our official WhatsApp group.
+						</p>
+
+						<div style="background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 24px; text-align: center; margin: 28px 0;">
+							<div style="font-size: 14px; font-weight: 600; color: #18181b; margin-bottom: 6px;">
+								Official Batch Community
+							</div>
+							<p style="font-size: 13px; color: #71717a; margin: 0 0 20px; line-height: 1.5;">
+								The group will be where all the details and live session links will be shared. Please join now:
+							</p>
+							<a href="${whatsappUrl}" style="display: inline-block; background: #25D366; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 8px; letter-spacing: -0.01em;">
+								👉 Join Official WhatsApp Group →
+							</a>
+						</div>
+
+						<p style="font-size: 12px; color: #71717a; line-height: 1.6; margin-bottom: 20px;">
+							If the button doesn't open directly, copy and paste this link in your browser:<br>
+							<a href="${whatsappUrl}" style="color: #0284c7; word-break: break-all;">${whatsappUrl}</a>
+						</p>
+
+						<div style="border-top: 1px solid #f4f4f5; padding-top: 20px; margin-top: 24px;">
+							<p style="color: #a1a1aa; font-size: 12px; line-height: 1.6; margin: 0;">
+								You are receiving this confirmation because you enrolled with <strong>${to}</strong> on ${APP_NAME}.
+							</p>
+						</div>
+					</div>
+				`
 			});
 		} catch (error) {
 			console.error('Error sending enrollment email:', error);
@@ -274,12 +312,12 @@ export const emailService = {
 		}
 	},
 
-	async sendEnrollmentWithMagicLink(to: string, userName: string, courseTitle: string, magicUrl: string) {
+	async sendEnrollmentWithMagicLink(to: string, userName: string, courseTitle: string, magicUrl: string, whatsappUrl: string = 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i') {
 		console.log('\n=============================================');
-		console.log(`✨ ENROLLMENT MAGIC LOGIN LINK`);
+		console.log(`✨ ENROLLMENT CONFIRMATION & WHATSAPP GROUP`);
 		console.log(`To: ${to}`);
 		console.log(`Course: ${courseTitle}`);
-		console.log(`Link: ${magicUrl}`);
+		console.log(`WhatsApp Link: ${whatsappUrl}`);
 		console.log('=============================================\n');
 
 		const resend = getResendClient();
@@ -291,26 +329,44 @@ export const emailService = {
 			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to,
-				subject: `You're enrolled in ${courseTitle}! Access your course now`,
+				subject: `Enrollment Confirmed: ${courseTitle} — Join the WhatsApp Group`,
 				html: `
-					<div style="font-family: system-ui, -apple-system, sans-serif; max-width: 520px; margin: 0 auto; padding: 36px 32px; background: #ffffff; color: #1a1a2e; border: 1px solid #eee; border-radius: 12px;">
-						<div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4f46e5; margin-bottom: 8px;">
-							Enrollment Confirmed
+					<div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 36px 32px; background: #ffffff; color: #18181b; border: 1px solid #e4e4e7; border-radius: 12px;">
+						<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #16a34a; margin-bottom: 8px;">
+							✓ Enrollment Confirmed
 						</div>
-						<h2 style="font-size: 22px; font-weight: 700; line-height: 1.3; margin-top: 0; margin-bottom: 16px;">
+						<h1 style="font-size: 22px; font-weight: 700; line-height: 1.3; margin: 0 0 16px; color: #09090b;">
 							Welcome to ${courseTitle}
-						</h2>
-						<p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
-							Hi ${userName || 'Learner'}, your payment has been confirmed and your course access is unlocked. Click the button below to sign in instantly as a Student and begin learning:
+						</h1>
+						<p style="color: #3f3f46; font-size: 15px; line-height: 1.6; margin-bottom: 16px;">
+							Hi ${userName || 'Learner'},
 						</p>
-						<div style="text-align: center; margin: 32px 0;">
-							<a href="${magicUrl}" style="display: inline-block; background: #111827; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 28px; border-radius: 8px; letter-spacing: -0.01em;">
-								Access Your Dashboard & Course →
+						<p style="color: #3f3f46; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
+							Your enrollment in <strong>${courseTitle}</strong> is confirmed! All batch schedules, live class links, study materials, announcements, and session recordings will be shared directly in our official WhatsApp group.
+						</p>
+
+						<div style="background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 10px; padding: 24px; text-align: center; margin: 28px 0;">
+							<div style="font-size: 14px; font-weight: 600; color: #18181b; margin-bottom: 6px;">
+								Official Batch Community
+							</div>
+							<p style="font-size: 13px; color: #71717a; margin: 0 0 20px; line-height: 1.5;">
+								The group will be where all the details and live session links will be shared. Please join now:
+							</p>
+							<a href="${whatsappUrl}" style="display: inline-block; background: #25D366; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 8px; letter-spacing: -0.01em;">
+								👉 Join Official WhatsApp Group →
 							</a>
 						</div>
-						<p style="color: #9ca3af; font-size: 12px; line-height: 1.6; border-top: 1px solid #f3f4f6; padding-top: 20px;">
-							This direct login link expires in 24 hours. You can also sign in anytime using your email address (<strong>${to}</strong>) via OTP, Gmail, or your account password.
+
+						<p style="font-size: 12px; color: #71717a; line-height: 1.6; margin-bottom: 20px;">
+							If the button doesn't open directly, copy and paste this link in your browser:<br>
+							<a href="${whatsappUrl}" style="color: #0284c7; word-break: break-all;">${whatsappUrl}</a>
 						</p>
+
+						<div style="border-top: 1px solid #f4f4f5; padding-top: 20px; margin-top: 24px;">
+							<p style="color: #a1a1aa; font-size: 12px; line-height: 1.6; margin: 0;">
+								You are receiving this confirmation because you enrolled with <strong>${to}</strong> on ${APP_NAME}.
+							</p>
+						</div>
 					</div>
 				`
 			});

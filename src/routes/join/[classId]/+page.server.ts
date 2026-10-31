@@ -2,6 +2,7 @@ import { db } from '$lib/server/db/client';
 import { cohorts, cohortMemberships } from '$lib/server/db/schema/cohorts.schema';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { users } from '$lib/server/db/schema/identity.schema';
+import { emailService } from '$lib/server/emails';
 import { error, fail } from '@sveltejs/kit';
 import { eq, and, sql } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
@@ -15,7 +16,8 @@ export const load: PageServerLoad = async ({ params }) => {
     courseTitle: assets.title,
     instructorName: users.name,
     isActive: cohorts.isActive,
-    maxStudents: cohorts.maxStudents
+    maxStudents: cohorts.maxStudents,
+    communityUrl: cohorts.communityUrl
   })
   .from(cohorts)
   .leftJoin(assets, eq(cohorts.courseId, assets.id))
@@ -61,6 +63,22 @@ export const actions: Actions = {
       }).onConflictDoNothing();
     }
 
-    return { success: true };
+    const whatsappUrl = cohort.communityUrl || 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i';
+
+    // Send confirmation email with WhatsApp group link
+    if (locals.user.email) {
+      const [asset] = cohort.courseId 
+        ? await db.select().from(assets).where(eq(assets.id, cohort.courseId)) 
+        : [null];
+
+      await emailService.sendEnrollmentEmail(
+        locals.user.email,
+        locals.user.name || 'Learner',
+        cohort.name || asset?.title || 'Your Course',
+        whatsappUrl
+      );
+    }
+
+    return { success: true, communityUrl: whatsappUrl };
   }
 };

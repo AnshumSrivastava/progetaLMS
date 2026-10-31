@@ -124,7 +124,7 @@ export class OrderService {
 			}
 			
 			// Send instant magic login link and confirmation email
-			await OrderService.sendMagicLoginEmail(userId, assetId);
+			await OrderService.sendMagicLoginEmail(userId, assetId, cohortId);
 
 			return { 
 				isFree: true, 
@@ -218,7 +218,7 @@ export class OrderService {
 				]);
 			}
 			// Send instant magic login link and confirmation email in mock mode
-			await OrderService.sendMagicLoginEmail(userId, assetId);
+			await OrderService.sendMagicLoginEmail(userId, assetId, cohortId);
 		}
 
 		return {
@@ -281,17 +281,32 @@ export class OrderService {
 		console.log(`[OrderService] Successfully processed payment and unlocked asset for order ${cashfreeOrderId}`);
 
 		// 3. Send magic login link & confirmation email so learner can jump in immediately
-		await OrderService.sendMagicLoginEmail(order.userId, order.assetId);
+		await OrderService.sendMagicLoginEmail(order.userId, order.assetId, metadata?.cohortId);
 	}
 
 	/**
 	 * Generates a single-use magic login link and sends it with enrollment confirmation.
 	 */
-	static async sendMagicLoginEmail(userId: string, assetId: string) {
+	static async sendMagicLoginEmail(userId: string, assetId: string, cohortId?: string) {
 		try {
 			const [user] = await db.select().from(users).where(eq(users.id, userId));
 			const [asset] = await db.select().from(assets).where(eq(assets.id, assetId));
 			if (!user?.email) return;
+
+			let whatsappUrl = 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i';
+			if (cohortId) {
+				const [batch] = await db.select().from(cohorts).where(eq(cohorts.id, cohortId));
+				if (batch?.communityUrl) {
+					whatsappUrl = batch.communityUrl;
+				}
+			} else {
+				const [batch] = await db.select().from(cohorts)
+					.where(and(eq(cohorts.courseId, assetId), eq(cohorts.isActive, true)))
+					.limit(1);
+				if (batch?.communityUrl) {
+					whatsappUrl = batch.communityUrl;
+				}
+			}
 
 			const magicToken = randomBytes(32).toString('hex');
 			const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
@@ -308,7 +323,8 @@ export class OrderService {
 				user.email,
 				user.name || 'Learner',
 				asset?.title || 'Your Course',
-				magicUrl
+				magicUrl,
+				whatsappUrl
 			);
 		} catch (e) {
 			console.error('[OrderService] Failed to send magic login email:', e);
