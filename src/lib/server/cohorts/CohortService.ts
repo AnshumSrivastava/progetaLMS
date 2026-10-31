@@ -50,7 +50,7 @@ export class CohortService {
 	 */
 	static async canManageCourse(courseId: string, userId: string): Promise<boolean> {
 		const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
-		if (user?.role === 'super_admin' || user?.role === 'owner' || user?.role === 'admin') return true;
+		if (user?.role === 'super_admin' || user?.role === 'owner' || user?.role === 'admin' || user?.role === 'teacher') return true;
 
 		// Check if creator/owner of the course asset (Course Admin)
 		const [asset] = await db
@@ -77,7 +77,7 @@ export class CohortService {
 	 */
 	static async isCourseAdmin(courseId: string, userId: string): Promise<boolean> {
 		const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
-		if (user?.role === 'super_admin' || user?.role === 'owner' || user?.role === 'admin') return true;
+		if (user?.role === 'super_admin' || user?.role === 'owner' || user?.role === 'admin' || user?.role === 'teacher') return true;
 
 		const [asset] = await db
 			.select({ ownerId: assets.ownerId })

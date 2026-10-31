@@ -102,6 +102,55 @@ async function seed() {
 		console.log(`     ✓ ${roleName}: ${capabilities.length} capabilities assigned`);
 	}
 
+	// ── 4. Essential Platform Coupons ─────────────────────────────────────────
+	console.log('\n  → Upserting essential platform coupons...');
+	const practicalCyberCourse = await db
+		.select({ id: schema.assets.id })
+		.from(schema.assets)
+		.where(eq(schema.assets.slug, 'practical-cybersecurity'))
+		.limit(1);
+
+	const practicalCourseId = practicalCyberCourse[0]?.id || 'lhj4360hi368a3y01i11dv4f';
+	
+	const existingCoupon = await db
+		.select()
+		.from(schema.commerceCoupons)
+		.where(eq(schema.commerceCoupons.code, 'OSINT0111'))
+		.limit(1);
+
+	if (existingCoupon.length > 0) {
+		await db
+			.update(schema.commerceCoupons)
+			.set({
+				type: 'flat',
+				value: 600000,
+				assetId: practicalCourseId,
+				isActive: true
+			})
+			.where(eq(schema.commerceCoupons.code, 'OSINT0111'));
+		console.log('     ✓ Coupon OSINT0111 updated (15999 -> 9999)');
+	} else {
+		const [adminUser] = await db
+			.select({ id: schema.users.id })
+			.from(schema.users)
+			.where(eq(schema.users.role, 'owner'))
+			.limit(1);
+
+		await db.insert(schema.commerceCoupons).values({
+			id: createId(),
+			code: 'OSINT0111',
+			type: 'flat',
+			value: 600000,
+			maxUses: null,
+			usesCount: 0,
+			minAmountPaise: 0,
+			assetId: practicalCourseId,
+			createdBy: adminUser?.id || 'system',
+			isActive: true
+		});
+		console.log('     + Created coupon OSINT0111 (15999 -> 9999)');
+	}
+
 	console.log('\n✅ Seed complete.');
 }
 

@@ -428,7 +428,7 @@
 
 	.nav-root.is-dashboard {
 		left: var(--dash-sidebar-w, 240px);
-		border-bottom: none;
+		border-bottom: 1px solid var(--border);
 	}
 
 	@supports (backdrop-filter: blur(12px)) {
@@ -486,9 +486,11 @@
 	}
 
 	.nav-root.is-dashboard .nav-container {
-		max-width: 100%;
-		padding-inline: 24px;
+		max-width: 1360px;
+		margin-inline: auto;
+		padding-inline: 2rem;
 		display: flex;
+		align-items: center;
 		justify-content: space-between;
 	}
 
@@ -504,6 +506,9 @@
 		.nav-root.is-dashboard {
 			left: 0;
 			border-bottom: 1px solid var(--border);
+		}
+		.nav-root.is-dashboard .nav-container {
+			padding-inline: 1.25rem;
 		}
 	}
 

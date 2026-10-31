@@ -21,9 +21,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	})
 	.from(assets)
 	.where(
-		isAdmin
-			? and(inArray(assets.type, ['html', 'markdown', 'pdf']), isNull(assets.deletedAt))
-			: and(inArray(assets.type, ['html', 'markdown', 'pdf']), eq(assets.ownerId, user.id), isNull(assets.deletedAt))
+		and(
+			inArray(assets.type, ['html', 'markdown', 'pdf', 'download', 'external']),
+			isNull(assets.deletedAt)
+		)
 	);
 
 	const assetIds = allAssets.map(a => a.id);
@@ -115,13 +116,11 @@ export const actions: Actions = {
 		const currency = data.get('currency')?.toString() || 'INR';
 
 		const pricePaise = Math.floor(price * 100);
-		const isAdmin = user.role === 'admin' || user.role === 'owner';
 
 		try {
-			// Verify ownership
 			const [course] = await db.select().from(assets)
-				.where(isAdmin ? eq(assets.id, courseId) : and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
-			if (!course) return fail(403, { error: 'Unauthorized' });
+				.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)));
+			if (!course) return fail(404, { error: 'Item not found' });
 
 			await db.update(assets)
 				.set({ pricePaise, currency })
@@ -136,15 +135,17 @@ export const actions: Actions = {
 	togglePublish: async ({ request, locals }) => {
 		const user = locals.user;
 		if (!user) throw redirect(302, '/sign-in');
-		const isAdmin = user.role === 'admin' || user.role === 'owner';
+		if (user.role !== 'teacher' && user.role !== 'admin' && user.role !== 'owner') {
+			throw redirect(302, '/dashboard');
+		}
 		
 		const data = await request.formData();
 		const courseId = data.get('courseId') as string;
 		
 		try {
 			const [course] = await db.select().from(assets)
-				.where(isAdmin ? eq(assets.id, courseId) : and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
-			if (!course) return fail(403, { error: 'Unauthorized' });
+				.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)));
+			if (!course) return fail(404, { error: 'Item not found' });
 
 			const newStatus = course.status === 'published' ? 'draft' : 'published';
 			await db.update(assets).set({ status: newStatus }).where(eq(assets.id, courseId));
@@ -158,15 +159,17 @@ export const actions: Actions = {
 	deleteCourse: async ({ request, locals }) => {
 		const user = locals.user;
 		if (!user) throw redirect(302, '/sign-in');
-		const isAdmin = user.role === 'admin' || user.role === 'owner';
+		if (user.role !== 'teacher' && user.role !== 'admin' && user.role !== 'owner') {
+			throw redirect(302, '/dashboard');
+		}
 		
 		const data = await request.formData();
 		const courseId = data.get('courseId') as string;
 		
 		try {
 			const [course] = await db.select().from(assets)
-				.where(isAdmin ? eq(assets.id, courseId) : and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
-			if (!course) return fail(403, { error: 'Unauthorized' });
+				.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)));
+			if (!course) return fail(404, { error: 'Item not found' });
 
 			await db.update(assets).set({ deletedAt: new Date(), status: 'archived' }).where(eq(assets.id, courseId));
 			

@@ -12,11 +12,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	}
 
 	const courseId = params.courseId;
-	const isAdmin = user.role === 'admin' || user.role === 'owner';
 	const [course] = await db.select().from(assets).where(
-		isAdmin
-			? or(eq(assets.id, courseId), eq(assets.slug, courseId))
-			: and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), eq(assets.ownerId, user.id))
+		and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), isNull(assets.deletedAt))
 	);
 
 	if (!course) {
@@ -34,13 +31,10 @@ export const actions: Actions = {
 		if (!user) throw error(401, 'Unauthorized');
 
 		const courseId = params.courseId;
-		const isAdmin = user.role === 'admin' || user.role === 'owner';
 		
-		// Verify ownership or admin permission
+		// Verify course exists
 		const [course] = await db.select().from(assets).where(
-			isAdmin
-				? or(eq(assets.id, courseId), eq(assets.slug, courseId))
-				: and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), eq(assets.ownerId, user.id))
+			and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), isNull(assets.deletedAt))
 		);
 		if (!course) {
 			return fail(404, { error: 'Course not found' });

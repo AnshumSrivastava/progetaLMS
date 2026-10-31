@@ -46,7 +46,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const availableResources = await db.select({
 		id: assets.id,
 		name: assets.title
-	}).from(assets).where(eq(assets.ownerId, locals.user!.id));
+	}).from(assets).where(isNull(assets.deletedAt));
 
 	return {
 		coupons: mappedCoupons,

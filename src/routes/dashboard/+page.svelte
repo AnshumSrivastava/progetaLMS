@@ -59,7 +59,7 @@
 	} from 'lucide-svelte';
 	import LaunchpadLogo from '$lib/components/ui/LaunchpadLogo.svelte';
 	import { APP_NAME } from '$lib/shared/constants';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
 	import { addToast } from '$lib/stores/toast';
@@ -221,7 +221,37 @@
 		const timer = setInterval(() => {
 			currentTime = Date.now();
 		}, 1000);
-		return () => clearInterval(timer);
+
+		// Real-time live data polling every 30s when window/tab is active
+		const syncInterval = setInterval(() => {
+			if (typeof document !== 'undefined' && !document.hidden) {
+				invalidateAll();
+			}
+		}, 30000);
+
+		const handleSyncFocus = () => {
+			invalidateAll();
+		};
+
+		const handleVisibilitySync = () => {
+			if (!document.hidden) {
+				invalidateAll();
+			}
+		};
+
+		if (typeof window !== 'undefined') {
+			window.addEventListener('focus', handleSyncFocus);
+			document.addEventListener('visibilitychange', handleVisibilitySync);
+		}
+
+		return () => {
+			clearInterval(timer);
+			clearInterval(syncInterval);
+			if (typeof window !== 'undefined') {
+				window.removeEventListener('focus', handleSyncFocus);
+				document.removeEventListener('visibilitychange', handleVisibilitySync);
+			}
+		};
 	});
 
 	onDestroy(() => {
@@ -1229,7 +1259,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono font-bold">MY LEARNING</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">My Courses</h1>
+						<h1>My Courses</h1>
 						<p class="pane-sub">Continue your learning and manage your enrolled courses.</p>
 					</div>
 					<a href="/courses" class="btn-subtle">Browse courses &rarr;</a>
@@ -1310,7 +1340,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono">SCHEDULED WORKSHOPS</span>
-						<h1 class="text-[1.5rem] font-bold text-[var(--text-primary)] mt-1">Live Events & Workshops</h1>
+						<h1>Live Events & Workshops</h1>
 						<p class="pane-sub">Upcoming interactive sessions, practitioner AMAs, and cohort discussions.</p>
 					</div>
 				</header>
@@ -1370,7 +1400,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono">LIVE CLASSROOMS</span>
-						<h1 class="text-[1.5rem] font-bold text-[var(--text-primary)] mt-1">My Live Cohort Batches</h1>
+						<h1>My Live Cohort Batches</h1>
 						<p class="pane-sub">Access your external live class links, private WhatsApp/Teams community, and session recordings.</p>
 					</div>
 				</header>
@@ -1723,7 +1753,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-red-400 font-bold">COMPETITIVE ARENA &bull; PAID LABS</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Hackathons &amp; Hands-on CTF Labs</h1>
+						<h1>Hackathons &amp; Hands-on CTF Labs</h1>
 						<p class="pane-sub">Enrolled team hackathons, active cloud sandbox targets, flag submissions, and tournament standings.</p>
 					</div>
 					<a href="/labs" class="btn-subtle flex items-center gap-1.5">
@@ -1882,7 +1912,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">INSTRUCTOR STUDIO</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Studio Overview</h1>
+						<h1>Studio Overview</h1>
 						<p class="pane-sub">Manage your courses, live cohorts, student roster, and mentoring appointments.</p>
 					</div>
 					<div class="flex items-center gap-2">
@@ -2012,7 +2042,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">COURSE CATALOG & CURRICULA</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Courses & Batches</h1>
+						<h1>Courses & Batches</h1>
 						<p class="pane-sub">Create self-paced video/text courses and timed live classroom cohorts.</p>
 					</div>
 					<button class="btn-primary" onclick={() => showCreateCourseModal = true}>
@@ -2021,7 +2051,7 @@
 				</header>
 
 				<!-- KPI row -->
-				<div class="kpi-grid-4" style="margin-bottom: 24px;">
+				<div class="kpi-grid-4 mb-6">
 					<div class="kpi-box">
 						<span class="kpi-box-label">Total Courses</span>
 						<span class="kpi-box-val">{data.teacher.courses.length}</span>
@@ -2129,7 +2159,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">COHORT MANAGEMENT</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Classes & Live Cohorts</h1>
+						<h1>Classes & Live Cohorts</h1>
 						<p class="pane-sub">Timed batch schedules, external classroom links (Teams, WhatsApp, Zoom), and seat reservations.</p>
 					</div>
 					<button class="btn-primary" onclick={() => showCreateClassModal = true}>
@@ -2138,7 +2168,7 @@
 				</header>
 
 				<!-- KPI row -->
-				<div class="kpi-grid-4" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+				<div class="kpi-grid-3 mb-6">
 					<div class="kpi-box">
 						<span class="kpi-box-label">Total Cohorts</span>
 						<span class="kpi-box-val">{data.teacher.classes.length}</span>
@@ -2216,7 +2246,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">LEARNER ROSTER</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Enrolled Students</h1>
+						<h1>Enrolled Students</h1>
 						<p class="pane-sub">View learners enrolled across your courses and timed cohort batches.</p>
 					</div>
 					<button class="btn-primary" onclick={() => showInviteModal = true}>
@@ -2225,7 +2255,7 @@
 				</header>
 
 				<!-- KPI row -->
-				<div class="kpi-grid-4" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+				<div class="kpi-grid-3 mb-6">
 					<div class="kpi-box">
 						<span class="kpi-box-label">Total Unique Students</span>
 						<span class="kpi-box-val">{data.teacher.stats.totalStudents}</span>
@@ -2276,7 +2306,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">PROMOTIONS & CODES</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Coupons & Promos</h1>
+						<h1>Coupons & Promos</h1>
 						<p class="pane-sub">Create custom discount vouchers for students enrolling in your courses and batches.</p>
 					</div>
 					<button class="btn-primary" onclick={() => showCreateCouponModal = true}>
@@ -2285,7 +2315,7 @@
 				</header>
 
 				<!-- KPI row -->
-				<div class="kpi-grid-4" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+				<div class="kpi-grid-3 mb-6">
 					<div class="kpi-box">
 						<span class="kpi-box-label">Total Coupons</span>
 						<span class="kpi-box-val">{data.teacher.coupons.length}</span>
@@ -2357,7 +2387,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">STUDENT BROADCASTS</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Announcements & Templates</h1>
+						<h1>Announcements & Templates</h1>
 						<p class="pane-sub">Send broadcast announcements to students in your active cohorts or save recurring templates.</p>
 					</div>
 				</header>
@@ -2425,7 +2455,7 @@
 				<header class="pane-header">
 					<div>
 						<span class="meta-mono text-[var(--lp-accent)] font-bold">INSTRUCTOR IDENTITY</span>
-						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Studio Settings</h1>
+						<h1>Studio Settings</h1>
 						<p class="pane-sub">Update your public teacher display name, biography, and credentials.</p>
 					</div>
 				</header>
@@ -4677,8 +4707,8 @@
 
 	/* ── Canvas ─────────────────────────────────────────────── */
 	.dash-canvas {
-		padding: calc(var(--nav-h) + 1.75rem) 2.5rem 5rem;
-		max-width: 1140px;
+		padding: calc(var(--nav-h) + 2rem) 2rem 5rem;
+		max-width: 1360px;
 		min-width: 0;
 		width: 100%;
 		margin-inline: auto;
@@ -4686,13 +4716,13 @@
 
 	@media (max-width: 1024px) {
 		.dash-canvas {
-			padding: 1.5rem 1.5rem calc(72px + env(safe-area-inset-bottom));
+			padding: 1.5rem 1.25rem calc(76px + env(safe-area-inset-bottom));
 		}
 	}
 
 	@media (max-width: 640px) {
 		.dash-canvas {
-			padding: 1rem 1rem calc(72px + env(safe-area-inset-bottom));
+			padding: 1rem 1rem calc(76px + env(safe-area-inset-bottom));
 		}
 	}
 
@@ -4707,30 +4737,27 @@
 		display: flex;
 		align-items: center;
 		gap: 16px;
-		margin-bottom: 2rem;
+		margin-bottom: 1.75rem;
 	}
 
 	.dash-welcome-avatar {
 		width: 52px;
 		height: 52px;
 		border-radius: 50%;
-		background: #09090b;
-		color: #ffffff;
+		background: var(--color-surface-elevated);
+		border: 1px solid var(--border);
+		color: var(--text-primary);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		font-weight: 700;
 		font-size: 1.1rem;
 		flex-shrink: 0;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-	}
-
-	:global([data-theme='dark']) .dash-welcome-avatar {
-		background: #27272a;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 	}
 
 	.dash-welcome-title {
-		font-size: 1.55rem;
+		font-size: 1.6rem;
 		font-weight: 700;
 		color: var(--text-primary);
 		letter-spacing: -0.025em;
@@ -4746,12 +4773,18 @@
 	/* Stat Cards Row */
 	.dash-stats-row {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 18px;
-		margin-bottom: 2.25rem;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 16px;
+		margin-bottom: 2rem;
 	}
 
-	@media (max-width: 768px) {
+	@media (max-width: 1100px) {
+		.dash-stats-row {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (max-width: 640px) {
 		.dash-stats-row {
 			grid-template-columns: 1fr;
 		}
@@ -4760,14 +4793,15 @@
 	.dash-stat-box {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 20px;
-		padding: 22px 24px;
-		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+		border-radius: 16px;
+		padding: 20px 22px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		transition: all 0.15s ease;
 	}
 
 	.dash-stat-box:hover {
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+		border-color: var(--border-strong);
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 	}
 
 	.dash-stat-top {
@@ -4777,7 +4811,7 @@
 	}
 
 	.dash-stat-label {
-		font-size: 0.9rem;
+		font-size: 0.875rem;
 		font-weight: 500;
 		color: var(--text-secondary);
 	}
@@ -4785,42 +4819,39 @@
 	.dash-stat-badge {
 		width: 32px;
 		height: 32px;
-		border-radius: 9px;
-		background: #09090b;
-		color: #ffffff;
+		border-radius: 8px;
+		background: var(--color-surface-subtle);
+		border: 1px solid var(--border);
+		color: var(--text-primary);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 
-	:global([data-theme='dark']) .dash-stat-badge {
-		background: #27272a;
-	}
-
 	.dash-stat-number {
-		font-size: 1.85rem;
+		font-size: 1.75rem;
 		font-weight: 700;
 		color: var(--text-primary);
-		margin-top: 14px;
+		margin-top: 12px;
 		letter-spacing: -0.02em;
 	}
 
 	/* Main Split Grid */
 	.dash-grid-split {
 		display: grid;
-		grid-template-columns: 1fr 320px;
-		gap: 22px;
-		margin-bottom: 2.5rem;
+		grid-template-columns: 1fr 340px;
+		gap: 20px;
+		margin-bottom: 2rem;
 	}
 
-	@media (max-width: 990px) {
+	@media (max-width: 1024px) {
 		.dash-grid-split {
 			grid-template-columns: 1fr;
 		}
 	}
 
 	.dash-sec-head {
-		margin-bottom: 16px;
+		margin-bottom: 14px;
 	}
 
 	.dash-sec-title {
@@ -4832,38 +4863,38 @@
 
 	.dash-course-cards-wrap {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 		gap: 16px;
 	}
 
 	.dash-card-item {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 20px;
-		padding: 22px;
+		border-radius: 16px;
+		padding: 20px;
 		cursor: pointer;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		transition: all 0.15s ease;
 		display: flex;
 		flex-direction: column;
 	}
 
 	.dash-card-item:hover {
-		border-color: var(--text-primary);
-		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+		border-color: var(--border-strong);
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 	}
 
 	.dash-card-icon-sq {
-		width: 42px;
-		height: 42px;
-		border-radius: 12px;
+		width: 40px;
+		height: 40px;
+		border-radius: 10px;
 		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		color: var(--text-primary);
-		margin-bottom: 16px;
+		margin-bottom: 14px;
 	}
 
 	.dash-card-title {
@@ -4871,7 +4902,7 @@
 		font-weight: 700;
 		color: var(--text-primary);
 		line-height: 1.4;
-		margin-bottom: 20px;
+		margin-bottom: 18px;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
@@ -4888,24 +4919,16 @@
 
 	.dash-mini-bar {
 		flex: 1;
-		height: 9px;
-		background: #eef0f3;
+		height: 6px;
+		background: var(--color-surface-subtle);
 		border-radius: 999px;
 		overflow: hidden;
 	}
 
-	:global([data-theme='dark']) .dash-mini-bar {
-		background: #252830;
-	}
-
 	.dash-mini-fill {
 		height: 100%;
-		background: #09090b;
+		background: var(--color-primary);
 		border-radius: 999px;
-	}
-
-	:global([data-theme='dark']) .dash-mini-fill {
-		background: #ffffff;
 	}
 
 	.dash-lesson-txt {
@@ -4915,57 +4938,96 @@
 		white-space: nowrap;
 	}
 
+	/* Empty Course State */
+	.dash-empty-prompt {
+		grid-column: 1 / -1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 36px 20px;
+		background: var(--surface);
+		border: 1px dashed var(--border-strong);
+		border-radius: 16px;
+		text-align: center;
+	}
+
+	.dash-btn-explore-sm {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 8px 16px;
+		border-radius: 8px;
+		background: var(--color-primary);
+		color: #080b11;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition: opacity 0.15s ease, transform 0.15s ease;
+	}
+
+	.dash-btn-explore-sm:hover {
+		opacity: 0.9;
+		transform: translateY(-1px);
+	}
+
 	/* Daily Progress Widget */
 	.dash-daily-box {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 20px;
-		padding: 22px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+		border-radius: 16px;
+		padding: 20px;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.dash-daily-heading {
 		font-size: 1.15rem;
 		font-weight: 700;
 		color: var(--text-primary);
-		margin-bottom: 18px;
+		margin-bottom: 16px;
 		letter-spacing: -0.015em;
 	}
 
 	.dash-daily-tags {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 10px;
+		flex: 1;
 	}
 
 	.dash-daily-pill {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 12px 16px;
-		border-radius: 14px;
+		padding: 10px 14px;
+		border-radius: 10px;
 		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		font-size: 0.84rem;
 		font-weight: 600;
 		color: var(--text-primary);
 		transition: all 0.12s ease;
+		cursor: pointer;
 	}
 
 	.dash-daily-pill:hover {
-		background: #f0f2f5;
+		border-color: var(--border-strong);
+		background: var(--color-surface-elevated);
 	}
 
-	:global([data-theme='dark']) .dash-daily-pill:hover {
-		background: #22252c;
-	}
-
-	.dash-daily-icon {
+	.dash-daily-empty {
+		padding: 28px 16px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--text-primary);
+		text-align: center;
+		background: var(--color-surface-subtle);
+		border: 1px dashed var(--border);
+		border-radius: 10px;
+		flex: 1;
 	}
 
 	/* Upcoming Class Section */
@@ -4987,19 +5049,14 @@
 	}
 
 	.dash-chip-active {
-		padding: 6px 16px;
+		padding: 5px 14px;
 		border-radius: 999px;
-		background: #09090b;
-		color: #ffffff;
+		background: var(--color-primary);
+		color: #080b11;
 		font-size: 0.78rem;
 		font-weight: 600;
 		border: none;
 		cursor: pointer;
-	}
-
-	:global([data-theme='dark']) .dash-chip-active {
-		background: #ffffff;
-		color: #09090b;
 	}
 
 	.dash-chip-btn {
@@ -5018,7 +5075,7 @@
 
 	.dash-chip-btn:hover {
 		color: var(--text-primary);
-		border-color: var(--text-primary);
+		border-color: var(--border-strong);
 	}
 
 	.dash-upcoming-grid {
@@ -5030,13 +5087,18 @@
 	.dash-event-card {
 		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: 20px;
-		padding: 20px 24px;
+		border-radius: 16px;
+		padding: 20px 22px;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		gap: 16px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		transition: border-color 0.15s ease;
+	}
+
+	.dash-event-card:hover {
+		border-color: var(--border-strong);
 	}
 
 	.dash-event-tag {
@@ -5061,10 +5123,10 @@
 	}
 
 	.dash-btn-register {
-		padding: 9px 18px;
-		border-radius: 12px;
-		background: #09090b;
-		color: #ffffff;
+		padding: 8px 16px;
+		border-radius: 8px;
+		background: var(--color-primary);
+		color: #080b11;
 		font-size: 0.8125rem;
 		font-weight: 600;
 		border: none;
@@ -5073,18 +5135,13 @@
 		transition: opacity 0.12s ease;
 	}
 
-	:global([data-theme='dark']) .dash-btn-register {
-		background: #ffffff;
-		color: #09090b;
-	}
-
 	.dash-btn-register:hover {
 		opacity: 0.9;
 	}
 
 	.dash-btn-joined {
-		padding: 9px 18px;
-		border-radius: 12px;
+		padding: 8px 16px;
+		border-radius: 8px;
 		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 		font-size: 0.8125rem;
@@ -5092,6 +5149,11 @@
 		text-decoration: none;
 		border: 1px solid var(--border);
 		white-space: nowrap;
+		transition: border-color 0.12s ease;
+	}
+
+	.dash-btn-joined:hover {
+		border-color: var(--border-strong);
 	}
 
 	.tab-pane {
@@ -5105,13 +5167,13 @@
 		align-items: flex-end;
 		padding-bottom: 1.25rem;
 		border-bottom: 1px solid var(--border);
-		margin-bottom: 1.5rem;
+		margin-bottom: 1.75rem;
 		gap: 1rem;
 		flex-wrap: wrap;
 	}
 
 	.pane-header h1 {
-		font-size: 1.375rem;
+		font-size: 1.5rem;
 		font-weight: 700;
 		color: var(--text-primary);
 		letter-spacing: -0.02em;
@@ -5120,7 +5182,7 @@
 	.pane-sub {
 		font-size: 0.8125rem;
 		color: var(--text-secondary);
-		margin-top: 2px;
+		margin-top: 4px;
 	}
 
 	.alert-banner {
@@ -5148,17 +5210,17 @@
 	/* ── Rows & Lists ────────────────────────────────────────── */
 	.row-list {
 		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		background: var(--bg);
+		border-radius: 14px;
+		background: var(--surface);
 		overflow: hidden;
 	}
 
 	.list-row {
 		display: flex;
 		align-items: center;
-		padding: 12px 16px;
+		padding: 14px 18px;
 		border-bottom: 1px solid var(--border-subtle);
-		gap: 12px;
+		gap: 14px;
 		transition: background var(--t-fast);
 	}
 
@@ -5305,17 +5367,38 @@
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		background: var(--bg);
+		border-radius: 14px;
+		background: var(--surface);
 		overflow: hidden;
 	}
 
+	.kpi-grid-3 {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		border: 1px solid var(--border);
+		border-radius: 14px;
+		background: var(--surface);
+		overflow: hidden;
+	}
+
+	@media (max-width: 1024px) {
+		.kpi-grid-4, .kpi-grid-3 {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (max-width: 640px) {
+		.kpi-grid-4, .kpi-grid-3 {
+			grid-template-columns: 1fr;
+		}
+	}
+
 	.kpi-box {
-		padding: 14px 18px;
+		padding: 16px 20px;
 		border-right: 1px solid var(--border-subtle);
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 4px;
 	}
 
 	.kpi-box:last-child { border-right: none; }
@@ -5329,7 +5412,7 @@
 	}
 
 	.kpi-box-val {
-		font-size: 1.375rem;
+		font-size: 1.45rem;
 		font-weight: 700;
 		color: var(--text-primary);
 		letter-spacing: -0.02em;
@@ -5343,10 +5426,10 @@
 	}
 
 	.card-box {
-		background: var(--bg);
+		background: var(--surface);
 		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		padding: 18px;
+		border-radius: 16px;
+		padding: 20px;
 	}
 
 	.card-box h3 {

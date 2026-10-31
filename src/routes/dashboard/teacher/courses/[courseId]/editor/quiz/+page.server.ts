@@ -16,7 +16,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.where(
 			and(
 				eq(assets.id, courseId),
-				eq(assets.ownerId, locals.user.id),
 				isNull(assets.deletedAt)
 			)
 		);

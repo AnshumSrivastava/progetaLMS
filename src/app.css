@@ -204,12 +204,3 @@
   ::placeholder { color: var(--color-text-muted); opacity: .85; }
 }
 
-/* Legacy screens still use a few semantic Tailwind colors; keep them in brand grayscale. */
-@layer utilities {
-  [class*="text-blue-"], [class*="text-indigo-"], [class*="text-green-"], [class*="text-emerald-"], [class*="text-teal-"], [class*="text-purple-"], [class*="text-violet-"], [class*="text-amber-"], [class*="text-orange-"], [class*="text-red-"] { color: var(--color-text-secondary) !important; }
-  [class*="bg-blue-"], [class*="bg-indigo-"], [class*="bg-green-"], [class*="bg-emerald-"], [class*="bg-teal-"], [class*="bg-purple-"], [class*="bg-violet-"], [class*="bg-amber-"], [class*="bg-orange-"], [class*="bg-red-"] { background-color: var(--color-surface-subtle) !important; }
-  [class*="border-blue-"], [class*="border-indigo-"], [class*="border-green-"], [class*="border-emerald-"], [class*="border-teal-"], [class*="border-purple-"], [class*="border-violet-"], [class*="border-amber-"], [class*="border-orange-"], [class*="border-red-"] { border-color: var(--color-border) !important; }
-  [style*="color: #"] { color: var(--color-text-secondary) !important; }
-  [style*="background: #"] { background-color: var(--color-surface-subtle) !important; }
-  [style*="border-color: #"] { border-color: var(--color-border) !important; }
-}

@@ -15,7 +15,11 @@ import { randomUUID } from 'node:crypto';
 import { createId } from '@paralleldrive/cuid2';
 import { auth } from '$lib/server/auth/auth.config';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, setHeaders }) => {
+	setHeaders({
+		'cache-control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+	});
+
 	if (!locals.user) {
 		throw redirect(302, '/');
 	}
@@ -29,6 +33,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	let ownedCourses: any[] = [];
 	let ownedResources: any[] = [];
 	let ownedCerts: any[] = [];
+	let ownedHackathons: any[] = [];
 	let issuedCertificates: any[] = [];
 	let upcomingEvents: any[] = [];
 	let registeredEventIds: string[] = [];
@@ -57,7 +62,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				)
 			);
 
-		const ownedHackathons = owned.filter(
+		ownedHackathons = owned.filter(
 			(a) =>
 				(a.metadata as any)?.category === 'ctf' ||
 				(a.metadata as any)?.kind === 'hackathon' ||
@@ -90,12 +95,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 		// Real Quiz Score from assessmentAttempts
 		const myAttempts = await db
-			.select({ percentage: assessmentAttempts.percentage })
+			.select({ score: assessmentAttempts.score, maxScore: assessmentAttempts.maxScore })
 			.from(assessmentAttempts)
-			.where(eq(assessmentAttempts.userId, locals.user.id));
+			.where(and(eq(assessmentAttempts.userId, locals.user.id), eq(assessmentAttempts.status, 'evaluated')));
 
-		avgQuizScore = myAttempts.length > 0
-			? `${Math.round(myAttempts.reduce((sum, a) => sum + (a.percentage || 0), 0) / myAttempts.length)}%`
+		const validAttempts = myAttempts.filter(a => a.maxScore && a.maxScore > 0 && typeof a.score === 'number');
+		avgQuizScore = validAttempts.length > 0
+			? `${Math.round(validAttempts.reduce((sum, a) => sum + ((a.score! / a.maxScore!) * 100), 0) / validAttempts.length)}%`
 			: '—';
 
 		const myCohortMemberships = await db
@@ -166,41 +172,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	if (isTeacher) {
 		try {
-			// Find courses where user is owner OR collaborator
-			const collabRows = await db
-				.select({ courseId: courseCollaborators.courseId })
-				.from(courseCollaborators)
-				.where(eq(courseCollaborators.userId, locals.user.id));
-			const collabCourseIds = collabRows.map(r => r.courseId);
-
-			const courseConditions = isAdmin
-				? [
-					and(
-						inArray(assets.type, ['html', 'markdown', 'pdf']),
-						isNull(assets.deletedAt)
-					)
-				]
-				: [
-					and(
-						inArray(assets.type, ['html', 'markdown', 'pdf']),
-						eq(assets.ownerId, locals.user.id),
-						isNull(assets.deletedAt)
-					)
-				];
-			if (!isAdmin && collabCourseIds.length > 0) {
-				courseConditions.push(
-					and(
-						inArray(assets.type, ['html', 'markdown', 'pdf']),
-						inArray(assets.id, collabCourseIds),
-						isNull(assets.deletedAt)
-					)
-				);
-			}
-
+			// All instructors and platform admins have full management access to all courses and digital resources
 			const rawTeacherCourses = await db
 				.select()
 				.from(assets)
-				.where(sql`(${courseConditions[0]}) ${courseConditions.length > 1 ? sql`OR (${courseConditions[1]})` : sql``}`)
+				.where(
+					and(
+						inArray(assets.type, ['html', 'markdown', 'pdf', 'download', 'external']),
+						isNull(assets.deletedAt)
+					)
+				)
 				.orderBy(desc(assets.createdAt));
 
 			const courseIds = rawTeacherCourses.map(a => a.id);
@@ -228,7 +209,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 					rawPrice: c.pricePaise / 100,
 					rawCurrency: c.currency || 'INR',
 					status: c.status === 'published' ? 'Published' : 'Draft',
-					isCourseAdmin: isAdmin || isOwner
+					isCourseAdmin: true
 				};
 			});
 
@@ -392,7 +373,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// ── 3. ADMIN & OWNER DATA (If Admin or Owner) ──────────────
 	let adminSettings: any = { enableCatalog: true, enableMentoring: true, enableCertifications: true };
 	let adminTemplates: any[] = [];
-	let adminKpis = { totalUsers: 0, totalCourses: 0, totalCerts: 0, totalCohorts: 0, outboxPending: 0 };
+	let adminKpis: {
+		totalUsers: number;
+		totalCourses: number;
+		totalCerts: number;
+		totalCohorts: number;
+		outboxPending: number;
+		totalRevenuePaise?: number;
+		totalRevenueFormatted?: string;
+		totalPaidOrders?: number;
+	} = { totalUsers: 0, totalCourses: 0, totalCerts: 0, totalCohorts: 0, outboxPending: 0, totalRevenuePaise: 0, totalRevenueFormatted: '0', totalPaidOrders: 0 };
 	let adminAuditLogs: any[] = [];
 	let adminAllUsers: any[] = [];
 	let eligibleAdmins: any[] = [];
@@ -508,7 +498,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			}
 
 			// Load catalog assets and cohorts for quick enrollment grants
-			const adminGrantableAssets = await db
+			adminGrantableAssets = await db
 				.select({
 					id: assets.id,
 					title: assets.title,
@@ -519,7 +509,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				.where(isNull(assets.deletedAt))
 				.orderBy(assets.title);
 
-			const adminGrantableCohorts = await db
+			adminGrantableCohorts = await db
 				.select({
 					id: cohorts.id,
 					name: cohorts.name,
@@ -1141,6 +1131,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const title = (data.get('title') as string)?.trim();
 		const deliveryFormat = (data.get('deliveryFormat') as 'self_paced' | 'live_batch') || 'self_paced';
+		const assetType = (data.get('type') as any) || 'html';
 		if (!title) return fail(400, { error: 'Course title is required' });
 
 		try {
@@ -1155,7 +1146,7 @@ export const actions: Actions = {
 				id: createId(),
 				slug,
 				title,
-				type: 'html',
+				type: assetType,
 				deliveryFormat,
 				isSelfPacedEnabled: deliveryFormat === 'self_paced',
 				isLiveBatchesEnabled: deliveryFormat === 'live_batch',
@@ -1164,9 +1155,9 @@ export const actions: Actions = {
 				pricePaise,
 				currency: 'INR'
 			});
-			return { success: true, message: `Course "${title}" drafted successfully.` };
+			return { success: true, message: `Resource/Course "${title}" drafted successfully.` };
 		} catch (e: any) {
-			return fail(500, { error: 'Failed to create course' });
+			return fail(500, { error: 'Failed to create resource or course' });
 		}
 	},
 
@@ -1183,8 +1174,8 @@ export const actions: Actions = {
 
 		try {
 			const [course] = await db.select().from(assets)
-				.where(and(eq(assets.id, courseId), eq(assets.ownerId, locals.user.id)));
-			if (!course) return fail(403, { error: 'Course not found or unauthorized' });
+				.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)));
+			if (!course) return fail(404, { error: 'Resource or course not found' });
 
 			await db.update(assets).set({ pricePaise, currency }).where(eq(assets.id, courseId));
 			return { success: true, message: 'Price updated successfully' };
@@ -1203,14 +1194,14 @@ export const actions: Actions = {
 
 		try {
 			const [course] = await db.select().from(assets)
-				.where(and(eq(assets.id, courseId), eq(assets.ownerId, locals.user.id)));
-			if (!course) return fail(403, { error: 'Course not found or unauthorized' });
+				.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)));
+			if (!course) return fail(404, { error: 'Resource or course not found' });
 
 			const newStatus = course.status === 'published' ? 'draft' : 'published';
 			await db.update(assets).set({ status: newStatus }).where(eq(assets.id, courseId));
-			return { success: true, message: `Course ${newStatus === 'published' ? 'published' : 'un-published'}.` };
+			return { success: true, message: `Item ${newStatus === 'published' ? 'published' : 'un-published'}.` };
 		} catch (e) {
-			return fail(500, { error: 'Failed to update course status' });
+			return fail(500, { error: 'Failed to update item status' });
 		}
 	},
 
@@ -1224,13 +1215,13 @@ export const actions: Actions = {
 
 		try {
 			const [course] = await db.select().from(assets)
-				.where(and(eq(assets.id, courseId), eq(assets.ownerId, locals.user.id)));
-			if (!course) return fail(403, { error: 'Course not found or unauthorized' });
+				.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)));
+			if (!course) return fail(404, { error: 'Resource or course not found' });
 
 			await db.update(assets).set({ deletedAt: new Date() }).where(eq(assets.id, courseId));
-			return { success: true, message: 'Course deleted' };
+			return { success: true, message: 'Resource or course deleted' };
 		} catch (e) {
-			return fail(500, { error: 'Failed to delete course' });
+			return fail(500, { error: 'Failed to delete resource or course' });
 		}
 	},
 
