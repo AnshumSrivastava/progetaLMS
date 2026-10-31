@@ -1,3 +1,4 @@
+
 import { redirect, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/server/db/client';
@@ -316,12 +317,30 @@ export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 				isProctored: (c.metadata as any)?.isProctored !== false
 			}));
 
-			// Teacher Coupons
-			teacherCoupons = await db
-				.select()
+			// Load all available coupons for studio management
+			const rawCoupons = await db
+				.select({
+					id: commerceCoupons.id,
+					code: commerceCoupons.code,
+					type: commerceCoupons.type,
+					value: commerceCoupons.value,
+					maxUses: commerceCoupons.maxUses,
+					usesCount: commerceCoupons.usesCount,
+					isActive: commerceCoupons.isActive,
+					assetId: commerceCoupons.assetId,
+					assetTitle: assets.title,
+					createdAt: commerceCoupons.createdAt
+				})
 				.from(commerceCoupons)
-				.where(eq(commerceCoupons.createdBy, locals.user.id))
+				.leftJoin(assets, eq(commerceCoupons.assetId, assets.id))
 				.orderBy(desc(commerceCoupons.createdAt));
+
+			teacherCoupons = rawCoupons.map(c => ({
+				...c,
+				timesUsed: c.usesCount || 0,
+				courseTitle: c.assetTitle || 'All Courses & Resources',
+				discountFormatted: c.type === 'percent' ? `${c.value}% OFF` : `₹${(c.value / 100).toLocaleString('en-IN')} OFF`
+			}));
 
 			// Teacher Email Templates
 			teacherTemplates = await db
@@ -1297,24 +1316,45 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const code = (data.get('code') as string)?.trim().toUpperCase();
 		const type = (data.get('type') as 'percent' | 'flat') || 'percent';
-		const value = parseInt(data.get('value') as string) || 10;
+		const rawValue = parseFloat(data.get('value') as string) || 0;
 		const limit = parseInt(data.get('limit') as string) || null;
+		const assetIdStr = (data.get('assetId') as string)?.trim();
+		const assetId = (!assetIdStr || assetIdStr === 'all') ? null : assetIdStr;
 
 		if (!code) return fail(400, { error: 'Coupon code is required' });
+		if (rawValue <= 0) return fail(400, { error: 'Discount value must be greater than zero' });
+		if (type === 'percent' && rawValue > 100) return fail(400, { error: 'Percentage discount cannot exceed 100%' });
+
+		const value = type === 'flat' ? Math.round(rawValue * 100) : Math.round(rawValue);
 
 		try {
+			// Check if coupon with this code already exists
+			const [existing] = await db.select().from(commerceCoupons).where(eq(commerceCoupons.code, code));
+			if (existing) {
+				await db.update(commerceCoupons).set({
+					type,
+					value,
+					maxUses: limit,
+					assetId,
+					isActive: true
+				}).where(eq(commerceCoupons.id, existing.id));
+				return { success: true, message: `Coupon "${code}" updated successfully!` };
+			}
+
 			await db.insert(commerceCoupons).values({
 				id: createId(),
 				code,
 				type,
 				value,
 				maxUses: limit,
+				assetId,
 				createdBy: locals.user.id,
 				isActive: true
 			});
 			return { success: true, message: `Coupon "${code}" created successfully!` };
-		} catch (e) {
-			return fail(500, { error: 'Failed to create coupon' });
+		} catch (e: any) {
+			console.error('Failed to create/update coupon:', e);
+			return fail(400, { error: e.message || 'Failed to create coupon' });
 		}
 	},
 
@@ -1328,13 +1368,13 @@ export const actions: Actions = {
 
 		try {
 			const [coupon] = await db.select().from(commerceCoupons)
-				.where(and(eq(commerceCoupons.id, couponId), eq(commerceCoupons.createdBy, locals.user.id)));
-			if (!coupon) return fail(403, { error: 'Coupon not found or unauthorized' });
+				.where(eq(commerceCoupons.id, couponId));
+			if (!coupon) return fail(404, { error: 'Coupon not found' });
 
 			await db.update(commerceCoupons).set({ isActive: !coupon.isActive }).where(eq(commerceCoupons.id, couponId));
 			return { success: true, message: `Coupon ${!coupon.isActive ? 'activated' : 'deactivated'}.` };
-		} catch (e) {
-			return fail(500, { error: 'Failed to toggle coupon' });
+		} catch (e: any) {
+			return fail(500, { error: e.message || 'Failed to toggle coupon' });
 		}
 	},
 
@@ -1347,11 +1387,14 @@ export const actions: Actions = {
 		const couponId = data.get('couponId') as string;
 
 		try {
-			await db.delete(commerceCoupons)
-				.where(and(eq(commerceCoupons.id, couponId), eq(commerceCoupons.createdBy, locals.user.id)));
-			return { success: true, message: 'Coupon deleted.' };
-		} catch (e) {
-			return fail(500, { error: 'Failed to delete coupon' });
+			const [coupon] = await db.select().from(commerceCoupons)
+				.where(eq(commerceCoupons.id, couponId));
+			if (!coupon) return fail(404, { error: 'Coupon not found' });
+
+			await db.delete(commerceCoupons).where(eq(commerceCoupons.id, couponId));
+			return { success: true, message: 'Coupon deleted successfully.' };
+		} catch (e: any) {
+			return fail(500, { error: e.message || 'Failed to delete coupon' });
 		}
 	},
 

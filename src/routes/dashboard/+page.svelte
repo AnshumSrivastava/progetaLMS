@@ -326,6 +326,7 @@
 		const url = `${window.location.origin}/batches/${cohortId}`;
 		navigator.clipboard.writeText(url);
 		copiedCohortId = cohortId;
+		addToast('Batch invite link copied to clipboard', 'info');
 		setTimeout(() => { copiedCohortId = null; }, 3000);
 	}
 
@@ -1047,7 +1048,7 @@
 
 					<!-- Card 4: Hackathon Arena Standing -->
 					<div
-						class="dash-stat-box cursor-pointer hover:border-red-500/40 transition-colors"
+						class="dash-stat-box cursor-pointer hover:border-zinc-500 transition-colors"
 						onclick={() => activeTab = 'my_hackathons'}
 						role="button"
 						tabindex="0"
@@ -1055,13 +1056,13 @@
 					>
 						<div class="dash-stat-top">
 							<span class="dash-stat-label">CTF Arena Rank</span>
-							<div class="dash-stat-badge" style="color: var(--semantic-danger); background: rgba(239, 68, 68, 0.15);">
+							<div class="dash-stat-badge">
 								<Flame size={14} />
 							</div>
 						</div>
 						<div class="dash-stat-number">
 							{#if (data.learner.ownedHackathons || []).length > 0}
-								<span style="color: var(--semantic-warning)">#1</span> <span class="text-xs font-normal text-zinc-400">/ Active</span>
+								<span>#1</span> <span class="text-xs font-normal text-zinc-400">/ Active</span>
 							{:else}
 								<span style="color: var(--color-text-muted)">—</span>
 							{/if}
@@ -1100,15 +1101,15 @@
 										<span class="text-[11px] font-mono text-zinc-400">Team Ticket Active</span>
 									</div>
 									<h2 class="text-base font-bold text-white tracking-tight">HackDef 2026: Collegiate &amp; Practitioner CTF Arena</h2>
-									<p class="text-xs text-zinc-400 mt-0.5">5 Sequential Stages &bull; ₹1,00,000 Prize Pool &bull; Active Target Pod: <code class="font-mono text-amber-300 bg-black/50 px-1 py-0.5 rounded text-[11px] border border-amber-500/20">10.10.14.204</code></p>
+									<p class="text-xs text-zinc-400 mt-0.5">5 Sequential Stages &bull; ₹1,00,000 Prize Pool &bull; Active Target Pod: <code class="font-mono text-zinc-200 bg-zinc-900 px-1 py-0.5 rounded text-[11px] border border-zinc-700">10.10.14.204</code></p>
 								</div>
 							</div>
 							<div class="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
 								<div class="text-right hidden sm:block">
 									<div class="text-[10px] font-mono text-zinc-400 uppercase">Current Standings</div>
-									<div class="text-sm font-black font-mono text-amber-400">Rank #4 <span class="text-xs font-normal text-zinc-400">&bull; 350 PTS</span></div>
+									<div class="text-sm font-black font-mono text-white">Rank #4 <span class="text-xs font-normal text-zinc-400">&bull; 350 PTS</span></div>
 								</div>
-								<a href="/labs" class="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-red-600/20 flex items-center gap-1.5 transition-all">
+								<a href="/labs" class="px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black font-semibold text-xs tracking-wide flex items-center gap-1.5 transition-all">
 									<span>Enter Arena</span> <ArrowRight size={14} />
 								</a>
 							</div>
@@ -1128,24 +1129,24 @@
 							{#if data.learner.liveBatches && data.learner.liveBatches.filter(h => h.hasAccess).length > 0}
 								{#each data.learner.liveBatches.filter(h => h.hasAccess).slice(0, 1) as liveHub}
 									<div
-										class="dash-card-item border border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40"
+										class="dash-card-item"
 										onclick={() => activeTab = 'my_classes'}
 										role="button"
 										tabindex="0"
 										onkeydown={(e) => e.key === 'Enter' && (activeTab = 'my_classes')}
 									>
-										<div class="dash-card-icon-sq text-emerald-400 bg-emerald-500/10">
+										<div class="dash-card-icon-sq">
 											<Video size={18} />
 										</div>
 										<div class="flex-1 min-w-0 pr-2">
 											<div class="flex items-center gap-1.5 mb-0.5">
-												<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-												<span class="text-[10px] font-mono font-bold text-emerald-400 uppercase">Live Cohort Batch</span>
+												<span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+												<span class="text-[10px] font-mono font-bold text-zinc-300 uppercase">Live Cohort Batch</span>
 											</div>
 											<h3 class="dash-card-title truncate">{liveHub.batch.courseTitle}</h3>
 											<div class="text-[11px] text-[var(--text-secondary)] font-mono">{liveHub.batch.name}</div>
 										</div>
-										<span class="text-[11px] font-semibold text-indigo-400 shrink-0">Open Hub &rarr;</span>
+										<span class="text-[11px] font-semibold text-white shrink-0">Open Hub &rarr;</span>
 									</div>
 								{/each}
 							{/if}
@@ -1411,7 +1412,7 @@
 							{#if hub.isExpired}
 								<!-- Expired 3-Month Retention Notice Card -->
 								<div class="p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] opacity-75">
-									<div class="flex items-center gap-2 text-amber-500 font-semibold text-[13px] mb-1">
+									<div class="flex items-center gap-2 text-zinc-300 font-semibold text-[13px] mb-1">
 										<Clock size={15} />
 										<span>Batch Retention Period Concluded</span>
 									</div>
@@ -1429,7 +1430,7 @@
 									<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-5 border-b border-[var(--border)]">
 										<div>
 											<div class="flex items-center gap-2 mb-1.5">
-												<span class="meta-mono text-[10px] text-indigo-400">LIVE CLASSROOM BATCH</span>
+												<span class="meta-mono text-[10px] text-zinc-400">LIVE CLASSROOM BATCH</span>
 												<span class="text-[var(--border-strong)]">·</span>
 												<span class="text-[12px] text-[var(--text-secondary)] font-medium">Instructor: <strong>{hub.batch.instructorName}</strong></span>
 											</div>
@@ -1443,15 +1444,15 @@
 
 										<div class="shrink-0 flex items-center gap-2">
 											{#if hub.batch.status === 'live'}
-												<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-													<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> IN PROGRESS
+												<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white text-zinc-950 font-mono">
+													<span class="w-2 h-2 rounded-full bg-zinc-950 animate-pulse"></span> IN PROGRESS
 												</span>
 											{:else if hub.batch.status === 'completed'}
-												<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
+												<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-zinc-800 text-zinc-200 border border-zinc-700 font-mono">
 													<Check size={12} strokeWidth={2.5} /> COMPLETED ({hub.daysRemaining ?? 90}d left)
 												</span>
 											{:else}
-												<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+												<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-zinc-800 text-zinc-200 border border-zinc-700 font-mono">
 													<Clock size={12} /> SCHEDULED
 												</span>
 											{/if}
@@ -1482,13 +1483,13 @@
 												href={hub.batch.meetingUrl}
 												target="_blank"
 												rel="noopener noreferrer"
-												class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[13.5px] transition-all shadow-sm"
+												class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-[13.5px] transition-all shadow-sm"
 											>
 												<div class="flex items-center gap-2.5">
 													<Video size={18} />
 													<div>
 														<div class="leading-tight">Join Live Classroom</div>
-														<div class="text-[11px] font-normal text-indigo-200 mt-0.5">Google Meet / Zoom</div>
+														<div class="text-[11px] font-normal text-zinc-600 mt-0.5">Google Meet / Zoom</div>
 													</div>
 												</div>
 												<ExternalLink size={15} class="opacity-80" />
@@ -1508,13 +1509,13 @@
 												href={hub.batch.communityUrl}
 												target="_blank"
 												rel="noopener noreferrer"
-												class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[13.5px] transition-all shadow-sm"
+												class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-[13.5px] border border-zinc-700 transition-all shadow-sm"
 											>
 												<div class="flex items-center gap-2.5">
 													<MessageSquare size={18} />
 													<div>
 														<div class="leading-tight">Join Batch Discussion Group</div>
-														<div class="text-[11px] font-normal text-emerald-200 mt-0.5">WhatsApp / Teams</div>
+														<div class="text-[11px] font-normal text-zinc-400 mt-0.5">WhatsApp / Community</div>
 													</div>
 												</div>
 												<ExternalLink size={15} class="opacity-80" />
@@ -1564,7 +1565,7 @@
 																	href={session.recordingUrl}
 																	target="_blank"
 																	rel="noopener noreferrer"
-																	class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-[12px] font-medium transition-colors"
+																	class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 text-[12px] font-medium transition-colors"
 																>
 																	<Video size={13} /> Watch Recording <ExternalLink size={11} />
 																</a>
@@ -1594,7 +1595,7 @@
 									<div class="mt-4 pt-3 flex items-center justify-between text-[11px] text-[var(--text-muted)] font-mono">
 										<span>Access policy: Content & recording links retained for 3 months (90 days) post-completion.</span>
 										{#if hub.daysRemaining !== null}
-											<span class="text-indigo-400 font-semibold">{hub.daysRemaining} days access remaining</span>
+											<span class="text-zinc-200 font-semibold">{hub.daysRemaining} days access remaining</span>
 										{/if}
 									</div>
 								</div>
@@ -1767,16 +1768,16 @@
 							<div class="p-6 rounded-2xl bg-[var(--surface)] border border-red-500/30 hover:border-red-500/50 transition-all shadow-xl relative overflow-hidden">
 								<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[var(--border)]">
 									<div class="flex items-start gap-4">
-										<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-amber-500/10 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+										<div class="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white shrink-0 shadow-inner">
 											<Terminal size={28} />
 										</div>
 										<div>
 											<div class="flex flex-wrap items-center gap-2 mb-1.5">
-												<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
-													<span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
+												<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-zinc-800 text-white border border-zinc-700 flex items-center gap-1.5">
+													<span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
 													Tournament Active
 												</span>
-												<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+												<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
 													Team Pass Enrolled
 												</span>
 												<span class="text-xs text-[var(--text-secondary)] font-mono">
@@ -1793,7 +1794,7 @@
 									<div class="flex items-center gap-3 shrink-0 w-full lg:w-auto">
 										<a
 											href="/labs"
-											class="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-red-600/25 flex items-center justify-center gap-2 transition-all"
+											class="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-white hover:bg-zinc-200 text-zinc-950 font-bold text-sm tracking-wide flex items-center justify-center gap-2 transition-all shadow-sm"
 										>
 											<Terminal size={16} /> <span>Open Challenge Arena</span>
 										</a>
@@ -1804,31 +1805,31 @@
 								<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
 									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
 										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
-											<Trophy size={13} class="text-amber-400" /> Leaderboard Standing
+											<Trophy size={13} class="text-white" /> Leaderboard Standing
 										</div>
 										<div class="text-lg font-black font-mono text-white">
 											Rank #4 <span class="text-xs font-normal text-[var(--text-secondary)]">of 42 Teams</span>
 										</div>
-										<div class="text-[11px] text-emerald-400 font-mono mt-1">+1 Solve in last hour</div>
+										<div class="text-[11px] text-zinc-400 font-mono mt-1">+1 Solve in last hour</div>
 									</div>
 
 									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
 										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
-											<Flag size={13} class="text-indigo-400" /> Challenges Solved
+											<Flag size={13} class="text-white" /> Challenges Solved
 										</div>
 										<div class="text-lg font-black font-mono text-white">
 											2 / 5 <span class="text-xs font-normal text-[var(--text-secondary)]">Stages Cleared</span>
 										</div>
 										<div class="w-full bg-[var(--surface)] h-1.5 rounded-full mt-2 overflow-hidden border border-[var(--border)]">
-											<div class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full rounded-full" style="width: 40%"></div>
+											<div class="bg-white h-full rounded-full" style="width: 40%"></div>
 										</div>
 									</div>
 
 									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
 										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
-											<Flame size={13} class="text-red-400" /> Total Bounty Points
+											<Flame size={13} class="text-white" /> Total Bounty Points
 										</div>
-										<div class="text-lg font-black font-mono text-amber-400">
+										<div class="text-lg font-black font-mono text-white">
 											350 <span class="text-xs font-normal text-[var(--text-secondary)]">/ 1,950 PTS</span>
 										</div>
 										<div class="text-[11px] text-[var(--text-secondary)] font-mono mt-1">₹1,00,000 Pool</div>
@@ -1836,9 +1837,9 @@
 
 									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
 										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
-											<Terminal size={13} class="text-cyan-400" /> Target Sandbox Pod
+											<Terminal size={13} class="text-white" /> Target Sandbox Pod
 										</div>
-										<div class="text-sm font-black font-mono text-cyan-300">
+										<div class="text-sm font-black font-mono text-white">
 											10.10.14.204
 										</div>
 										<div class="text-[11px] text-zinc-400 font-mono mt-1">TTL remaining: 03:48:20</div>
@@ -1849,28 +1850,28 @@
 								<div class="mt-6 pt-5 border-t border-[var(--border)]">
 									<div class="text-xs font-bold font-mono uppercase tracking-wider text-[var(--text-secondary)] mb-3">Challenge Sequence</div>
 									<div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
-										<div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+										<div class="p-2.5 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-between">
 											<div>
-												<div class="text-[10px] font-mono text-emerald-400 font-bold">STAGE 1 &bull; RECON</div>
+												<div class="text-[10px] font-mono text-zinc-400 font-bold">STAGE 1 &bull; RECON</div>
 												<div class="text-xs font-semibold text-white truncate">Target Infiltration</div>
 											</div>
-											<CheckCircle2 size={14} class="text-emerald-400 shrink-0" />
+											<CheckCircle2 size={14} class="text-white shrink-0" />
 										</div>
 
-										<div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+										<div class="p-2.5 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-between">
 											<div>
-												<div class="text-[10px] font-mono text-emerald-400 font-bold">STAGE 2 &bull; WEB JWT</div>
+												<div class="text-[10px] font-mono text-zinc-400 font-bold">STAGE 2 &bull; WEB JWT</div>
 												<div class="text-xs font-semibold text-white truncate">Vault Bypass</div>
 											</div>
-											<CheckCircle2 size={14} class="text-emerald-400 shrink-0" />
+											<CheckCircle2 size={14} class="text-white shrink-0" />
 										</div>
 
-										<div class="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
+										<div class="p-2.5 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-between">
 											<div>
-												<div class="text-[10px] font-mono text-red-400 font-bold">STAGE 3 &bull; CRYPTO</div>
+												<div class="text-[10px] font-mono text-zinc-300 font-bold">STAGE 3 &bull; CRYPTO</div>
 												<div class="text-xs font-semibold text-white truncate">ECC Nonce Leak</div>
 											</div>
-											<span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/30">ACTIVE</span>
+											<span class="text-[10px] font-mono font-bold text-black bg-white px-1.5 py-0.5 rounded">ACTIVE</span>
 										</div>
 
 										<div class="p-2.5 rounded-lg bg-[var(--color-surface-subtle)] border border-[var(--border)] opacity-60">
@@ -2058,11 +2059,11 @@
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Published</span>
-						<span class="kpi-box-val text-emerald-500">{data.teacher.courses.filter(c => c.status === 'Published').length}</span>
+						<span class="kpi-box-val">{data.teacher.courses.filter(c => c.status === 'Published').length}</span>
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Drafts</span>
-						<span class="kpi-box-val text-muted">{data.teacher.courses.filter(c => c.status === 'Draft').length}</span>
+						<span class="kpi-box-val">{data.teacher.courses.filter(c => c.status === 'Draft').length}</span>
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Total Learners</span>
@@ -2081,17 +2082,17 @@
 										{course.status.toUpperCase()}
 									</span>
 									{#if course.deliveryFormat === 'live_batch'}
-										<span class="badge-minimal" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.3); font-weight: 700;">
-											● LIVE COHORT
+										<span class="badge-minimal">
+											LIVE COHORT
 										</span>
 									{:else}
-										<span class="badge-minimal" style="background: rgba(99, 102, 241, 0.1); color: #818cf8; border-color: rgba(99, 102, 241, 0.3);">
+										<span class="badge-minimal">
 											SELF-PACED
 										</span>
 									{/if}
 									{#if course.isCourseAdmin}
-										<span class="badge-minimal" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">
-											Admin / Lead
+										<span class="badge-minimal">
+											Lead Instructor
 										</span>
 									{/if}
 								</div>
@@ -2175,7 +2176,7 @@
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Active Batches</span>
-						<span class="kpi-box-val text-emerald-500">{data.teacher.classes.filter(c => c.isActive).length}</span>
+						<span class="kpi-box-val">{data.teacher.classes.filter(c => c.isActive).length}</span>
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Cohort Enrollees</span>
@@ -2193,7 +2194,7 @@
 									<span class="badge-minimal" class:badge-active={cohort.isActive}>
 										{cohort.isActive ? 'ACTIVE' : 'COMPLETED'}
 									</span>
-									<span class="badge-minimal" style="background: rgba(99, 102, 241, 0.1); color: #818cf8;">
+									<span class="badge-minimal">
 										{cohort.course}
 									</span>
 								</div>
@@ -2322,7 +2323,7 @@
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Active Coupons</span>
-						<span class="kpi-box-val text-emerald-500">{data.teacher.coupons.filter(c => c.isActive).length}</span>
+						<span class="kpi-box-val">{data.teacher.coupons.filter(c => c.isActive).length}</span>
 					</div>
 					<div class="kpi-box">
 						<span class="kpi-box-label">Total Redemptions</span>
@@ -2336,13 +2337,14 @@
 							<div class="row-icon"><Tag size={16} /></div>
 							<div class="row-main">
 								<div class="cert-title-row">
-									<h3 class="font-mono text-indigo-400 font-bold tracking-wider">{coupon.code}</h3>
+									<h3 class="font-mono text-white font-bold tracking-wider">{coupon.code}</h3>
 									<span class="badge-minimal" class:badge-active={coupon.isActive}>
 										{coupon.isActive ? 'ACTIVE' : 'PAUSED'}
 									</span>
 								</div>
 								<span class="row-sub-text">
-									Discount: <strong>{coupon.type === 'percent' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}</strong> •
+									Discount: <strong>{coupon.discountFormatted || (coupon.type === 'percent' ? `${coupon.value}% OFF` : `₹${(coupon.value / 100).toLocaleString('en-IN')} OFF`)}</strong> •
+									Applies to: <strong>{coupon.courseTitle || 'All Courses & Resources'}</strong> •
 									Uses: <strong>{coupon.timesUsed || 0} / {coupon.maxUses || '∞'}</strong>
 								</span>
 							</div>
@@ -3838,7 +3840,18 @@
 						<h3>Create Course Draft</h3>
 						<button type="button" class="btn-modal-close" onclick={() => showCreateCourseModal = false}><X size={16} /></button>
 					</div>
-					<form method="POST" action="?/createCourse" use:enhance>
+					<form method="POST" action="?/createCourse" use:enhance={() => {
+						return async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') {
+								addToast((result.data as any)?.message || 'Course draft created successfully', 'success');
+								showCreateCourseModal = false;
+								newCourseTitle = '';
+							} else if (result.type === 'failure') {
+								addToast((result.data as any)?.error || 'Failed to create course', 'error');
+							}
+						};
+					}}>
 						<div class="modal-body">
 							<p class="modal-desc">
 								Initialize a new course workspace. You will configure modules, quizzes, and live cohorts in the builder.
@@ -3859,7 +3872,7 @@
 							<div class="input-field">
 								<label>Course Offering Type</label>
 								<div class="grid grid-cols-2 gap-3 mt-1">
-									<label class="p-3 border rounded-lg cursor-pointer flex flex-col gap-1 transition-all {newCourseFormat === 'self_paced' ? 'border-[var(--lp-accent)] bg-indigo-500/10' : 'border-[var(--border)] bg-[var(--surface)]'}">
+									<label class="p-3 border rounded-lg cursor-pointer flex flex-col gap-1 transition-all {newCourseFormat === 'self_paced' ? 'border-white bg-zinc-800/70' : 'border-[var(--border)] bg-[var(--surface)]'}">
 										<div class="flex items-center gap-2">
 											<input type="radio" name="deliveryFormat" value="self_paced" bind:group={newCourseFormat} />
 											<span class="font-bold text-xs text-[var(--text-primary)]">Self-Paced Course</span>
@@ -3867,10 +3880,10 @@
 										<span class="text-[11px] text-[var(--text-secondary)] pl-5">On-demand web reader. Default price: ₹5,999</span>
 									</label>
 
-									<label class="p-3 border rounded-lg cursor-pointer flex flex-col gap-1 transition-all {newCourseFormat === 'live_batch' ? 'border-emerald-500 bg-emerald-500/10' : 'border-[var(--border)] bg-[var(--surface)]'}">
+									<label class="p-3 border rounded-lg cursor-pointer flex flex-col gap-1 transition-all {newCourseFormat === 'live_batch' ? 'border-white bg-zinc-800/70' : 'border-[var(--border)] bg-[var(--surface)]'}">
 										<div class="flex items-center gap-2">
 											<input type="radio" name="deliveryFormat" value="live_batch" bind:group={newCourseFormat} />
-											<span class="font-bold text-xs text-emerald-400">Live Classroom Cohort</span>
+											<span class="font-bold text-xs text-[var(--text-primary)]">Live Classroom Cohort</span>
 										</div>
 										<span class="text-[11px] text-[var(--text-secondary)] pl-5">Live batches with Meet & WhatsApp. Default price: ₹16,999</span>
 									</label>
@@ -3893,7 +3906,17 @@
 						<h3>Edit Pricing: {selectedCourseForPrice.title}</h3>
 						<button type="button" class="btn-modal-close" onclick={() => showEditCoursePriceModal = false}><X size={16} /></button>
 					</div>
-					<form method="POST" action="?/updateCoursePrice" use:enhance>
+					<form method="POST" action="?/updateCoursePrice" use:enhance={() => {
+						return async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') {
+								addToast('Price updated successfully', 'success');
+								showEditCoursePriceModal = false;
+							} else if (result.type === 'failure') {
+								addToast((result.data as any)?.error || 'Failed to update price', 'error');
+							}
+						};
+					}}>
 						<input type="hidden" name="courseId" value={selectedCourseForPrice.id} />
 						<div class="modal-body">
 							<div class="input-field">
@@ -3933,7 +3956,18 @@
 						<h3>Create Live Class Cohort</h3>
 						<button type="button" class="btn-modal-close" onclick={() => showCreateClassModal = false}><X size={16} /></button>
 					</div>
-					<form method="POST" action="?/createClass" use:enhance>
+					<form method="POST" action="?/createClass" use:enhance={() => {
+						return async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') {
+								addToast((result.data as any)?.message || 'Cohort batch created successfully', 'success');
+								showCreateClassModal = false;
+								newClassName = '';
+							} else if (result.type === 'failure') {
+								addToast((result.data as any)?.error || 'Failed to create cohort batch', 'error');
+							}
+						};
+					}}>
 						<div class="modal-body">
 							<p class="modal-desc">
 								Cohorts let you organize students into timed batches, reserve seats, and schedule live interactive sessions.
@@ -3989,7 +4023,18 @@
 						<h3>Invite Student with Discount</h3>
 						<button type="button" class="btn-modal-close" onclick={() => showInviteModal = false}><X size={16} /></button>
 					</div>
-					<form method="POST" action="?/inviteWithCoupon" use:enhance>
+					<form method="POST" action="?/inviteWithCoupon" use:enhance={() => {
+						return async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') {
+								addToast((result.data as any)?.message || 'Student invite generated successfully', 'success');
+								showInviteModal = false;
+								inviteEmail = '';
+							} else if (result.type === 'failure') {
+								addToast((result.data as any)?.error || 'Failed to send invite', 'error');
+							}
+						};
+					}}>
 						<div class="modal-body">
 							<p class="modal-desc">
 								Generate an exclusive single-use invite voucher for a prospective learner.
@@ -4053,7 +4098,20 @@
 						<h3>Create Promotional Coupon</h3>
 						<button type="button" class="btn-modal-close" onclick={() => showCreateCouponModal = false}><X size={16} /></button>
 					</div>
-					<form method="POST" action="?/createCoupon" use:enhance>
+					<form method="POST" action="?/createCoupon" use:enhance={() => {
+						return async ({ result, update }) => {
+							await update();
+							if (result.type === 'success') {
+								addToast((result.data as any)?.message || 'Coupon saved successfully', 'success');
+								showCreateCouponModal = false;
+								newCouponCodeInput = '';
+								newCouponValueInput = '';
+								newCouponLimitInput = '';
+							} else if (result.type === 'failure') {
+								addToast((result.data as any)?.error || 'Failed to create coupon', 'error');
+							}
+						};
+					}}>
 						<div class="modal-body">
 							<div class="input-field">
 								<label for="coupon-code">Coupon Code</label>
@@ -4065,29 +4123,39 @@
 									placeholder="e.g. FLASH50"
 									style="text-transform: uppercase;"
 									required
-									class="input-box"
+									class="input-box font-mono"
 								/>
 							</div>
 							<div class="grid grid-cols-2 gap-3">
 								<div class="input-field">
-									<label for="coupon-type">Type</label>
+									<label for="coupon-type">Discount Type</label>
 									<select id="coupon-type" name="type" bind:value={newCouponTypeInput} class="input-box">
 										<option value="percent">Percentage (% OFF)</option>
 										<option value="flat">Flat Amount (₹ OFF)</option>
 									</select>
 								</div>
 								<div class="input-field">
-									<label for="coupon-val">Value</label>
+									<label for="coupon-val">Discount Value</label>
 									<input
 										id="coupon-val"
 										type="number"
 										min="1"
 										name="value"
 										bind:value={newCouponValueInput}
-										class="input-box"
+										placeholder={newCouponTypeInput === 'flat' ? 'e.g. 6000' : 'e.g. 50'}
+										class="input-box font-mono"
 										required
 									/>
 								</div>
+							</div>
+							<div class="input-field">
+								<label for="coupon-asset">Applies To Resource / Course</label>
+								<select id="coupon-asset" name="assetId" class="input-box">
+									<option value="all">All Courses & Resources (Platform-wide)</option>
+									{#each data.teacher.courses as course}
+										<option value={course.id}>{course.title} ({course.deliveryFormat === 'live_batch' ? 'Live Cohort' : 'Self-Paced'})</option>
+									{/each}
+								</select>
 							</div>
 							<div class="input-field">
 								<label for="coupon-limit">Max Redemptions Limit (Optional)</label>
@@ -4097,14 +4165,14 @@
 									min="1"
 									name="limit"
 									bind:value={newCouponLimitInput}
-									placeholder="e.g. 50"
-									class="input-box"
+									placeholder="e.g. 50 (leave empty for unlimited)"
+									class="input-box font-mono"
 								/>
 							</div>
 						</div>
 						<div class="modal-footer">
 							<button type="button" class="btn-action secondary" onclick={() => showCreateCouponModal = false}>Cancel</button>
-							<button type="submit" class="btn-primary">Create Coupon</button>
+							<button type="submit" class="btn-primary">Save & Activate Coupon</button>
 						</div>
 					</form>
 				</div>
@@ -5305,7 +5373,11 @@
 		border-color: var(--border);
 	}
 
-	.btn-action.secondary:hover { border-color: var(--border-strong); }
+	.btn-action.secondary:hover {
+		border-color: var(--border-strong);
+		background: var(--color-surface-subtle);
+		color: #ffffff;
+	}
 
 	.action-group {
 		display: flex;
@@ -6515,10 +6587,26 @@
 		margin-bottom: 4px;
 	}
 
+	.badge-minimal {
+		display: inline-flex;
+		align-items: center;
+		padding: 2px 7px;
+		font-size: 0.6875rem;
+		font-family: var(--font-mono);
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		border-radius: 4px;
+		background: #18181b;
+		color: #a1a1aa;
+		border: 1px solid #27272a;
+	}
+
+	.badge-minimal.badge-active,
 	.badge-active {
-		background: var(--color-success-bg) !important;
-		color: var(--color-success) !important;
-		border-color: var(--color-success-border) !important;
+		background: #27272a !important;
+		color: #ffffff !important;
+		border-color: #52525b !important;
 	}
 
 	.btn-action.danger {

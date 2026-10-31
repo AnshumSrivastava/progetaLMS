@@ -3,6 +3,7 @@
 	import { Search, Plus, Trash2, MoreHorizontal, Copy } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
+	import { addToast } from '$lib/stores/toast';
 
 	let { data } = $props<{ data: PageData }>();
 
@@ -29,10 +30,15 @@
 		<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showCreateModal = false; }}>
 			<form class="modal-content" method="POST" action="?/createCoupon" use:enhance={() => {
 				isSubmitting = true;
-				return async ({ update }) => {
+				return async ({ result, update }) => {
 					await update();
 					isSubmitting = false;
-					showCreateModal = false;
+					if (result.type === 'success') {
+						addToast((result.data as any)?.message || 'Coupon saved successfully', 'success');
+						showCreateModal = false;
+					} else if (result.type === 'failure') {
+						addToast((result.data as any)?.error || 'Failed to create coupon', 'error');
+					}
 				};
 			}}>
 				<h3>Create New Coupon</h3>
@@ -54,7 +60,7 @@
 						<label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600;">Type</label>
 						<select name="type" class="modal-input" required style="margin-bottom: 0;">
 							<option value="percent">Percentage (%)</option>
-							<option value="flat">Flat Amount ($)</option>
+							<option value="flat">Flat Amount (₹)</option>
 						</select>
 					</div>
 					<div style="flex: 1;">
@@ -108,7 +114,10 @@
 						<td class="col-code">
 							<div class="code-pill">
 								{coupon.code}
-								<button class="copy-btn" title="Copy code"><Copy size={12} /></button>
+								<button class="copy-btn" title="Copy code" onclick={() => {
+									navigator.clipboard.writeText(coupon.code);
+									addToast(`Copied ${coupon.code} to clipboard`, 'info');
+								}}><Copy size={12} /></button>
 							</div>
 						</td>
 						<td><strong>{coupon.discount}</strong></td>
@@ -126,13 +135,36 @@
 							</div>
 						</td>
 						<td>
-							<span class="status-badge" class:active={coupon.status === 'Active'} class:exhausted={coupon.status === 'Exhausted'}>
-								{coupon.status}
-							</span>
+							<form method="POST" action="?/toggleCouponActive" use:enhance={() => {
+								return async ({ result, update }) => {
+									await update();
+									if (result.type === 'success') {
+										addToast('Coupon status updated', 'info');
+									}
+								};
+							}} style="display: inline;">
+								<input type="hidden" name="couponId" value={coupon.id} />
+								<button type="submit" style="background: none; border: none; padding: 0; cursor: pointer;" title="Toggle active status">
+									<span class="status-badge" class:active={coupon.status === 'Active'} class:exhausted={coupon.status === 'Exhausted'}>
+										{coupon.status}
+									</span>
+								</button>
+							</form>
 						</td>
 						<td class="col-actions">
-							<button class="action-btn text-error" title="Delete Coupon"><Trash2 size={16} /></button>
-							<button class="action-btn" title="More Options"><MoreHorizontal size={16} /></button>
+							<form method="POST" action="?/deleteCoupon" use:enhance={() => {
+								return async ({ result, update }) => {
+									await update();
+									if (result.type === 'success') {
+										addToast('Coupon deleted', 'success');
+									} else {
+										addToast('Failed to delete coupon', 'error');
+									}
+								};
+							}} style="display: inline;">
+								<input type="hidden" name="couponId" value={coupon.id} />
+								<button type="submit" class="action-btn text-error" title="Delete Coupon"><Trash2 size={16} /></button>
+							</form>
 						</td>
 					</tr>
 				{/each}
@@ -301,18 +333,23 @@
 
 	.status-badge {
 		display: inline-block;
-		padding: 4px 8px;
-		border-radius: 4px;
+		padding: 4px 10px;
+		border-radius: 9999px;
 		font-size: 0.75rem;
-		font-weight: 600;
+		font-weight: 500;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		color: var(--text-muted);
 	}
 	.status-badge.active {
-		background: rgba(16, 185, 129, 0.1);
-		color: #10b981;
+		background: #27272a;
+		border-color: #3f3f46;
+		color: #ffffff;
 	}
 	.status-badge.exhausted {
-		background: rgba(239, 68, 68, 0.1);
-		color: #ef4444;
+		background: #18181b;
+		border-color: #27272a;
+		color: #71717a;
 	}
 
 	.col-actions {
