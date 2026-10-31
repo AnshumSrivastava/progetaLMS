@@ -10,7 +10,7 @@ import {
 } from '$lib/server/db/schema/cohorts.schema';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { users, identityProfiles } from '$lib/server/db/schema/identity.schema';
-import { eq, and, sql, gte, isNull, inArray, desc, asc } from 'drizzle-orm';
+import { eq, and, sql, gte, isNull, inArray, desc, asc, or } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
 export interface SessionLinkItem {
@@ -46,17 +46,17 @@ export class CohortService {
 	 * Checks if a user has management access to a course:
 	 * Either they are the Course Admin (creator/owner of the asset),
 	 * or they are an invited collaborator (co_instructor / assistant),
-	 * or they are a platform super_admin.
+	 * or they are a platform super_admin, admin, or owner.
 	 */
 	static async canManageCourse(courseId: string, userId: string): Promise<boolean> {
 		const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
-		if (user?.role === 'super_admin' || user?.role === 'owner') return true;
+		if (user?.role === 'super_admin' || user?.role === 'owner' || user?.role === 'admin') return true;
 
 		// Check if creator/owner of the course asset (Course Admin)
 		const [asset] = await db
-			.select({ ownerId: assets.ownerId })
+			.select({ id: assets.id, ownerId: assets.ownerId })
 			.from(assets)
-			.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)))
+			.where(and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), isNull(assets.deletedAt)))
 			.limit(1);
 
 		if (asset && asset.ownerId === userId) return true;
@@ -65,7 +65,7 @@ export class CohortService {
 		const [collab] = await db
 			.select({ id: courseCollaborators.id })
 			.from(courseCollaborators)
-			.where(and(eq(courseCollaborators.courseId, courseId), eq(courseCollaborators.userId, userId)))
+			.where(and(or(eq(courseCollaborators.courseId, courseId), eq(courseCollaborators.courseId, asset?.id || '')), eq(courseCollaborators.userId, userId)))
 			.limit(1);
 
 		return !!collab;
@@ -77,12 +77,12 @@ export class CohortService {
 	 */
 	static async isCourseAdmin(courseId: string, userId: string): Promise<boolean> {
 		const [user] = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
-		if (user?.role === 'super_admin' || user?.role === 'owner') return true;
+		if (user?.role === 'super_admin' || user?.role === 'owner' || user?.role === 'admin') return true;
 
 		const [asset] = await db
 			.select({ ownerId: assets.ownerId })
 			.from(assets)
-			.where(and(eq(assets.id, courseId), isNull(assets.deletedAt)))
+			.where(and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), isNull(assets.deletedAt)))
 			.limit(1);
 
 		return asset?.ownerId === userId;

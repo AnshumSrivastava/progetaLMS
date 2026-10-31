@@ -7,6 +7,10 @@ import { fail, redirect } from '@sveltejs/kit';
 import { createId } from '@paralleldrive/cuid2';
 
 export const load: PageServerLoad = async ({ locals }) => {
+	const user = locals.user;
+	if (!user) throw redirect(302, '/sign-in');
+	const isAdmin = user.role === 'admin' || user.role === 'owner';
+
 	const allAssets = await db.select({
 		id: assets.id,
 		title: assets.title,
@@ -16,7 +20,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		currency: assets.currency
 	})
 	.from(assets)
-	.where(and(eq(assets.type, 'html'), eq(assets.ownerId, locals.user!.id), isNull(assets.deletedAt)));
+	.where(
+		isAdmin
+			? and(inArray(assets.type, ['html', 'markdown', 'pdf']), isNull(assets.deletedAt))
+			: and(inArray(assets.type, ['html', 'markdown', 'pdf']), eq(assets.ownerId, user.id), isNull(assets.deletedAt))
+	);
 
 	const assetIds = allAssets.map(a => a.id);
 	const ownershipCounts = assetIds.length > 0
@@ -97,7 +105,7 @@ export const actions: Actions = {
 	updatePrice: async ({ request, locals }) => {
 		const user = locals.user;
 		if (!user) throw redirect(302, '/sign-in');
-		if (user.role !== 'teacher' && user.role !== 'admin') {
+		if (user.role !== 'teacher' && user.role !== 'admin' && user.role !== 'owner') {
 			throw redirect(302, '/dashboard');
 		}
 
@@ -107,11 +115,12 @@ export const actions: Actions = {
 		const currency = data.get('currency')?.toString() || 'INR';
 
 		const pricePaise = Math.floor(price * 100);
+		const isAdmin = user.role === 'admin' || user.role === 'owner';
 
 		try {
 			// Verify ownership
 			const [course] = await db.select().from(assets)
-				.where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+				.where(isAdmin ? eq(assets.id, courseId) : and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
 			if (!course) return fail(403, { error: 'Unauthorized' });
 
 			await db.update(assets)
@@ -127,13 +136,14 @@ export const actions: Actions = {
 	togglePublish: async ({ request, locals }) => {
 		const user = locals.user;
 		if (!user) throw redirect(302, '/sign-in');
+		const isAdmin = user.role === 'admin' || user.role === 'owner';
 		
 		const data = await request.formData();
 		const courseId = data.get('courseId') as string;
 		
 		try {
 			const [course] = await db.select().from(assets)
-				.where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+				.where(isAdmin ? eq(assets.id, courseId) : and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
 			if (!course) return fail(403, { error: 'Unauthorized' });
 
 			const newStatus = course.status === 'published' ? 'draft' : 'published';
@@ -148,13 +158,14 @@ export const actions: Actions = {
 	deleteCourse: async ({ request, locals }) => {
 		const user = locals.user;
 		if (!user) throw redirect(302, '/sign-in');
+		const isAdmin = user.role === 'admin' || user.role === 'owner';
 		
 		const data = await request.formData();
 		const courseId = data.get('courseId') as string;
 		
 		try {
 			const [course] = await db.select().from(assets)
-				.where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+				.where(isAdmin ? eq(assets.id, courseId) : and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
 			if (!course) return fail(403, { error: 'Unauthorized' });
 
 			await db.update(assets).set({ deletedAt: new Date(), status: 'archived' }).where(eq(assets.id, courseId));

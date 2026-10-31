@@ -17,6 +17,7 @@
 
 	// Don't show layout elements on specific standalone routes (join classes, sign-in)
 	let isAuthRoute = $derived($page.url.pathname.startsWith('/join') || $page.url.pathname.startsWith('/sign-in'));
+	let isPlayerRoute = $derived($page.url.pathname.startsWith('/learn'));
 	let isDashboardRoute = $derived($page.url.pathname.startsWith('/dashboard'));
 	let isNavigating = $state(false);
 	let navTimeout: any = null;
@@ -46,18 +47,19 @@
 
 <ToastProvider />
 
-{#if isNavigating}
-	<GlobalLoadingScreen text="Loading" />
-{/if}
-
 <div class="app-layout" class:is-auth={isAuthRoute}>
-	{#if !isAuthRoute}
+	{#if !isAuthRoute && !isPlayerRoute}
 		<Navbar user={data.user} />
 	{/if}
-	<main class="main-content" class:is-dashboard={isDashboardRoute}>
+
+	{#if isNavigating}
+		<GlobalLoadingScreen text="Loading" />
+	{/if}
+
+	<main class="main-content" class:is-dashboard={isDashboardRoute} class:is-player={isPlayerRoute}>
 		{@render children()}
 	</main>
-	{#if !isAuthRoute && !isDashboardRoute}
+	{#if !isAuthRoute && !isDashboardRoute && !isPlayerRoute}
 		<Footer />
 		<MobileTabBar />
 	{/if}
@@ -88,16 +90,25 @@
 		width: 100%;
 		padding-top: var(--nav-h);
 	}
+	.main-content.is-player {
+		padding-top: 0;
+		padding-bottom: 0 !important;
+	}
 	.main-content.is-dashboard {
 		padding-top: 0;
 	}
-	@media (max-width: 900px) {
+	@media (max-width: 1024px) {
 		.main-content.is-dashboard {
 			padding-top: var(--nav-h);
 		}
 	}
+	@media (min-width: 1025px) {
+		.main-content.is-dashboard {
+			padding-top: 0;
+		}
+	}
 	@media (max-width: 768px) {
-		.main-content {
+		.main-content:not(.is-dashboard):not(.is-player) {
 			padding-bottom: 64px; /* Space for mobile tab bar */
 		}
 	}

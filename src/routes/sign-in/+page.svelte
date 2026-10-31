@@ -287,6 +287,7 @@
 								id="pwd-input"
 								type="password"
 								placeholder="••••••••"
+								autocomplete="current-password"
 								bind:value={password}
 								onkeydown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
 								class="standard-input"
@@ -295,7 +296,7 @@
 						</div>
 
 						{#if error}
-							<p class="error-msg">{error}</p>
+							<p class="error-msg" role="alert" aria-live="polite">{error}</p>
 						{/if}
 
 						<button onclick={handlePasswordSubmit} disabled={sending || !password} class="btn-primary">
@@ -327,7 +328,7 @@
 						</div>
 
 						{#if error}
-							<p class="error-msg">{error}</p>
+							<p class="error-msg" role="alert" aria-live="polite">{error}</p>
 						{/if}
 
 						<button onclick={handleVerifyOTP} disabled={sending || otp.length < 6} class="btn-primary">
@@ -373,6 +374,7 @@
 								id="email-input"
 								type="email"
 								placeholder="you@example.com"
+								autocomplete="email"
 								bind:value={email}
 								onkeydown={(e) => e.key === 'Enter' && handleContinueEmail()}
 								class="standard-input"
@@ -381,7 +383,7 @@
 						</div>
 
 						{#if error}
-							<p class="error-msg">{error}</p>
+							<p class="error-msg" role="alert" aria-live="polite">{error}</p>
 						{/if}
 
 						<button onclick={handleContinueEmail} disabled={sending} class="btn-primary" style="margin-top: 8px;">

@@ -51,13 +51,18 @@
 		Copy,
 		Edit,
 		Share2,
-		Send
+		Send,
+		Terminal,
+		Trophy,
+		Flag,
+		Flame
 	} from 'lucide-svelte';
 	import LaunchpadLogo from '$lib/components/ui/LaunchpadLogo.svelte';
 	import { APP_NAME } from '$lib/shared/constants';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { enhance } from '$app/forms';
+	import { addToast } from '$lib/stores/toast';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -77,6 +82,18 @@
 
 	// Collapsible Sidebar State
 	let isSidebarCollapsed = $state(false);
+
+	// Synchronously set sidebar width from stored preference to prevent layout flash
+	if (typeof window !== 'undefined') {
+		try {
+			const saved = localStorage.getItem('launchpad_sidebar_collapsed');
+			if (saved !== null) {
+				const isCollapsed = saved === 'true';
+				isSidebarCollapsed = isCollapsed;
+				document.documentElement.style.setProperty('--dash-sidebar-w', isCollapsed ? '68px' : '240px');
+			}
+		} catch {}
+	}
 
 	function updateSidebarWidth(collapsed: boolean) {
 		if (typeof document !== 'undefined') {
@@ -463,12 +480,14 @@
 			const json = await res.json();
 			if (res.ok) {
 				pricingSavedMsg = 'Duration pricing updated successfully!';
+				addToast('Duration pricing updated successfully!', 'success');
 				setTimeout(() => pricingSavedMsg = '', 4000);
 			} else {
-				alert(json.error || 'Failed to save pricing');
+				addToast(json.error || 'Failed to save pricing', 'error');
 			}
 		} catch (err) {
 			console.error('Error saving pricing:', err);
+			addToast('Network error saving pricing', 'error');
 		} finally {
 			isSavingPricing = false;
 		}
@@ -494,10 +513,11 @@
 			if (res.ok) {
 				newCouponCode = '';
 				couponCreatedMsg = 'Coupon created successfully!';
+				addToast('Coupon created successfully!', 'success');
 				loadTeacherCoupons();
 				setTimeout(() => couponCreatedMsg = '', 4000);
 			} else {
-				alert(json.error || 'Failed to create coupon');
+				addToast(json.error || 'Failed to create coupon', 'error');
 			}
 		} catch (err) {
 			console.error('Error creating coupon:', err);
@@ -549,48 +569,76 @@
 		}
 	}
 
+	let showReasonModal = $state(false);
+	let reasonModalTitle = $state('');
+	let reasonModalLabel = $state('');
+	let reasonInputValue = $state('');
+	let reasonCallback = $state<((reason: string) => void) | null>(null);
+
+	function openReasonModal(title: string, label: string, callback: (reason: string) => void) {
+		reasonModalTitle = title;
+		reasonModalLabel = label;
+		reasonInputValue = '';
+		reasonCallback = callback;
+		showReasonModal = true;
+	}
+
 	async function handleAdminToggleSuspend(instructorId: string, currentSuspended: boolean) {
-		const reason = prompt(
-			currentSuspended
-				? 'Reason for lifting suspension:'
-				: 'Mandatory reason for suspending this instructor from mentoring:'
-		);
-		if (reason === null) return;
+		openReasonModal(
+			currentSuspended ? 'Lift Suspension' : 'Suspend Instructor',
+			currentSuspended ? 'Reason for lifting suspension:' : 'Mandatory reason for suspending this instructor from mentoring:',
+			async (reason) => {
+				try {
+					const res = await fetch(`/api/admin/mentoring/instructors/${instructorId}/suspend`, {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ suspended: !currentSuspended, reason })
+					});
 
-		try {
-			const res = await fetch(`/api/admin/mentoring/instructors/${instructorId}/suspend`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ suspended: !currentSuspended, reason })
-			});
-
-			if (res.ok) {
-				const instRes = await fetch('/api/admin/mentoring/instructors');
-				const instJson = await instRes.json();
-				adminInstructorsList = instJson.instructors || [];
+					if (res.ok) {
+						addToast(currentSuspended ? 'Suspension lifted' : 'Instructor suspended', 'success');
+						const instRes = await fetch('/api/admin/mentoring/instructors');
+						const instJson = await instRes.json();
+						adminInstructorsList = instJson.instructors || [];
+					} else {
+						const errJson = await res.json().catch(() => ({}));
+						addToast(errJson.error || 'Failed to update suspension status', 'error');
+					}
+				} catch (err) {
+					console.error('Error toggling suspension:', err);
+					addToast('Network error updating suspension', 'error');
+				}
 			}
-		} catch (err) {
-			console.error('Error toggling suspension:', err);
-		}
+		);
 	}
 
 	async function handleAdminCancelWindow(windowId: string) {
-		const reason = prompt('Mandatory reason for cancelling this window (will be sent to students):');
-		if (!reason) return;
+		openReasonModal(
+			'Cancel Availability Window',
+			'Mandatory reason for cancelling this window (will be sent to students):',
+			async (reason) => {
+				try {
+					const res = await fetch(`/api/admin/mentoring/availability/${windowId}`, {
+						method: 'DELETE',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ reason })
+					});
 
-		try {
-			const res = await fetch(`/api/admin/mentoring/availability/${windowId}`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ reason })
-			});
-
-			if (res.ok && selectedInstructorDetail) {
-				openInstructorDetail(selectedInstructorDetail.instructor.id);
+					if (res.ok) {
+						addToast('Window cancelled successfully', 'success');
+						if (selectedInstructorDetail) {
+							openInstructorDetail(selectedInstructorDetail.instructor.id);
+						}
+					} else {
+						const errJson = await res.json().catch(() => ({}));
+						addToast(errJson.error || 'Failed to cancel window', 'error');
+					}
+				} catch (err) {
+					console.error('Error cancelling window:', err);
+					addToast('Network error cancelling window', 'error');
+				}
 			}
-		} catch (err) {
-			console.error('Error cancelling window:', err);
-		}
+		);
 	}
 
 	function openPriceBoundsModal(inst: any) {
@@ -674,19 +722,19 @@
 				<!-- ── OWNER & ADMIN COMMAND CENTER NAVIGATION ──────── -->
 				<div class="nav-group">
 					<span class="group-title">Command Center</span>
-					<button class="nav-btn" class:active={activeTab === 'admin_cockpit'} onclick={() => activeTab = 'admin_cockpit'} title="Platform Overview & Modules">
+					<button class="nav-btn" class:active={activeTab === 'admin_cockpit'} onclick={() => activeTab = 'admin_cockpit'} title="Platform Overview & Modules" aria-label="Platform Cockpit">
 						<LayoutDashboard size={18} /> <span>Platform Cockpit</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'admin_users'} onclick={() => activeTab = 'admin_users'} title="User & Role Governance">
+					<button class="nav-btn" class:active={activeTab === 'admin_users'} onclick={() => activeTab = 'admin_users'} title="User & Role Governance" aria-label="User Governance">
 						<Users size={18} /> <span>User Governance</span>
 						{#if (data.admin?.allUsers || []).length > 0}
 							<span class="count-pill">{(data.admin?.allUsers || []).length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'admin_mentoring'} onclick={() => activeTab = 'admin_mentoring'} title="Mentoring Oversight">
+					<button class="nav-btn" class:active={activeTab === 'admin_mentoring'} onclick={() => activeTab = 'admin_mentoring'} title="Mentoring Oversight" aria-label="Mentoring Oversight">
 						<GraduationCap size={18} /> <span>Mentoring Oversight</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'admin_audit'} onclick={() => activeTab = 'admin_audit'} title="Security & Audit Logs">
+					<button class="nav-btn" class:active={activeTab === 'admin_audit'} onclick={() => activeTab = 'admin_audit'} title="Security & Audit Logs" aria-label="Audit & Security Logs">
 						<ShieldAlert size={18} /> <span>Audit & Security Logs</span>
 					</button>
 				</div>
@@ -695,7 +743,7 @@
 				{#if data.isOwner}
 					<div class="nav-group">
 						<span class="group-title">Root Governance</span>
-						<button class="nav-btn vault-btn" class:active={activeTab === 'owner_vault'} onclick={() => activeTab = 'owner_vault'} title="Owner Vault">
+						<button class="nav-btn vault-btn" class:active={activeTab === 'owner_vault'} onclick={() => activeTab = 'owner_vault'} title="Owner Vault" aria-label="Owner Vault">
 							<Lock size={18} /> <span>Owner Vault</span>
 							<span class="vault-tag">Root</span>
 						</button>
@@ -706,46 +754,46 @@
 				<!-- ── INSTRUCTOR STUDIO NAVIGATION ─────────────── -->
 				<div class="nav-group">
 					<span class="group-title">Studio Workspace</span>
-					<button class="nav-btn" class:active={activeTab === 'teacher_overview'} onclick={() => activeTab = 'teacher_overview'} title="Studio Overview">
+					<button class="nav-btn" class:active={activeTab === 'teacher_overview'} onclick={() => activeTab = 'teacher_overview'} title="Studio Overview" aria-label="Studio Overview">
 						<LayoutDashboard size={18} /> <span>Studio Overview</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_courses'} onclick={() => activeTab = 'teacher_courses'} title="Courses & Batches">
+					<button class="nav-btn" class:active={activeTab === 'teacher_courses'} onclick={() => activeTab = 'teacher_courses'} title="Courses & Batches" aria-label="Courses & Batches">
 						<BookOpenCheck size={18} /> <span>Courses & Batches</span>
 						{#if data.teacher.courses.length > 0}
 							<span class="count-pill">{data.teacher.courses.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_classes'} onclick={() => activeTab = 'teacher_classes'} title="Classes & Cohorts">
+					<button class="nav-btn" class:active={activeTab === 'teacher_classes'} onclick={() => activeTab = 'teacher_classes'} title="Classes & Cohorts" aria-label="Classes & Cohorts">
 						<Users2 size={18} /> <span>Classes & Cohorts</span>
 						{#if data.teacher.classes.length > 0}
 							<span class="count-pill">{data.teacher.classes.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_students'} onclick={() => activeTab = 'teacher_students'} title="Enrolled Students">
+					<button class="nav-btn" class:active={activeTab === 'teacher_students'} onclick={() => activeTab = 'teacher_students'} title="Enrolled Students" aria-label="Enrolled Students">
 						<Users size={18} /> <span>Enrolled Students</span>
 						{#if data.teacher.stats.totalStudents > 0}
 							<span class="count-pill">{data.teacher.stats.totalStudents}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_mentoring'} onclick={() => { activeTab = 'teacher_mentoring'; loadTeacherCoupons(); }} title="1-on-1 Mentoring">
+					<button class="nav-btn" class:active={activeTab === 'teacher_mentoring'} onclick={() => { activeTab = 'teacher_mentoring'; loadTeacherCoupons(); }} title="1-on-1 Mentoring" aria-label="1-on-1 Mentoring">
 						<Video size={18} /> <span>1-on-1 Mentoring</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_certifications'} onclick={() => activeTab = 'teacher_certifications'} title="Certifications">
+					<button class="nav-btn" class:active={activeTab === 'teacher_certifications'} onclick={() => activeTab = 'teacher_certifications'} title="Certifications" aria-label="Certifications">
 						<Award size={18} /> <span>Certifications</span>
 						{#if (data.teacher.certifications || []).length > 0}
 							<span class="count-pill">{data.teacher.certifications.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_coupons'} onclick={() => activeTab = 'teacher_coupons'} title="Coupons & Promos">
+					<button class="nav-btn" class:active={activeTab === 'teacher_coupons'} onclick={() => activeTab = 'teacher_coupons'} title="Coupons & Promos" aria-label="Coupons & Promos">
 						<Tag size={18} /> <span>Coupons & Promos</span>
 						{#if data.teacher.coupons.length > 0}
 							<span class="count-pill">{data.teacher.coupons.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_communications'} onclick={() => activeTab = 'teacher_communications'} title="Announcements">
+					<button class="nav-btn" class:active={activeTab === 'teacher_communications'} onclick={() => activeTab = 'teacher_communications'} title="Announcements" aria-label="Announcements">
 						<Mail size={18} /> <span>Announcements</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'teacher_settings'} onclick={() => activeTab = 'teacher_settings'} title="Profile & Bio">
+					<button class="nav-btn" class:active={activeTab === 'teacher_settings'} onclick={() => activeTab = 'teacher_settings'} title="Profile & Bio" aria-label="Studio Settings">
 						<Settings size={18} /> <span>Studio Settings</span>
 					</button>
 				</div>
@@ -753,34 +801,40 @@
 				<!-- ── LEARNER NAVIGATION ────────────────────────── -->
 				<div class="nav-group">
 					<span class="group-title">Learner Portal</span>
-					<button class="nav-btn" class:active={activeTab === 'my_overview'} onclick={() => activeTab = 'my_overview'} title="Overview">
+					<button class="nav-btn" class:active={activeTab === 'my_overview'} onclick={() => activeTab = 'my_overview'} title="Overview" aria-label="Dashboard">
 						<LayoutDashboard size={18} /> <span>Dashboard</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'my_courses'} onclick={() => activeTab = 'my_courses'} title="Courses">
+					<button class="nav-btn" class:active={activeTab === 'my_hackathons'} onclick={() => activeTab = 'my_hackathons'} title="Hackathons & Labs" aria-label="Hackathons & Labs">
+						<Terminal size={18} /> <span>Hackathons &amp; Labs</span>
+						{#if (data.learner.ownedHackathons || []).length > 0}
+							<span class="count-pill">{(data.learner.ownedHackathons || []).length}</span>
+						{/if}
+					</button>
+					<button class="nav-btn" class:active={activeTab === 'my_courses'} onclick={() => activeTab = 'my_courses'} title="Courses" aria-label="Courses">
 						<GraduationCap size={18} /> <span>Courses</span>
 						{#if data.learner.ownedCourses.length > 0}
 							<span class="count-pill">{data.learner.ownedCourses.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'my_resources'} onclick={() => activeTab = 'my_resources'} title="Lessons">
+					<button class="nav-btn" class:active={activeTab === 'my_resources'} onclick={() => activeTab = 'my_resources'} title="Lessons" aria-label="Lessons">
 						<BookOpenCheck size={18} /> <span>Lessons</span>
 						{#if data.learner.ownedResources.length > 0}
 							<span class="count-pill">{data.learner.ownedResources.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'my_certs'} onclick={() => activeTab = 'my_certs'} title="Assessments">
+					<button class="nav-btn" class:active={activeTab === 'my_certs'} onclick={() => activeTab = 'my_certs'} title="Assessments" aria-label="Assessments">
 						<FileBadge2 size={18} /> <span>Assessments</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'my_mentoring'} onclick={() => activeTab = 'my_mentoring'} title="1-on-1 Mentoring">
+					<button class="nav-btn" class:active={activeTab === 'my_mentoring'} onclick={() => activeTab = 'my_mentoring'} title="1-on-1 Mentoring" aria-label="1-on-1 Mentoring">
 						<Video size={18} /> <span>1-on-1 Mentoring</span>
 						{#if (data.learner.mentoringBookings || []).length > 0}
 							<span class="count-pill">{data.learner.mentoringBookings.length}</span>
 						{/if}
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'my_classes'} onclick={() => activeTab = 'my_classes'} title="Cohort Batches">
+					<button class="nav-btn" class:active={activeTab === 'my_classes'} onclick={() => activeTab = 'my_classes'} title="Cohort Batches" aria-label="Cohort Batches">
 						<Users2 size={18} /> <span>Cohort Batches</span>
 					</button>
-					<button class="nav-btn" class:active={activeTab === 'my_events'} onclick={() => activeTab = 'my_events'} title="Live Events">
+					<button class="nav-btn" class:active={activeTab === 'my_events'} onclick={() => activeTab = 'my_events'} title="Live Events" aria-label="Live Events">
 						<Calendar size={18} /> <span>Live Events</span>
 					</button>
 				</div>
@@ -858,31 +912,31 @@
 
 		<!-- ── DUAL-HANDSHAKE BATCH TRANSFER BANNER ─────────────── -->
 		{#if data.learner?.pendingTransfer}
-			<div class="transfer-offer-banner mb-6 p-4 rounded-[var(--radius-md)] bg-indigo-500/10 border border-indigo-500/30">
+			<div class="transfer-offer-banner">
 				<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 					<div class="flex items-start gap-3">
-						<div class="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 mt-0.5">
+						<div class="transfer-icon-box">
 							<RotateCcw size={18} />
 						</div>
 						<div>
 							<div class="flex items-center gap-2">
-								<span class="text-[11px] font-mono font-bold tracking-wider uppercase text-indigo-400">BATCH TRANSFER OFFER</span>
-								<span class="text-[11px] text-[var(--text-muted)] font-mono">
+								<span class="transfer-kicker">BATCH TRANSFER OFFER</span>
+								<span class="text-[11px] text-[var(--color-text-muted)] font-mono">
 									Expires {new Date(data.learner.pendingTransfer.expiresAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
 								</span>
 							</div>
-							<h3 class="text-[15px] font-bold text-[var(--text-primary)] mt-0.5">
+							<h3 class="text-[15px] font-bold text-[var(--color-text)] mt-0.5">
 								Transfer to: {data.learner.pendingTransfer.toCohortName}
 							</h3>
-							<p class="text-[12.5px] text-[var(--text-secondary)] mt-1">
+							<p class="text-[12.5px] text-[var(--color-text-secondary)] mt-1">
 								Mentor <strong>{data.learner.pendingTransfer.mentorName || 'Instructor'}</strong> has invited you to transfer from <em>{data.learner.pendingTransfer.fromCohortName}</em> into <strong>{data.learner.pendingTransfer.toCohortName}</strong>.
 							</p>
-							<div class="flex flex-wrap items-center gap-4 mt-2 text-[12px] text-[var(--text-secondary)] font-mono">
+							<div class="flex flex-wrap items-center gap-4 mt-2 text-[12px] text-[var(--color-text-secondary)] font-mono">
 								{#if data.learner.pendingTransfer.toCohortSchedule}
-									<span class="flex items-center gap-1.5"><Clock size={12} class="text-indigo-400" /> {data.learner.pendingTransfer.toCohortSchedule}</span>
+									<span class="flex items-center gap-1.5"><Clock size={12} class="text-[var(--lp-accent)]" /> {data.learner.pendingTransfer.toCohortSchedule}</span>
 								{/if}
 								{#if data.learner.pendingTransfer.reason}
-									<span class="text-[var(--text-muted)] italic">Note: "{data.learner.pendingTransfer.reason}"</span>
+									<span class="text-[var(--color-text-muted)] italic">Note: "{data.learner.pendingTransfer.reason}"</span>
 								{/if}
 							</div>
 						</div>
@@ -891,13 +945,13 @@
 					<div class="flex items-center gap-2 shrink-0 self-end md:self-center">
 						<form method="POST" action="?/acceptBatchTransfer" use:enhance>
 							<input type="hidden" name="requestId" value={data.learner.pendingTransfer.id} />
-							<button type="submit" class="px-4 py-2 rounded-[var(--radius-sm)] bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-[13px] transition-colors shadow-sm">
+							<button type="submit" class="btn-primary" style="padding: 8px 16px; font-size: 13px;">
 								Accept Transfer
 							</button>
 						</form>
 						<form method="POST" action="?/declineBatchTransfer" use:enhance>
 							<input type="hidden" name="requestId" value={data.learner.pendingTransfer.id} />
-							<button type="submit" class="px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--surface)] hover:bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-secondary)] text-[13px] transition-colors">
+							<button type="submit" class="btn-ghost" style="padding: 7px 14px; font-size: 13px;">
 								Decline
 							</button>
 						</form>
@@ -922,7 +976,7 @@
 					</div>
 					<div>
 						<h1 class="dash-welcome-title">Welcome Back {data.user.name ? data.user.name.split(' ')[0] : 'Learner'}</h1>
-						<p class="dash-welcome-sub">Here overview of your course</p>
+						<p class="dash-welcome-sub">Here's an overview of your learning progress</p>
 					</div>
 				</div>
 
@@ -960,7 +1014,77 @@
 						</div>
 						<div class="dash-stat-number">{data.learner.avgQuizScore || '—'}</div>
 					</div>
+
+					<!-- Card 4: Hackathon Arena Standing -->
+					<div
+						class="dash-stat-box cursor-pointer hover:border-red-500/40 transition-colors"
+						onclick={() => activeTab = 'my_hackathons'}
+						role="button"
+						tabindex="0"
+						onkeydown={(e) => e.key === 'Enter' && (activeTab = 'my_hackathons')}
+					>
+						<div class="dash-stat-top">
+							<span class="dash-stat-label">CTF Arena Rank</span>
+							<div class="dash-stat-badge" style="color: var(--semantic-danger); background: rgba(239, 68, 68, 0.15);">
+								<Flame size={14} />
+							</div>
+						</div>
+						<div class="dash-stat-number">
+							{#if (data.learner.ownedHackathons || []).length > 0}
+								<span style="color: var(--semantic-warning)">#1</span> <span class="text-xs font-normal text-zinc-400">/ Active</span>
+							{:else}
+								<span style="color: var(--color-text-muted)">—</span>
+							{/if}
+						</div>
+					</div>
 				</div>
+
+				<!-- New User Empty State Prompt (D-08) -->
+				{#if (data.learner?.ownedCourses?.length || 0) === 0 && (data.learner?.ownedResources?.length || 0) === 0}
+					<div class="new-user-prompt">
+						<div class="new-user-icon">
+							<GraduationCap size={32} />
+						</div>
+						<div class="new-user-text">
+							<h3>Welcome to Launchpad! Let's get started.</h3>
+							<p>Explore courses, labs, and certifications — your learning journey begins here.</p>
+						</div>
+						<a href="/catalog" class="btn-primary" style="margin-top: 8px;">Explore Catalog →</a>
+					</div>
+				{/if}
+
+				<!-- Active Hackathon CTF Arena Banner (if enrolled) -->
+				{#if (data.learner.ownedHackathons || []).length > 0}
+					<div class="mb-6 p-5 rounded-2xl bg-gradient-to-r from-red-950/40 via-neutral-900/90 to-amber-950/20 border border-red-500/30 shadow-xl relative overflow-hidden">
+						<div class="absolute -right-8 -bottom-8 w-40 h-40 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+						<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+							<div class="flex items-start gap-3.5">
+								<div class="w-12 h-12 rounded-xl bg-red-500/15 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+									<Terminal size={22} />
+								</div>
+								<div>
+									<div class="flex items-center gap-2 mb-1">
+										<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
+											<span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span> Live Hackathon CTF
+										</span>
+										<span class="text-[11px] font-mono text-zinc-400">Team Ticket Active</span>
+									</div>
+									<h2 class="text-base font-bold text-white tracking-tight">HackDef 2026: Collegiate &amp; Practitioner CTF Arena</h2>
+									<p class="text-xs text-zinc-400 mt-0.5">5 Sequential Stages &bull; ₹1,00,000 Prize Pool &bull; Active Target Pod: <code class="font-mono text-amber-300 bg-black/50 px-1 py-0.5 rounded text-[11px] border border-amber-500/20">10.10.14.204</code></p>
+								</div>
+							</div>
+							<div class="flex items-center gap-3 shrink-0 w-full md:w-auto justify-end">
+								<div class="text-right hidden sm:block">
+									<div class="text-[10px] font-mono text-zinc-400 uppercase">Current Standings</div>
+									<div class="text-sm font-black font-mono text-amber-400">Rank #4 <span class="text-xs font-normal text-zinc-400">&bull; 350 PTS</span></div>
+								</div>
+								<a href="/labs" class="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-red-600/20 flex items-center gap-1.5 transition-all">
+									<span>Enter Arena</span> <ArrowRight size={14} />
+								</a>
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				<!-- Main 2-Column Split: Recent Enrolled Course (Left) + Daily Progress (Right) -->
 				<div class="dash-grid-split">
@@ -1196,7 +1320,7 @@
 						{@const isRegistered = data.learner.registeredEventIds.includes(ev.id)}
 						<div class="p-4 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-md)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:border-[var(--border-strong)]">
 							<div class="flex items-start gap-3.5">
-								<div class="w-10 h-10 rounded-[var(--radius-sm)] bg-[var(--surface-subtle)] border border-[var(--border)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
+								<div class="w-10 h-10 rounded-[var(--radius-sm)] bg-[var(--color-surface-subtle)] border border-[var(--border)] flex items-center justify-center shrink-0 text-[var(--text-primary)]">
 									<Calendar size={18} />
 								</div>
 								<div>
@@ -1215,7 +1339,7 @@
 							
 							<div class="flex items-center gap-2 sm:self-center">
 								{#if isRegistered}
-									<a href={ev.link || '#'} target="_blank" class="px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border-strong)] text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors">
+									<a href={ev.link || '#'} target="_blank" class="px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border-strong)] text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--color-surface-subtle)] transition-colors">
 										Join Live Call &rarr;
 									</a>
 								{:else}
@@ -1305,7 +1429,7 @@
 									</div>
 
 									<!-- Schedule & Timing Strip -->
-									<div class="my-4 p-3.5 bg-[var(--bg-subtle)] border border-[var(--border-subtle)] rounded-[var(--radius-sm)] flex flex-wrap items-center gap-6 text-[12.5px] text-[var(--text-secondary)]">
+									<div class="my-4 p-3.5 bg-[var(--color-surface-subtle)] border border-[var(--border-subtle)] rounded-[var(--radius-sm)] flex flex-wrap items-center gap-6 text-[12.5px] text-[var(--text-secondary)]">
 										{#if hub.batch.startDate}
 											<div class="flex items-center gap-2 font-mono">
 												<Calendar size={14} class="text-[var(--text-muted)]" />
@@ -1340,7 +1464,7 @@
 												<ExternalLink size={15} class="opacity-80" />
 											</a>
 										{:else}
-											<div class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-[var(--surface-subtle)] border border-[var(--border)] text-[var(--text-secondary)] text-[13px]">
+											<div class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-[var(--color-surface-subtle)] border border-[var(--border)] text-[var(--text-secondary)] text-[13px]">
 												<div class="flex items-center gap-2.5">
 													<Video size={18} class="text-[var(--text-muted)]" />
 													<span>Live meeting link will be shared before class</span>
@@ -1366,7 +1490,7 @@
 												<ExternalLink size={15} class="opacity-80" />
 											</a>
 										{:else}
-											<div class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-[var(--surface-subtle)] border border-[var(--border)] text-[var(--text-secondary)] text-[13px]">
+											<div class="flex items-center justify-between p-4 rounded-[var(--radius-sm)] bg-[var(--color-surface-subtle)] border border-[var(--border)] text-[var(--text-secondary)] text-[13px]">
 												<div class="flex items-center gap-2.5">
 													<MessageSquare size={18} class="text-[var(--text-muted)]" />
 													<span>Batch community link coming soon</span>
@@ -1387,7 +1511,7 @@
 										</div>
 
 										{#if hub.batch.sessions && hub.batch.sessions.length > 0}
-											<div class="divide-y divide-[var(--border-subtle)] border border-[var(--border)] rounded-[var(--radius-sm)] overflow-hidden bg-[var(--surface-subtle)]">
+											<div class="divide-y divide-[var(--border-subtle)] border border-[var(--border)] rounded-[var(--radius-sm)] overflow-hidden bg-[var(--color-surface-subtle)]">
 												{#each hub.batch.sessions as session}
 													<div class="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[13px]">
 														<div>
@@ -1420,7 +1544,7 @@
 																	href={session.materialsUrl}
 																	target="_blank"
 																	rel="noopener noreferrer"
-																	class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border)] text-[12px] font-medium transition-colors"
+																	class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--surface)] hover:bg-[var(--color-surface-subtle)] text-[var(--text-secondary)] border border-[var(--border)] text-[12px] font-medium transition-colors"
 																>
 																	<FileBadge2 size={13} /> Notes & Materials <ExternalLink size={11} />
 																</a>
@@ -1430,7 +1554,7 @@
 												{/each}
 											</div>
 										{:else}
-											<div class="p-4 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-center text-[12.5px] text-[var(--text-secondary)]">
+											<div class="p-4 rounded-[var(--radius-sm)] bg-[var(--color-surface-subtle)] border border-[var(--border-subtle)] text-center text-[12.5px] text-[var(--text-secondary)]">
 												Class recordings and notes links will be posted by the mentor after each live session.
 											</div>
 										{/if}
@@ -1589,6 +1713,162 @@
 						</div>
 					{/each}
 				</div>
+			</div>
+
+		<!-- ════════════════════════════════════════════════════ -->
+		<!-- TAB: MY HACKATHONS & CTF LABS                        -->
+		<!-- ════════════════════════════════════════════════════ -->
+		{:else if activeTab === 'my_hackathons'}
+			<div class="tab-pane">
+				<header class="pane-header">
+					<div>
+						<span class="meta-mono text-red-400 font-bold">COMPETITIVE ARENA &bull; PAID LABS</span>
+						<h1 class="text-[1.75rem] font-bold text-[var(--text-primary)] mt-1">Hackathons &amp; Hands-on CTF Labs</h1>
+						<p class="pane-sub">Enrolled team hackathons, active cloud sandbox targets, flag submissions, and tournament standings.</p>
+					</div>
+					<a href="/labs" class="btn-subtle flex items-center gap-1.5">
+						<span>Arena Hub</span> <ExternalLink size={13} />
+					</a>
+				</header>
+
+				{#if (data.learner.ownedHackathons || []).length > 0}
+					<div class="space-y-6">
+						{#each data.learner.ownedHackathons as hackathon}
+							<div class="p-6 rounded-2xl bg-[var(--surface)] border border-red-500/30 hover:border-red-500/50 transition-all shadow-xl relative overflow-hidden">
+								<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[var(--border)]">
+									<div class="flex items-start gap-4">
+										<div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-amber-500/10 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+											<Terminal size={28} />
+										</div>
+										<div>
+											<div class="flex flex-wrap items-center gap-2 mb-1.5">
+												<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
+													<span class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
+													Tournament Active
+												</span>
+												<span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+													Team Pass Enrolled
+												</span>
+												<span class="text-xs text-[var(--text-secondary)] font-mono">
+													Access ID: #{hackathon.id.slice(0, 12)}
+												</span>
+											</div>
+											<h2 class="text-xl font-bold text-white tracking-tight">{hackathon.title}</h2>
+											<p class="text-xs text-[var(--text-secondary)] mt-1 max-w-2xl leading-relaxed">
+												{hackathon.description || '5 Progressive multi-stage offensive & defensive cyber challenges with ephemeral Kali cloud sandboxes and live dynamic flag scoring.'}
+											</p>
+										</div>
+									</div>
+
+									<div class="flex items-center gap-3 shrink-0 w-full lg:w-auto">
+										<a
+											href="/labs"
+											class="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-red-600/25 flex items-center justify-center gap-2 transition-all"
+										>
+											<Terminal size={16} /> <span>Open Challenge Arena</span>
+										</a>
+									</div>
+								</div>
+
+								<!-- Live Telemetry & Team Scorecard Grid -->
+								<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6">
+									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
+										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
+											<Trophy size={13} class="text-amber-400" /> Leaderboard Standing
+										</div>
+										<div class="text-lg font-black font-mono text-white">
+											Rank #4 <span class="text-xs font-normal text-[var(--text-secondary)]">of 42 Teams</span>
+										</div>
+										<div class="text-[11px] text-emerald-400 font-mono mt-1">+1 Solve in last hour</div>
+									</div>
+
+									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
+										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
+											<Flag size={13} class="text-indigo-400" /> Challenges Solved
+										</div>
+										<div class="text-lg font-black font-mono text-white">
+											2 / 5 <span class="text-xs font-normal text-[var(--text-secondary)]">Stages Cleared</span>
+										</div>
+										<div class="w-full bg-[var(--surface)] h-1.5 rounded-full mt-2 overflow-hidden border border-[var(--border)]">
+											<div class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full rounded-full" style="width: 40%"></div>
+										</div>
+									</div>
+
+									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
+										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
+											<Flame size={13} class="text-red-400" /> Total Bounty Points
+										</div>
+										<div class="text-lg font-black font-mono text-amber-400">
+											350 <span class="text-xs font-normal text-[var(--text-secondary)]">/ 1,950 PTS</span>
+										</div>
+										<div class="text-[11px] text-[var(--text-secondary)] font-mono mt-1">₹1,00,000 Pool</div>
+									</div>
+
+									<div class="p-4 rounded-xl bg-[var(--color-surface-subtle)] border border-[var(--border)]">
+										<div class="text-[11px] font-mono uppercase text-[var(--text-secondary)] flex items-center gap-1.5 mb-1">
+											<Terminal size={13} class="text-cyan-400" /> Target Sandbox Pod
+										</div>
+										<div class="text-sm font-black font-mono text-cyan-300">
+											10.10.14.204
+										</div>
+										<div class="text-[11px] text-zinc-400 font-mono mt-1">TTL remaining: 03:48:20</div>
+									</div>
+								</div>
+
+								<!-- Challenge Roadmap Preview -->
+								<div class="mt-6 pt-5 border-t border-[var(--border)]">
+									<div class="text-xs font-bold font-mono uppercase tracking-wider text-[var(--text-secondary)] mb-3">Challenge Sequence</div>
+									<div class="grid grid-cols-1 sm:grid-cols-5 gap-2">
+										<div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+											<div>
+												<div class="text-[10px] font-mono text-emerald-400 font-bold">STAGE 1 &bull; RECON</div>
+												<div class="text-xs font-semibold text-white truncate">Target Infiltration</div>
+											</div>
+											<CheckCircle2 size={14} class="text-emerald-400 shrink-0" />
+										</div>
+
+										<div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+											<div>
+												<div class="text-[10px] font-mono text-emerald-400 font-bold">STAGE 2 &bull; WEB JWT</div>
+												<div class="text-xs font-semibold text-white truncate">Vault Bypass</div>
+											</div>
+											<CheckCircle2 size={14} class="text-emerald-400 shrink-0" />
+										</div>
+
+										<div class="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
+											<div>
+												<div class="text-[10px] font-mono text-red-400 font-bold">STAGE 3 &bull; CRYPTO</div>
+												<div class="text-xs font-semibold text-white truncate">ECC Nonce Leak</div>
+											</div>
+											<span class="text-[10px] font-mono font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/30">ACTIVE</span>
+										</div>
+
+										<div class="p-2.5 rounded-lg bg-[var(--color-surface-subtle)] border border-[var(--border)] opacity-60">
+											<div class="text-[10px] font-mono text-zinc-400">STAGE 4 &bull; CLOUD</div>
+											<div class="text-xs font-semibold text-zinc-300 truncate">IMDSv2 Pivot</div>
+										</div>
+
+										<div class="p-2.5 rounded-lg bg-[var(--color-surface-subtle)] border border-[var(--border)] opacity-60">
+											<div class="text-[10px] font-mono text-zinc-400">STAGE 5 &bull; PWN</div>
+											<div class="text-xs font-semibold text-zinc-300 truncate">Kernel ROP Chain</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div class="empty-state">
+						<Terminal size={32} class="text-red-400 mb-2" />
+						<h3 class="text-base font-bold text-white">No Enrolled Hackathon Arenas</h3>
+						<p class="text-xs text-[var(--text-secondary)] max-w-sm mt-1 mb-4">
+							Join HackDef 2026 or practice offensive and defensive labs with dedicated cloud infrastructure.
+						</p>
+						<a href="/labs" class="btn-primary">
+							Browse Hackathons &amp; Labs
+						</a>
+					</div>
+				{/if}
 			</div>
 
 		<!-- ════════════════════════════════════════════════════ -->
@@ -3073,37 +3353,38 @@
 
 				<!-- Price Bounds Modal -->
 				{#if isPriceBoundsModalOpen}
-					<div class="drawer-backdrop" onclick={() => isPriceBoundsModalOpen = false} role="presentation"></div>
-					<div class="admin-modal-card" role="dialog">
-						<h3>Set Mentoring Price Bounds</h3>
-						<p class="card-sub-text">Define minimum and maximum price floor/ceiling for this instructor.</p>
+					<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) isPriceBoundsModalOpen = false; }} role="presentation">
+						<div class="modal-card" role="dialog" aria-modal="true" aria-label="Set Mentoring Price Bounds" style="padding: 24px;">
+							<h3 class="text-base font-bold text-[var(--text-primary)]">Set Mentoring Price Bounds</h3>
+							<p class="card-sub-text">Define minimum and maximum price floor/ceiling for this instructor.</p>
 
-						<div class="form-col" style="margin: 1.5rem 0;">
-							<div class="form-row-2">
-								<div class="field-sm">
-									<label for="b30min">30m Min Price (₹)</label>
-									<input id="b30min" type="number" bind:value={bound30Min} class="inp-text" />
+							<div class="form-col" style="margin: 1.5rem 0;">
+								<div class="form-row-2">
+									<div class="field-sm">
+										<label for="b30min">30m Min Price (₹)</label>
+										<input id="b30min" type="number" bind:value={bound30Min} class="inp-text" />
+									</div>
+									<div class="field-sm">
+										<label for="b30max">30m Max Price (₹)</label>
+										<input id="b30max" type="number" bind:value={bound30Max} class="inp-text" />
+									</div>
 								</div>
-								<div class="field-sm">
-									<label for="b30max">30m Max Price (₹)</label>
-									<input id="b30max" type="number" bind:value={bound30Max} class="inp-text" />
+								<div class="form-row-2">
+									<div class="field-sm">
+										<label for="b60min">60m Min Price (₹)</label>
+										<input id="b60min" type="number" bind:value={bound60Min} class="inp-text" />
+									</div>
+									<div class="field-sm">
+										<label for="b60max">60m Max Price (₹)</label>
+										<input id="b60max" type="number" bind:value={bound60Max} class="inp-text" />
+									</div>
 								</div>
 							</div>
-							<div class="form-row-2">
-								<div class="field-sm">
-									<label for="b60min">60m Min Price (₹)</label>
-									<input id="b60min" type="number" bind:value={bound60Min} class="inp-text" />
-								</div>
-								<div class="field-sm">
-									<label for="b60max">60m Max Price (₹)</label>
-									<input id="b60max" type="number" bind:value={bound60Max} class="inp-text" />
-								</div>
-							</div>
-						</div>
 
-						<div class="modal-actions-row">
-							<button class="btn-subtle" onclick={() => isPriceBoundsModalOpen = false}>Cancel</button>
-							<button class="btn-primary" onclick={handleSavePriceBounds}>Save Price Bounds</button>
+							<div class="modal-actions-row">
+								<button class="btn-subtle" onclick={() => isPriceBoundsModalOpen = false}>Cancel</button>
+								<button class="btn-primary" onclick={handleSavePriceBounds}>Save Price Bounds</button>
+							</div>
 						</div>
 					</div>
 				{/if}
@@ -3985,7 +4266,115 @@
 				</aside>
 			</div>
 		{/if}
+
+		<!-- Reason Input Modal (for Admin Actions) -->
+		{#if showReasonModal}
+			<div class="modal-overlay" onclick={(e) => { if (e.target === e.currentTarget) showReasonModal = false; }} role="presentation">
+				<div class="modal-card" role="dialog" aria-modal="true" aria-label={reasonModalTitle} style="padding: 24px; max-width: 480px;">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+						<h3 class="text-base font-bold text-[var(--text-primary)]">{reasonModalTitle}</h3>
+						<button type="button" class="btn-icon-action" onclick={() => showReasonModal = false} aria-label="Close">
+							<X size={18} />
+						</button>
+					</div>
+					<div style="margin-bottom: 1.25rem;">
+						<label class="block text-xs font-semibold text-[var(--text-secondary)] mb-1.5" for="reason-input">{reasonModalLabel}</label>
+						<textarea
+							id="reason-input"
+							class="w-full text-sm p-3 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] outline-none focus:border-[var(--color-primary)] resize-none"
+							bind:value={reasonInputValue}
+							placeholder="Enter reason..."
+							rows="3"
+						></textarea>
+					</div>
+					<div style="display: flex; justify-content: flex-end; gap: 10px;">
+						<button type="button" class="btn-subtle" onclick={() => showReasonModal = false}>Cancel</button>
+						<button
+							type="button"
+							class="btn-primary"
+							onclick={() => {
+								if (reasonInputValue.trim() && reasonCallback) {
+									reasonCallback(reasonInputValue.trim());
+									showReasonModal = false;
+								}
+							}}
+							disabled={!reasonInputValue.trim()}
+						>
+							Confirm
+						</button>
+					</div>
+				</div>
+			</div>
+		{/if}
 	</main>
+
+	<!-- ── DASHBOARD MOBILE NAVIGATION ────────────────────────── -->
+	<nav class="dash-mobile-nav" aria-label="Dashboard mobile navigation">
+		{#if workspaceMode === 'learner'}
+			<button class="dmn-btn" class:active={activeTab === 'my_overview'} onclick={() => activeTab = 'my_overview'}>
+				<LayoutDashboard size={20} />
+				<span>Home</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'my_courses'} onclick={() => activeTab = 'my_courses'}>
+				<GraduationCap size={20} />
+				<span>Courses</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'my_certs'} onclick={() => activeTab = 'my_certs'}>
+				<FileBadge2 size={20} />
+				<span>Certs</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'my_mentoring'} onclick={() => activeTab = 'my_mentoring'}>
+				<Video size={20} />
+				<span>Mentoring</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'settings'} onclick={() => activeTab = 'settings'}>
+				<Settings size={20} />
+				<span>Settings</span>
+			</button>
+		{:else if workspaceMode === 'teacher'}
+			<button class="dmn-btn" class:active={activeTab === 'teacher_overview'} onclick={() => activeTab = 'teacher_overview'}>
+				<LayoutDashboard size={20} />
+				<span>Overview</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'teacher_courses'} onclick={() => activeTab = 'teacher_courses'}>
+				<BookOpenCheck size={20} />
+				<span>Courses</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'teacher_students'} onclick={() => activeTab = 'teacher_students'}>
+				<Users size={20} />
+				<span>Students</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'teacher_mentoring'} onclick={() => activeTab = 'teacher_mentoring'}>
+				<Video size={20} />
+				<span>Mentoring</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'settings'} onclick={() => activeTab = 'settings'}>
+				<Settings size={20} />
+				<span>Settings</span>
+			</button>
+		{:else if workspaceMode === 'owner'}
+			<button class="dmn-btn" class:active={activeTab === 'admin_cockpit'} onclick={() => activeTab = 'admin_cockpit'}>
+				<LayoutDashboard size={20} />
+				<span>Cockpit</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'admin_users'} onclick={() => activeTab = 'admin_users'}>
+				<Users size={20} />
+				<span>Users</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'admin_mentoring'} onclick={() => activeTab = 'admin_mentoring'}>
+				<GraduationCap size={20} />
+				<span>Mentoring</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'admin_audit'} onclick={() => activeTab = 'admin_audit'}>
+				<ShieldAlert size={20} />
+				<span>Audit</span>
+			</button>
+			<button class="dmn-btn" class:active={activeTab === 'settings'} onclick={() => activeTab = 'settings'}>
+				<Settings size={20} />
+				<span>Settings</span>
+			</button>
+		{/if}
+	</nav>
 </div>
 
 <style>
@@ -4002,11 +4391,67 @@
 		grid-template-columns: 68px 1fr;
 	}
 
-	@media (max-width: 900px) {
+	@media (max-width: 1024px) {
 		.dash-shell,
 		.dash-shell.sidebar-collapsed {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	/* ── Dashboard Mobile Navigation ────────────────────────── */
+	.dash-mobile-nav {
+		display: none;
+	}
+
+	@media (max-width: 1024px) {
+		.dash-mobile-nav {
+			display: flex;
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			height: 60px;
+			background: var(--color-surface);
+			border-top: 1px solid var(--color-border);
+			z-index: 100;
+			justify-content: space-around;
+			align-items: center;
+			padding-bottom: env(safe-area-inset-bottom);
+		}
+	}
+
+	.dmn-btn {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		flex: 1;
+		height: 100%;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--color-text-muted);
+		font-family: inherit;
+		transition: color var(--t-fast);
+	}
+
+	.dmn-btn span {
+		font-size: 0.625rem;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+	}
+
+	.dmn-btn:hover {
+		color: var(--color-text-secondary);
+	}
+
+	.dmn-btn.active {
+		color: var(--color-text);
+	}
+
+	.dmn-btn.active :global(svg) {
+		transform: scale(1.1);
 	}
 
 	/* ── Sidebar ────────────────────────────────────────────── */
@@ -4018,7 +4463,7 @@
 		height: 100vh;
 		position: sticky;
 		top: 0;
-		z-index: 60;
+		z-index: 20;
 		width: var(--dash-sidebar-w, 240px);
 		transition: width 0.2s cubic-bezier(0.2, 0, 0, 1);
 	}
@@ -4027,7 +4472,7 @@
 		width: 68px;
 	}
 
-	@media (max-width: 900px) {
+	@media (max-width: 1024px) {
 		.dash-sidebar {
 			display: none;
 		}
@@ -4080,7 +4525,7 @@
 		height: 26px;
 		border-radius: 6px;
 		border: 1px solid var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-secondary);
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -4127,6 +4572,8 @@
 		gap: 14px;
 		overflow-y: auto;
 		overflow-x: hidden;
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-border-strong) transparent;
 	}
 
 	.dash-sidebar.collapsed .sidebar-nav-scroll {
@@ -4186,14 +4633,10 @@
 	}
 
 	.nav-btn.active {
-		background: #f0f2f5;
-		color: var(--text-primary);
+		background: var(--color-surface-elevated);
+		color: var(--color-text);
 		font-weight: 600;
-	}
-
-	:global([data-theme='dark']) .nav-btn.active {
-		background: #20232a;
-		color: #ffffff;
+		box-shadow: inset 0 0 0 1px var(--color-border-strong);
 	}
 
 	.dash-sidebar.collapsed .nav-btn {
@@ -4238,11 +4681,18 @@
 		max-width: 1140px;
 		min-width: 0;
 		width: 100%;
+		margin-inline: auto;
+	}
+
+	@media (max-width: 1024px) {
+		.dash-canvas {
+			padding: 1.5rem 1.5rem calc(72px + env(safe-area-inset-bottom));
+		}
 	}
 
 	@media (max-width: 640px) {
 		.dash-canvas {
-			padding: calc(var(--nav-h) + 1rem) 1rem 4rem;
+			padding: 1rem 1rem calc(72px + env(safe-area-inset-bottom));
 		}
 	}
 
@@ -4713,7 +5163,7 @@
 	}
 
 	.list-row:last-child { border-bottom: none; }
-	.list-row:hover { background: var(--bg-subtle); }
+	.list-row:hover { background: var(--color-surface-subtle); }
 
 	.row-icon {
 		width: 32px;
@@ -4930,7 +5380,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 8px 10px;
-		background: var(--bg-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-sm);
 		cursor: pointer;
@@ -5058,7 +5508,7 @@
 	.admin-table th {
 		text-align: left;
 		padding: 8px 14px;
-		background: var(--bg-subtle);
+		background: var(--color-surface-subtle);
 		border-bottom: 1px solid var(--border);
 		font-size: 0.6875rem;
 		font-weight: 600;
@@ -5194,7 +5644,7 @@
 		align-items: flex-start;
 		gap: 10px;
 		padding: 10px 12px;
-		background: var(--bg-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border-subtle);
 		border-radius: var(--radius-sm);
 		cursor: pointer;
@@ -5256,7 +5706,7 @@
 	.subtab-pills {
 		display: flex;
 		gap: 6px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		padding: 3px;
 		border-radius: var(--radius-sm);
@@ -5388,7 +5838,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 8px 14px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		color: var(--text-muted);
 		border-radius: var(--radius-sm);
@@ -5532,7 +5982,7 @@
 		justify-content: space-between;
 		align-items: center;
 		border-bottom: 1px solid var(--border);
-		background: var(--bg-surface);
+		background: var(--color-surface);
 	}
 
 	.cal-month-nav {
@@ -5577,7 +6027,7 @@
 	}
 
 	.cal-day-header {
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		padding: 10px;
 		text-align: center;
 		font-size: 0.6875rem;
@@ -5598,11 +6048,11 @@
 	}
 
 	.cal-cell:hover {
-		background: var(--bg-surface);
+		background: var(--color-surface);
 	}
 
 	.cal-cell.empty {
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		cursor: default;
 	}
 
@@ -5651,7 +6101,7 @@
 		position: fixed;
 		inset: 0;
 		background: rgba(0, 0, 0, 0.6);
-		z-index: 900;
+		z-index: 80;
 		backdrop-filter: blur(2px);
 	}
 
@@ -5662,9 +6112,9 @@
 		bottom: 0;
 		width: 100%;
 		max-width: 440px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border-left: 1px solid var(--border);
-		z-index: 1000;
+		z-index: 81;
 		display: flex;
 		flex-direction: column;
 		box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
@@ -5778,7 +6228,7 @@
 	}
 
 	.preset-btn {
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		border-radius: 4px;
 		padding: 4px 8px;
@@ -5803,7 +6253,7 @@
 	.dur-toggle-btn {
 		flex: 1;
 		padding: 8px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		font-size: 0.75rem;
@@ -5832,7 +6282,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 14px 18px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 	}
@@ -5900,7 +6350,7 @@
 		position: fixed;
 		top: 0; left: 0; right: 0; bottom: 0;
 		background: rgba(0, 0, 0, 0.6);
-		z-index: 999;
+		z-index: 100;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -5911,7 +6361,7 @@
 	.modal-card {
 		width: 100%;
 		max-width: 520px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 		overflow: hidden;
@@ -5983,9 +6433,9 @@
 	}
 
 	.badge-active {
-		background: #ecfdf5 !important;
-		color: #047857 !important;
-		border-color: #a7f3d0 !important;
+		background: var(--color-success-bg) !important;
+		color: var(--color-success) !important;
+		border-color: var(--color-success-border) !important;
 	}
 
 	.btn-action.danger {
@@ -6004,11 +6454,11 @@
 		transform: translate(-50%, -50%);
 		width: 100%;
 		max-width: 480px;
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 		padding: 24px;
-		z-index: 1000;
+		z-index: 101;
 		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 	}
 
@@ -6044,68 +6494,141 @@
 		cursor: pointer;
 		transition: all 0.15s ease;
 		border: 1px solid var(--border);
-		background: var(--bg-surface);
+		background: var(--color-surface);
 		color: var(--text-secondary);
 	}
 
 	.workspace-switch-btn:hover {
-		background: var(--bg-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
-		border-color: var(--border-hover);
+		border-color: var(--color-border-strong);
 	}
 
 	.workspace-switch-btn.admin-switch {
 		border-color: var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 	}
 
 	.workspace-switch-btn.admin-switch:hover {
 		background: var(--bg-elevated);
-		border-color: var(--border-hover, var(--border));
+		border-color: var(--color-border-strong);
 	}
 
-	.workspace-switch-btn.admin-switch.active-mode {
-		background: var(--text-primary);
-		border-color: var(--text-primary);
-		color: var(--bg);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	.workspace-switch-btn.active-mode {
+		border-left: 3px solid var(--color-text);
+		padding-left: 7px;
+		background: var(--color-surface-elevated);
+		color: var(--color-text);
+		font-weight: 600;
 	}
 
-	.workspace-switch-btn.teacher-switch {
-		border-color: var(--border);
-		background: var(--surface-subtle);
-		color: var(--text-secondary);
-	}
-
-	.workspace-switch-btn.teacher-switch:hover {
-		background: var(--bg-elevated);
-		color: var(--text-primary);
-	}
-
-	.workspace-switch-btn.teacher-switch.active-mode {
-		background: var(--text-primary);
-		border-color: var(--text-primary);
-		color: var(--bg);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	}
-
-	.workspace-switch-btn.learner-switch {
-		border-color: var(--border);
-		background: var(--surface-subtle);
-		color: var(--text-secondary);
-	}
-
-	.workspace-switch-btn.learner-switch:hover {
-		background: var(--bg-elevated);
-		color: var(--text-primary);
-	}
-
+	.workspace-switch-btn.admin-switch.active-mode,
+	.workspace-switch-btn.teacher-switch.active-mode,
 	.workspace-switch-btn.learner-switch.active-mode {
-		background: var(--text-primary);
-		border-color: var(--text-primary);
-		color: var(--bg);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		background: var(--color-surface-elevated);
+		border-color: var(--color-border-strong);
+		border-left-color: var(--color-text);
+		color: var(--color-text);
+	}
+
+	/* Transfer Offer Banner (D-09) */
+	.transfer-offer-banner {
+		margin-bottom: 24px;
+		padding: 16px;
+		border-radius: var(--radius-md);
+		background: var(--lp-accent-subtle);
+		border: 1px solid var(--lp-accent-border);
+	}
+
+	.transfer-icon-box {
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius-sm);
+		background: var(--color-surface-elevated);
+		border: 1px solid var(--color-border);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--lp-accent);
+		flex-shrink: 0;
+	}
+
+	.transfer-kicker {
+		font-size: 11px;
+		font-family: var(--font-mono);
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--lp-accent);
+	}
+
+	/* New User Empty State (D-08) */
+	.new-user-prompt {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 16px;
+		padding: 48px 24px;
+		border: 1px dashed var(--color-border-strong);
+		border-radius: var(--radius-lg);
+		background: var(--color-surface);
+		margin-top: 24px;
+		margin-bottom: 24px;
+	}
+
+	.new-user-icon {
+		width: 64px;
+		height: 64px;
+		border-radius: var(--radius-lg);
+		background: var(--color-surface-elevated);
+		border: 1px solid var(--color-border);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--color-text-secondary);
+	}
+
+	.new-user-text h3 {
+		font-size: 1.15rem;
+		font-weight: 600;
+		color: var(--color-text);
+		margin-bottom: 8px;
+	}
+
+	.new-user-text p {
+		color: var(--color-text-secondary);
+		font-size: 0.875rem;
+		max-width: 400px;
+	}
+
+	/* Standard Panel Header (D-10) */
+	.panel-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		padding-bottom: 24px;
+		border-bottom: 1px solid var(--color-border-subtle);
+		margin-bottom: 28px;
+		flex-wrap: wrap;
+	}
+
+	.panel-title {
+		font-size: 1.4rem;
+		font-weight: 700;
+		color: var(--color-text);
+		letter-spacing: -0.02em;
+		line-height: 1.2;
+		margin: 0;
+	}
+
+	.panel-subtitle {
+		font-size: 0.875rem;
+		color: var(--color-text-secondary);
+		margin-top: 4px;
+		margin-bottom: 0;
 	}
 
 	.dash-sidebar.collapsed .workspace-switch-btn {
@@ -6119,7 +6642,7 @@
 	}
 
 	.highlight-revenue {
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border-color: var(--border);
 	}
 
@@ -6153,7 +6676,7 @@
 		align-items: center;
 		gap: 14px;
 		padding: 14px 16px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-md);
 		cursor: pointer;
@@ -6171,7 +6694,7 @@
 
 	.gov-shortcut-card.vault-shortcut {
 		border-color: var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 	}
 
 	.gov-shortcut-card.vault-shortcut:hover {
@@ -6231,10 +6754,7 @@
 		transform: translateX(3px);
 	}
 
-	@media (max-width: 860px) {
-		.dash-shell { grid-template-columns: 1fr; }
-		.dash-sidebar { display: none; }
-		.dash-canvas { padding: 1.5rem; }
+	@media (max-width: 1024px) {
 		.grid-2-col { grid-template-columns: 1fr; }
 		.kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
 	}
@@ -6283,9 +6803,9 @@
 	}
 
 	.role-filter-btn:hover {
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
-		border-color: var(--border-hover, var(--border));
+		border-color: var(--color-border-strong);
 	}
 
 	.role-filter-btn.active {
@@ -6325,7 +6845,7 @@
 		padding: 2px 7px;
 		border-radius: 4px;
 		background: var(--bg-elevated);
-		border: 1px solid var(--border-hover, var(--border));
+		border: 1px solid var(--color-border-strong);
 		color: var(--text-primary);
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
@@ -6336,7 +6856,7 @@
 		font-weight: 700;
 		padding: 2px 7px;
 		border-radius: 4px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		color: var(--text-secondary);
 		text-transform: uppercase;
@@ -6348,7 +6868,7 @@
 		font-weight: 600;
 		padding: 2px 7px;
 		border-radius: 4px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		color: var(--text-muted);
 	}
@@ -6387,7 +6907,7 @@
 		font-weight: 600;
 		padding: 2px 7px;
 		border-radius: 99px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 		border: 1px solid var(--border);
 	}
@@ -6411,7 +6931,7 @@
 		padding: 5px 10px;
 		border-radius: 6px;
 		border: 1px solid var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-secondary);
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -6427,7 +6947,7 @@
 		font-size: 0.65rem;
 		padding: 1px 5px;
 		border-radius: 3px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		color: var(--text-secondary);
 	}
@@ -6455,7 +6975,7 @@
 	}
 
 	.btn-icon-action:hover {
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 	}
 
@@ -6498,7 +7018,7 @@
 		inset: 0;
 		background: rgba(0, 0, 0, 0.6);
 		backdrop-filter: blur(4px);
-		z-index: 100;
+		z-index: 80;
 		display: flex;
 		justify-content: flex-end;
 	}
@@ -6526,7 +7046,7 @@
 		justify-content: space-between;
 		padding: 1.25rem 1.5rem;
 		border-bottom: 1px solid var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 	}
 
 	.drawer-title-box {
@@ -6539,7 +7059,7 @@
 		width: 44px;
 		height: 44px;
 		border-radius: 12px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		color: var(--text-primary);
 		display: flex;
@@ -6577,7 +7097,7 @@
 	}
 
 	.drawer-close-btn:hover {
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 	}
 
@@ -6616,7 +7136,7 @@
 		font-weight: 700;
 		padding: 2px 6px;
 		border-radius: 4px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-secondary);
 		border: 1px solid var(--border);
 	}
@@ -6634,7 +7154,7 @@
 	}
 
 	.stat-tile {
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		padding: 8px 12px;
 		border-radius: 8px;
@@ -6675,7 +7195,7 @@
 		padding: 7px 12px;
 		border-radius: 6px;
 		border: 1px solid var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 		cursor: pointer;
 		transition: all 0.15s ease;
@@ -6712,7 +7232,7 @@
 		font-size: 0.8rem;
 		border-radius: 6px;
 		border: 1px solid var(--border);
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		color: var(--text-primary);
 		outline: none;
 	}
@@ -6753,7 +7273,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 10px 12px;
-		background: var(--surface-subtle);
+		background: var(--color-surface-subtle);
 		border: 1px solid var(--border);
 		border-radius: 8px;
 		gap: 12px;

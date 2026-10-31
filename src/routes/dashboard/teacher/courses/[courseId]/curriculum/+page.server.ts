@@ -1,18 +1,23 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const user = locals.user;
 	if (!user) throw redirect(302, '/sign-in');
-	if (user.role !== 'teacher' && user.role !== 'admin') {
+	if (user.role !== 'teacher' && user.role !== 'admin' && user.role !== 'owner') {
 		throw redirect(302, '/dashboard');
 	}
 
 	const courseId = params.courseId;
-	const [course] = await db.select().from(assets).where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+	const isAdmin = user.role === 'admin' || user.role === 'owner';
+	const [course] = await db.select().from(assets).where(
+		isAdmin
+			? or(eq(assets.id, courseId), eq(assets.slug, courseId))
+			: and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), eq(assets.ownerId, user.id))
+	);
 
 	if (!course) {
 		throw error(404, 'Course not found or unauthorized');
@@ -29,9 +34,14 @@ export const actions: Actions = {
 		if (!user) throw error(401, 'Unauthorized');
 
 		const courseId = params.courseId;
+		const isAdmin = user.role === 'admin' || user.role === 'owner';
 		
-		// Verify ownership
-		const [course] = await db.select().from(assets).where(and(eq(assets.id, courseId), eq(assets.ownerId, user.id)));
+		// Verify ownership or admin permission
+		const [course] = await db.select().from(assets).where(
+			isAdmin
+				? or(eq(assets.id, courseId), eq(assets.slug, courseId))
+				: and(or(eq(assets.id, courseId), eq(assets.slug, courseId)), eq(assets.ownerId, user.id))
+		);
 		if (!course) {
 			return fail(404, { error: 'Course not found' });
 		}

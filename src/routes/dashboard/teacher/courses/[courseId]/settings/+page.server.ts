@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
 import { CohortService } from '$lib/server/cohorts/CohortService';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import type { PageServerLoad, Actions } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 
@@ -18,13 +18,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(403, 'You do not have permission to manage this course');
 	}
 
-	const [course] = await db.select().from(assets).where(eq(assets.id, courseId)).limit(1);
+	const [course] = await db.select().from(assets).where(or(eq(assets.id, courseId), eq(assets.slug, courseId))).limit(1);
 	if (!course) {
 		throw error(404, 'Course not found');
 	}
 
-	const isCourseAdmin = await CohortService.isCourseAdmin(courseId, user.id);
-	const collaborators = await CohortService.getCourseCollaborators(courseId);
+	const isCourseAdmin = await CohortService.isCourseAdmin(course.id, user.id);
+	const collaborators = await CohortService.getCourseCollaborators(course.id);
 
 	return {
 		course,
@@ -73,7 +73,7 @@ export const actions: Actions = {
 					visibility: accessType === 'private' ? 'private' : 'public',
 					updatedAt: new Date()
 				})
-				.where(eq(assets.id, courseId));
+				.where(or(eq(assets.id, courseId), eq(assets.slug, courseId)));
 
 			return { success: true };
 		} catch (e: any) {

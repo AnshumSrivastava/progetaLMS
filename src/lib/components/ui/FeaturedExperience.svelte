@@ -5,13 +5,14 @@
 
 	let { course }: { course: any } = $props();
 
-	const level = $derived((course.metadata?.level || 'Beginner').toUpperCase());
-	const duration = $derived(course.metadata?.duration || course.metadata?.hours || '8 hours');
-	const instructor = $derived(course.metadata?.instructorName || course.metadata?.author || 'Launchpad Faculty');
-	const free = $derived(!course.pricePaise || course.pricePaise === 0);
-	const priceFormatted = $derived(free ? 'Free' : `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`);
+	const level = $derived(course?.metadata?.level ? String(course.metadata.level).toUpperCase() : 'BEGINNER');
+	const duration = $derived(course?.metadata?.duration || course?.metadata?.hours || '8 hours');
+	const instructor = $derived(course?.metadata?.instructorName || course?.metadata?.author || 'Launchpad Faculty');
+	const free = $derived(!course?.pricePaise || course?.pricePaise === 0);
+	const priceFormatted = $derived(free ? 'Free' : `₹${((course?.pricePaise || 0) / 100).toLocaleString('en-IN')}`);
 </script>
 
+{#if course}
 <div class="featured-experience-root">
 	<div class="featured-grid">
 		<!-- Left Editorial Content Column -->
@@ -93,6 +94,7 @@
 		</div>
 	</div>
 </div>
+{/if}
 
 <style>
 	.featured-experience-root {

@@ -79,8 +79,8 @@
 			<b>{String(currentSlide + 1).padStart(2, '0')}</b> / {String(slides.length).padStart(2, '0')}
 		</div>
 		<div class="nav-btns">
-			<button class="nav-btn" on:click={prevSlide} disabled={currentSlide === 0} title="Previous (←)">←</button>
-			<button class="nav-btn" on:click={nextSlide} disabled={currentSlide === slides.length - 1} title="Next (→)">→</button>
+			<button class="nav-btn" on:click={prevSlide} disabled={currentSlide === 0} title="Previous (←)" aria-label="Previous slide">←</button>
+			<button class="nav-btn" on:click={nextSlide} disabled={currentSlide === slides.length - 1} title="Next (→)" aria-label="Next slide">→</button>
 		</div>
 	</div>
 </div>

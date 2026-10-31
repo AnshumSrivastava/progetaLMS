@@ -1,295 +1,183 @@
 <script lang="ts">
-	import VerifiedBadge from '$lib/components/ui/VerifiedBadge.svelte';
-	import { ArrowRight, Award, ShieldCheck, CheckCircle2 } from 'lucide-svelte';
+	import { ArrowRight, Shield, BookOpen, Clock, CheckCircle2 } from 'lucide-svelte';
 
 	let { cert }: { cert: any } = $props();
 
-	const level = (cert.metadata?.level || 'Intermediate').toUpperCase();
-	const questions = cert.metadata?.questions || 20;
-	const duration = cert.metadata?.duration || '45 Mins';
-	const passingScore = cert.metadata?.passingScore || '75%';
-	const isVerified = cert.metadata?.verified ?? true;
-	const isProctored = cert.metadata?.isProctored !== false;
-	const free = !cert.pricePaise || cert.pricePaise === 0;
-	const priceFormatted = free ? 'Free' : `₹${(cert.pricePaise / 100).toLocaleString('en-IN')}`;
+	const level = $derived(cert.metadata?.level || 'Intermediate');
+	const questions = $derived(cert.metadata?.questions || 20);
+	const duration = $derived(cert.metadata?.duration || '60 min');
+	const passingScore = $derived(cert.metadata?.passingScore || '75% Passing');
+	const targetUrl = $derived(`/certifications/${cert.slug || cert.id}`);
 </script>
 
-<article class="workly-card cert-card">
-	<!-- Top Row: Price / Credit Chip & Verified Badge -->
-	<div class="card-top-row">
-		<div class="credit-chip">
-			<span class="coin-icon"></span>
-			<span class="credit-text">{priceFormatted}</span>
+<article class="dark-cert-card group">
+	<div class="cert-header">
+		<div class="cert-icon-container">
+			<Shield size={22} class="text-sky-400" />
 		</div>
-		<div class="flex items-center gap-1.5">
-			{#if isProctored}
-				<span class="proctored-badge">Proctored</span>
-			{/if}
-			{#if isVerified}
-				<VerifiedBadge size={14} />
-			{/if}
+
+		<div class="flex-1">
+			<h3 class="cert-title">
+				<a href={targetUrl} class="title-link">
+					{cert.title}
+				</a>
+			</h3>
+			<span class="cert-level-badge level-{level.toLowerCase()}">
+				{level}
+			</span>
 		</div>
 	</div>
 
-	<!-- Title -->
-	<h3 class="card-heading">
-		<a href={`/certifications/${cert.id}`} class="heading-link">
-			{cert.title}
-		</a>
-	</h3>
-
-	<!-- Category Pill Tag -->
-	<div class="tag-row">
-		<span class="workly-pill tag-purple">
-			Certification Exam
-		</span>
-		<span class="level-text">{level}</span>
-	</div>
-
-	<!-- Description -->
-	<p class="card-summary">
-		{cert.description || 'Verified examination. Passing candidates receive a permanent, cryptographic credential.'}
+	<p class="cert-desc">
+		{cert.description || 'Rigorous hands-on examination covering industry domains with verifiable credential.'}
 	</p>
 
-	<!-- Specification Grid (Image 2 Matrix Inspiration) -->
-	<div class="spec-matrix">
-		<div class="spec-cell">
-			<span class="spec-key">QUESTIONS</span>
-			<span class="spec-val">{questions} Qs</span>
-		</div>
-		<div class="spec-cell">
-			<span class="spec-key">DURATION</span>
-			<span class="spec-val">{duration}</span>
-		</div>
-		<div class="spec-cell">
-			<span class="spec-key">PASSING</span>
-			<span class="spec-val">{passingScore}</span>
-		</div>
+	<!-- Specification Stats -->
+	<div class="cert-stats-row">
+		<span class="stat-item">
+			<BookOpen size={13} class="text-slate-400" />
+			<span>{questions} Questions</span>
+		</span>
+		<span class="stat-sep">•</span>
+		<span class="stat-item">
+			<Clock size={13} class="text-slate-400" />
+			<span>{duration}</span>
+		</span>
+		<span class="stat-sep">•</span>
+		<span class="stat-item text-emerald-400">
+			<CheckCircle2 size={13} class="text-emerald-400" />
+			<span>{passingScore}</span>
+		</span>
 	</div>
 
-	<!-- Bottom Row -->
-	<div class="card-bottom-row">
-		<div class="attempts-meta">
-			<Award size={15} class="award-icon" />
-			<span>Permanent Credential</span>
-		</div>
-
-		<div class="footer-actions">
-			<a href={`/checkout/${cert.id}`} class="btn-enroll">
-				<span>Take Exam</span>
-				<ArrowRight size={13} />
-			</a>
-		</div>
+	<!-- Action Button -->
+	<div class="cert-action-box">
+		<a href={targetUrl} class="btn-take-exam">
+			<span>Take Exam</span>
+			<ArrowRight size={13} />
+		</a>
 	</div>
 </article>
 
 <style>
-	.workly-card {
-		background: var(--bg-elevated, #ffffff);
-		border: 1px solid var(--border);
-		border-radius: 16px;
-		padding: 24px;
+	.dark-cert-card {
+		border-radius: var(--radius-lg);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		padding: 22px;
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-		position: relative;
-		overflow: hidden;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+		justify-content: space-between;
+		gap: 16px;
+		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 	}
 
-	.workly-card:hover {
+	.dark-cert-card:hover {
 		transform: translateY(-3px);
-		border-color: rgba(99, 102, 241, 0.3);
-		box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.08), 0 8px 12px -4px rgba(0, 0, 0, 0.04);
+		border-color: var(--color-border-strong);
+		box-shadow: var(--shadow-lg);
 	}
 
-	.card-top-row {
+	.cert-header {
+		display: flex;
+		align-items: flex-start;
+		gap: 14px;
+	}
+
+	.cert-icon-container {
+		width: 44px;
+		height: 44px;
+		border-radius: var(--radius-md);
+		background: var(--color-surface-elevated);
+		border: 1px solid var(--color-border);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 14px;
+		justify-content: center;
+		flex-shrink: 0;
+		color: var(--lp-accent);
 	}
 
-	.credit-chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		background: rgba(245, 158, 11, 0.1);
-		border: 1px solid rgba(245, 158, 11, 0.2);
-		padding: 3px 10px;
-		border-radius: 9999px;
-	}
-
-	.coin-icon {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: #f59e0b;
-		box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
-	}
-
-	.credit-text {
-		font-size: 0.8125rem;
+	.cert-title {
+		font-size: 0.98rem;
 		font-weight: 700;
-		color: #b45309;
-		letter-spacing: -0.01em;
-	}
-
-	:global([data-theme="dark"]) .credit-text {
-		color: #fbbf24;
-	}
-
-	.proctored-badge {
-		font-size: 0.6875rem;
-		font-weight: 700;
-		color: #2563eb;
-		background: rgba(37, 99, 235, 0.08);
-		border: 1px solid rgba(37, 99, 235, 0.2);
-		padding: 2px 7px;
-		border-radius: 4px;
-		text-transform: uppercase;
-		letter-spacing: 0.03em;
-	}
-
-	:global([data-theme="dark"]) .proctored-badge {
-		background: rgba(37, 99, 235, 0.2);
-		color: #93c5fd;
-		border-color: rgba(37, 99, 235, 0.35);
-	}
-
-	.card-heading {
-		font-size: 1.15rem;
-		font-weight: 700;
+		color: var(--color-text);
 		line-height: 1.35;
-		margin-bottom: 10px;
-		letter-spacing: -0.02em;
+		margin-bottom: 6px;
 	}
 
-	.heading-link {
-		color: var(--text-primary, #0f172a);
+	.title-link {
+		color: var(--color-text);
 		text-decoration: none;
 		transition: color 0.15s ease;
 	}
 
-	.heading-link:hover {
-		color: var(--primary, #6366f1);
+	.title-link:hover {
+		color: var(--lp-accent);
 	}
 
-	.tag-row {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 12px;
+	.cert-level-badge {
+		font-size: 0.65rem;
+		font-weight: 700;
+		padding: 2px 7px;
+		border-radius: var(--radius-xs);
+		background: var(--color-surface-elevated);
+		color: var(--color-text-secondary);
+		border: 1px solid var(--color-border);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
 	}
 
-	.workly-pill {
-		font-size: 0.72rem;
-		font-weight: 600;
-		padding: 3px 9px;
-		border-radius: 6px;
-		display: inline-block;
-		letter-spacing: 0.01em;
-	}
+	.cert-level-badge.level-intermediate { color: var(--color-info); }
+	.cert-level-badge.level-advanced { color: var(--color-warning); }
+	.cert-level-badge.level-beginner { color: var(--color-success); }
 
-	.tag-purple {
-		background: #faf5ff;
-		color: #7c3aed;
-		border: 1px solid #ede9fe;
-	}
-	:global([data-theme="dark"]) .tag-purple {
-		background: rgba(124, 58, 237, 0.15);
-		color: #c4b5fd;
-		border-color: rgba(124, 58, 237, 0.3);
-	}
-
-	.level-text {
-		font-size: 0.72rem;
-		font-weight: 500;
-		color: var(--text-muted, #94a3b8);
-	}
-
-	.card-summary {
-		font-size: 0.875rem;
-		color: var(--text-secondary, #64748b);
-		line-height: 1.55;
-		margin-bottom: 16px;
+	.cert-desc {
+		font-size: 0.8rem;
+		color: var(--color-text-secondary);
+		line-height: 1.5;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
-		flex-grow: 1;
 	}
 
-	/* Matrix Spec Strip */
-	.spec-matrix {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		background: var(--bg-subtle, #f8fafc);
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		padding: 10px 12px;
-		margin-bottom: 18px;
+	.cert-stats-row {
+		display: flex;
+		align-items: center;
 		gap: 8px;
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		padding-bottom: 4px;
 	}
 
-	.spec-cell {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.spec-key {
-		font-size: 0.625rem;
-		font-weight: 700;
-		color: var(--text-muted, #94a3b8);
-		letter-spacing: 0.04em;
-	}
-
-	.spec-val {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-primary, #0f172a);
-	}
-
-	.card-bottom-row {
+	.stat-item {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding-top: 14px;
-		border-top: 1px solid var(--border);
-		margin-top: auto;
+		gap: 5px;
 	}
 
-	.attempts-meta {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.8125rem;
-		font-weight: 500;
-		color: var(--text-secondary, #64748b);
+	.stat-sep {
+		color: var(--color-border-strong);
 	}
 
-	.award-icon {
-		color: #f59e0b;
-	}
-
-	.btn-enroll {
+	.btn-take-exam {
 		display: inline-flex;
 		align-items: center;
+		justify-content: center;
 		gap: 6px;
-		padding: 7px 14px;
-		border-radius: 8px;
-		background: #6366f1;
-		color: #ffffff;
-		font-size: 0.8125rem;
-		font-weight: 600;
+		width: 100%;
+		padding: 9px 16px;
+		border-radius: var(--radius-full);
+		font-size: 0.82rem;
+		font-weight: 700;
+		background: var(--color-text);
+		color: var(--color-bg);
 		text-decoration: none;
-		transition: background 0.15s ease, transform 0.1s ease;
+		transition: all 0.15s ease;
 	}
 
-	.btn-enroll:hover {
-		background: #4f46e5;
-		transform: scale(1.02);
+	.btn-take-exam:hover {
+		opacity: 0.9;
+		transform: translateY(-1px);
 	}
 </style>

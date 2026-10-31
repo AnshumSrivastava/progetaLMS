@@ -7,26 +7,23 @@
 		Settings,
 		LogOut,
 		BookOpen,
+		Compass,
 		Award,
 		Users,
 		Download,
 		Video,
-		Command,
-		Sun,
-		Moon,
-		Monitor
+		Terminal,
+		Command
 	} from 'lucide-svelte';
 	import LaunchpadLogo from './LaunchpadLogo.svelte';
 	import { authClient } from '$lib/auth.client';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { themeStore } from '$lib/stores/theme';
 	import type { AuthUser } from '$lib/server/auth/auth.types';
 	import { onMount } from 'svelte';
 
 	let { user }: { user: AuthUser | null } = $props();
 
-	let currentTheme = $derived($themeStore);
 	let currentPath = $derived($page.url.pathname);
 	let searchParams = $derived($page.url.searchParams);
 	let isDashboard = $derived(currentPath.startsWith('/dashboard'));
@@ -40,11 +37,11 @@
 	let searchInputRef = $state<HTMLInputElement | null>(null);
 
 	const links = [
-		{ href: '/catalog', label: 'Explore', icon: BookOpen },
-		{ href: '/live-classes', label: 'Live Classes', icon: Video, isLive: true },
+		{ href: '/catalog', label: 'Explore', icon: Compass },
 		{ href: '/courses', label: 'Courses', icon: BookOpen },
+		{ href: '/labs', label: 'Labs & CTF', icon: Terminal },
 		{ href: '/certifications', label: 'Certifications', icon: Award },
-		{ href: '/mentoring', label: 'Mentoring', icon: Users },
+		{ href: '/mentoring', label: 'Mentorship', icon: Users },
 		{ href: '/resources', label: 'Resources', icon: Download }
 	];
 
@@ -145,11 +142,9 @@
 				{#each links as link}
 					{@const isActive =
 						link.href === '/courses'
-							? currentPath === '/courses'
+							? currentPath === '/courses' || currentPath.startsWith('/live-classes')
 							: link.href === '/catalog'
 							? currentPath === '/catalog'
-							: link.href === '/live-classes'
-							? currentPath === '/live-classes'
 							: currentPath.startsWith(link.href)}
 					<a
 						href={link.href}
@@ -177,7 +172,7 @@
 				aria-label="Search catalog (Cmd+K)"
 			>
 				<Search size={15} class="search-icon-muted" />
-				<span class="search-trigger-placeholder">Search courses, certs...</span>
+				<span class="search-trigger-placeholder">Search courses, labs, certifications...</span>
 				<kbd class="search-kbd">
 					<span class="text-[10px]">⌘</span>K
 				</kbd>
@@ -234,51 +229,7 @@
 								<span>Settings</span>
 							</a>
 
-							<!-- Theme Controls (Section 12, 13, 14) -->
-							<div class="px-3 py-2">
-								<span class="block text-[11px] font-mono text-[var(--color-text-muted)] uppercase mb-1.5">Theme</span>
-								<div class="grid grid-cols-3 gap-1 bg-[var(--color-surface-subtle)] p-1 rounded-[var(--radius-sm)] border border-[var(--color-border)]">
-									<button
-										type="button"
-										class="flex items-center justify-center gap-1 py-1 rounded text-[11px] font-medium transition-colors"
-										class:bg-[var(--color-surface)]={currentTheme === 'light'}
-										class:text-[var(--color-text)]={currentTheme === 'light'}
-										class:shadow-xs={currentTheme === 'light'}
-										class:text-[var(--color-text-secondary)]={currentTheme !== 'light'}
-										onclick={() => themeStore.setTheme('light')}
-										title="Light Theme"
-									>
-										<Sun size={12} />
-										<span>Light</span>
-									</button>
-									<button
-										type="button"
-										class="flex items-center justify-center gap-1 py-1 rounded text-[11px] font-medium transition-colors"
-										class:bg-[var(--color-surface)]={currentTheme === 'dark'}
-										class:text-[var(--color-text)]={currentTheme === 'dark'}
-										class:shadow-xs={currentTheme === 'dark'}
-										class:text-[var(--color-text-secondary)]={currentTheme !== 'dark'}
-										onclick={() => themeStore.setTheme('dark')}
-										title="Dark Theme"
-									>
-										<Moon size={12} />
-										<span>Dark</span>
-									</button>
-									<button
-										type="button"
-										class="flex items-center justify-center gap-1 py-1 rounded text-[11px] font-medium transition-colors"
-										class:bg-[var(--color-surface)]={currentTheme === 'system'}
-										class:text-[var(--color-text)]={currentTheme === 'system'}
-										class:shadow-xs={currentTheme === 'system'}
-										class:text-[var(--color-text-secondary)]={currentTheme !== 'system'}
-										onclick={() => themeStore.setTheme('system')}
-										title="System Theme"
-									>
-										<Monitor size={12} />
-										<span>Auto</span>
-									</button>
-								</div>
-							</div>
+
 
 							<div class="profile-divider"></div>
 
@@ -315,6 +266,12 @@
 
 <!-- Mobile Navigation Drawer -->
 {#if menuOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div
+		class="mobile-drawer-backdrop"
+		onclick={() => (menuOpen = false)}
+		role="presentation"
+	></div>
 	<div class="mobile-drawer">
 		<div class="flex flex-col p-3 gap-1">
 			{#each links as link}
@@ -361,48 +318,7 @@
 			{/if}
 		</div>
 
-		<!-- Mobile Theme Switcher -->
-		<div class="px-4 py-2 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
-			<span class="text-[12px] font-mono text-[var(--color-text-muted)] uppercase">Theme</span>
-			<div class="flex items-center gap-1 bg-[var(--color-surface-subtle)] p-0.5 rounded-[var(--radius-sm)] border border-[var(--color-border)]">
-				<button
-					type="button"
-					class="p-1.5 rounded text-[11px] transition-colors"
-					class:bg-[var(--color-surface)]={currentTheme === 'light'}
-					class:text-[var(--color-text)]={currentTheme === 'light'}
-					class:shadow-xs={currentTheme === 'light'}
-					class:text-[var(--color-text-secondary)]={currentTheme !== 'light'}
-					onclick={() => themeStore.setTheme('light')}
-					title="Light Theme"
-				>
-					<Sun size={14} />
-				</button>
-				<button
-					type="button"
-					class="p-1.5 rounded text-[11px] transition-colors"
-					class:bg-[var(--color-surface)]={currentTheme === 'dark'}
-					class:text-[var(--color-text)]={currentTheme === 'dark'}
-					class:shadow-xs={currentTheme === 'dark'}
-					class:text-[var(--color-text-secondary)]={currentTheme !== 'dark'}
-					onclick={() => themeStore.setTheme('dark')}
-					title="Dark Theme"
-				>
-					<Moon size={14} />
-				</button>
-				<button
-					type="button"
-					class="p-1.5 rounded text-[11px] transition-colors"
-					class:bg-[var(--color-surface)]={currentTheme === 'system'}
-					class:text-[var(--color-text)]={currentTheme === 'system'}
-					class:shadow-xs={currentTheme === 'system'}
-					class:text-[var(--color-text-secondary)]={currentTheme !== 'system'}
-					onclick={() => themeStore.setTheme('system')}
-					title="System Theme"
-				>
-					<Monitor size={14} />
-				</button>
-			</div>
-		</div>
+
 
 		{#if !user}
 			<div class="mobile-auth-actions">
@@ -444,7 +360,7 @@
 					bind:this={searchInputRef}
 					bind:value={searchQuery}
 					type="text"
-					placeholder="Search courses, skills, resources, exams..."
+					placeholder="Search courses, labs, certifications, mentors..."
 					class="search-input"
 				/>
 				{#if searchQuery}
@@ -512,6 +428,7 @@
 
 	.nav-root.is-dashboard {
 		left: var(--dash-sidebar-w, 240px);
+		border-bottom: none;
 	}
 
 	@supports (backdrop-filter: blur(12px)) {
@@ -549,15 +466,15 @@
 	}
 
 	.nav-center {
-		position: absolute;
-		left: 50%;
-		top: 50%;
-		transform: translate(-50%, -50%);
+		position: static;
+		transform: none;
+		flex: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		z-index: 1;
 		pointer-events: auto;
+		padding-inline: 12px;
 	}
 
 	.nav-right {
@@ -583,9 +500,10 @@
 		justify-content: flex-start;
 	}
 
-	@media (max-width: 900px) {
+	@media (max-width: 1024px) {
 		.nav-root.is-dashboard {
 			left: 0;
+			border-bottom: 1px solid var(--border);
 		}
 	}
 
@@ -633,10 +551,10 @@
 	}
 
 	.nav-link.active {
-		color: var(--color-primary);
+		color: var(--color-text);
 		font-weight: 600;
-		background: color-mix(in srgb, var(--color-primary) 10%, var(--bg));
-		box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 18%, transparent);
+		background: var(--color-surface-elevated);
+		box-shadow: inset 0 0 0 1px var(--color-border-strong);
 	}
 
 	.nav-link.live-nav-link {
@@ -695,7 +613,7 @@
 		display: none;
 	}
 
-	@media (min-width: 1100px) {
+	@media (min-width: 1024px) {
 		.search-trigger {
 			padding: 5px 12px;
 		}
@@ -912,6 +830,15 @@
 	}
 
 	/* Mobile Drawer */
+	.mobile-drawer-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 45;
+		backdrop-filter: blur(2px);
+		-webkit-backdrop-filter: blur(2px);
+	}
+
 	.mobile-drawer {
 		position: fixed;
 		top: var(--nav-h);
@@ -919,8 +846,16 @@
 		right: 0;
 		background: var(--bg);
 		border-bottom: 1px solid var(--border);
-		z-index: 45;
-		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+		z-index: 49;
+		box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.3);
+		max-height: calc(100vh - var(--nav-h) - 60px);
+		overflow-y: auto;
+		animation: drawerSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	@keyframes drawerSlideDown {
+		from { transform: translateY(-8px); opacity: 0; }
+		to   { transform: translateY(0); opacity: 1; }
 	}
 
 	.mobile-nav-link {

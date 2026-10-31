@@ -1,330 +1,272 @@
 <script lang="ts">
-	import { Calendar, Users, Video, Clock, ArrowRight, ShieldCheck } from 'lucide-svelte';
+	import { Calendar, Users, Video, Clock, ArrowRight } from 'lucide-svelte';
 
 	let { course }: { course: any } = $props();
 
-	const category = $derived(course.metadata?.category || 'LIVE CLASSROOM COHORT');
-	const level = $derived((course.metadata?.level || 'Intermediate').toUpperCase());
+	const category = $derived(course.metadata?.category || 'CYBERSECURITY');
+	const level = $derived(course.metadata?.level || 'Intermediate');
 	const duration = $derived(course.metadata?.duration || course.metadata?.hours || '4-8 Weeks');
-	const priceFormatted = $derived(
-		!course.pricePaise || course.pricePaise === 0
-			? 'Free'
-			: `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`
-	);
-
-	const topicHighlight = $derived(
-		course.metadata?.topic ||
-		course.metadata?.subtitle ||
-		(course.title.includes('&') ? course.title.split('&')[1].trim() : course.title.split(':')[1]?.trim() || 'Interactive Live Bootcamp')
-	);
+	const seats = $derived(course.metadata?.seats || course.max_students || '25 Seats');
+	const startDate = $derived(course.metadata?.startDate || course.start_date || 'Upcoming Batch');
+	const free = $derived(!course.pricePaise || course.pricePaise === 0);
+	const priceFormatted = $derived(free ? 'Free' : `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`);
+	const targetUrl = $derived(`/catalog/${course.slug || course.id}`);
+	const thumbnail = $derived(course.thumbnail || '/thumbnails/practical-cybersecurity.jpg');
 </script>
 
-<article class="live-cohort-card">
-	<!-- Left Accent Visual Bar -->
-	<div class="cohort-visual-strip">
-		<div class="live-pill">
-			<span class="live-pulsing-dot"></span>
-			<span>LIVE COHORT</span>
+<article class="dark-live-card group">
+	<!-- Visual Banner -->
+	<div class="card-visual-wrap">
+		<img
+			src={thumbnail}
+			alt={course.title}
+			class="card-img"
+			loading="lazy"
+		/>
+		<div class="card-gradient"></div>
+
+		<div class="card-top-badges">
+			<span class="live-pill">
+				<span class="pulsing-green-dot"></span>
+				<span>LIVE BATCH</span>
+			</span>
+			<span class="category-pill">{category}</span>
 		</div>
-		<div class="cohort-meta-icon">
-			<Video size={24} class="text-emerald-400" />
-		</div>
-		<span class="seat-badge">LIMITED SEATS</span>
 	</div>
 
-	<!-- Main Content Section -->
-	<div class="cohort-details">
-		<div class="cohort-header-row">
-			<span class="cohort-kicker">{category}</span>
-			<span class="cohort-level">{level}</span>
+	<!-- Card Body -->
+	<div class="card-body">
+		<div class="level-indicator">
+			<span>{level}</span>
 		</div>
 
-		<h3 class="cohort-title">
-			<a href={`/catalog/${course.id}`} class="title-link">
+		<h3 class="card-title">
+			<a href={targetUrl} class="title-link">
 				{course.title}
 			</a>
 		</h3>
 
-		<p class="cohort-desc">
-			{course.description || 'Live instructor-led classes on Google Meet/Zoom, dedicated peer cohorts on WhatsApp, and mentored hands-on exercises.'}
+		<p class="card-desc">
+			{course.description || 'Interactive live cohort with live practitioner sessions, real-world capstone projects, and peer discussions.'}
 		</p>
 
-		<!-- Feature highlights -->
-		<div class="cohort-perks">
-			<div class="perk-pill">
-				<Calendar size={13} class="text-emerald-500" />
-				<span>Weekend & Evening Batches</span>
+		<!-- Schedule & Seats Row -->
+		<div class="meta-row">
+			<div class="meta-item">
+				<Calendar size={13} class="text-slate-400" />
+				<span>{startDate}</span>
 			</div>
-			<div class="perk-pill">
-				<Video size={13} class="text-emerald-500" />
-				<span>Live Interactive Q&A</span>
-			</div>
-			<div class="perk-pill">
-				<Clock size={13} class="text-emerald-500" />
-				<span>{duration}</span>
+			<div class="meta-item">
+				<Users size={13} class="text-slate-400" />
+				<span>{seats}</span>
 			</div>
 		</div>
 
-		<!-- Footer with Pricing and Action -->
-		<div class="cohort-footer">
-			<div class="price-container">
-				<span class="price-caption">Cohort Tuition</span>
-				<div class="price-value">{priceFormatted}</div>
+		<!-- Footer CTA -->
+		<div class="card-footer">
+			<div class="price-box">
+				<span class="price-label">Tuition</span>
+				<span class="price-value">{priceFormatted}</span>
 			</div>
 
-			<a href={`/catalog/${course.id}`} class="btn-enroll-cohort">
-				<span>Explore Live Batches</span>
-				<ArrowRight size={14} />
+			<a href={targetUrl} class="btn-enroll">
+				<span>View Batch</span>
+				<ArrowRight size={13} />
 			</a>
 		</div>
 	</div>
 </article>
 
 <style>
-	.live-cohort-card {
-		display: grid;
-		grid-template-columns: 140px 1fr;
-		background: var(--bg-elevated, #ffffff);
-		border: 1px solid rgba(16, 185, 129, 0.25);
-		border-radius: 18px;
+	.dark-live-card {
+		border-radius: var(--radius-lg);
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		overflow: hidden;
-		box-shadow: 0 4px 20px -4px rgba(16, 185, 129, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
-		transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-		min-height: 200px;
-		width: 100%;
-		position: relative;
-	}
-
-	.live-cohort-card:hover {
-		transform: translateY(-3px);
-		border-color: rgba(16, 185, 129, 0.5);
-		box-shadow: 0 16px 32px -6px rgba(16, 185, 129, 0.16), 0 6px 12px -2px rgba(0, 0, 0, 0.05);
-	}
-
-	:global([data-theme="dark"]) .live-cohort-card {
-		background: #10141e;
-		border-color: rgba(16, 185, 129, 0.2);
-	}
-
-	:global([data-theme="dark"]) .live-cohort-card:hover {
-		border-color: rgba(52, 211, 153, 0.4);
-		box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.6);
-	}
-
-	/* Left Visual Strip */
-	.cohort-visual-strip {
-		background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
-		padding: 20px 14px;
 		display: flex;
 		flex-direction: column;
-		justify-content: space-between;
+		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	.dark-live-card:hover {
+		transform: translateY(-3px);
+		border-color: var(--color-border-strong);
+		box-shadow: var(--shadow-lg);
+	}
+
+	.card-visual-wrap {
+		position: relative;
+		width: 100%;
+		height: 170px;
+		background: var(--color-bg);
+		overflow: hidden;
+	}
+
+	.card-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.85;
+		transition: transform 0.3s ease;
+	}
+
+	.dark-live-card:hover .card-img {
+		transform: scale(1.04);
+	}
+
+	.card-gradient {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(180deg, rgba(8, 11, 17, 0.1) 0%, var(--color-surface) 100%);
+	}
+
+	.card-top-badges {
+		position: absolute;
+		top: 12px;
+		left: 12px;
+		right: 12px;
+		display: flex;
 		align-items: center;
-		text-align: center;
-		color: #ffffff;
+		justify-content: space-between;
+		z-index: 2;
 	}
 
 	.live-pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		background: rgba(0, 0, 0, 0.35);
-		border: 1px solid rgba(52, 211, 153, 0.3);
 		padding: 3px 8px;
-		border-radius: 9999px;
-		font-size: 0.625rem;
+		border-radius: var(--radius-full);
+		font-size: 0.65rem;
 		font-weight: 800;
-		letter-spacing: 0.06em;
-		color: #34d399;
-	}
-
-	.live-pulsing-dot {
-		width: 6px;
-		height: 6px;
-		background: #10b981;
-		border-radius: 9999px;
-		box-shadow: 0 0 6px #34d399;
-		animation: pulse-dot 1.5s infinite;
-	}
-
-	@keyframes pulse-dot {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50% { opacity: 0.4; transform: scale(0.8); }
-	}
-
-	.cohort-meta-icon {
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: 12px;
-		padding: 10px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.seat-badge {
-		font-size: 0.58rem;
-		font-weight: 700;
+		background: var(--color-success-bg);
+		border: 1px solid var(--color-success-border);
+		color: var(--color-success);
 		letter-spacing: 0.05em;
-		color: #a7f3d0;
-		text-transform: uppercase;
 	}
 
-	/* Main Details */
-	.cohort-details {
-		padding: 20px 24px;
+	.pulsing-green-dot {
+		width: 5px;
+		height: 5px;
+		border-radius: var(--radius-full);
+		background: var(--color-success);
+		box-shadow: 0 0 6px var(--color-success);
+	}
+
+	.category-pill {
+		padding: 3px 8px;
+		border-radius: var(--radius-xs);
+		font-size: 0.65rem;
+		font-weight: 700;
+		background: var(--color-surface-subtle);
+		border: 1px solid var(--color-border);
+		color: var(--color-text-secondary);
+		letter-spacing: 0.04em;
+	}
+
+	.card-body {
+		padding: 20px;
 		display: flex;
 		flex-direction: column;
+		flex: 1;
 		justify-content: space-between;
 	}
 
-	.cohort-header-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
+	.level-indicator {
+		font-size: 0.68rem;
+		font-weight: 600;
+		color: var(--color-text-muted);
+		margin-bottom: 6px;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.card-title {
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: var(--color-text);
+		line-height: 1.35;
 		margin-bottom: 8px;
 	}
 
-	.cohort-kicker {
-		font-size: 0.6875rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		color: #059669;
-		text-transform: uppercase;
-	}
-
-	:global([data-theme="dark"]) .cohort-kicker {
-		color: #34d399;
-	}
-
-	.cohort-level {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		color: var(--text-muted, #94a3b8);
-	}
-
-	.cohort-title {
-		font-size: clamp(1.2rem, 1.8vw, 1.45rem);
-		font-weight: 700;
-		line-height: 1.3;
-		letter-spacing: -0.02em;
-		margin-bottom: 6px;
-	}
-
 	.title-link {
-		color: var(--text-primary, #0f172a);
+		color: var(--color-text);
 		text-decoration: none;
 		transition: color 0.15s ease;
 	}
 
 	.title-link:hover {
-		color: #059669;
+		color: var(--lp-accent);
 	}
 
-	:global([data-theme="dark"]) .title-link:hover {
-		color: #34d399;
-	}
-
-	.cohort-desc {
-		font-size: 0.8125rem;
-		color: var(--text-secondary, #64748b);
+	.card-desc {
+		font-size: 0.8rem;
+		color: var(--color-text-secondary);
 		line-height: 1.5;
-		margin-bottom: 14px;
+		margin-bottom: 16px;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
 	}
 
-	.cohort-perks {
+	.meta-row {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		margin-bottom: 16px;
-	}
-
-	.perk-pill {
-		display: inline-flex;
 		align-items: center;
-		gap: 5px;
-		font-size: 0.72rem;
-		font-weight: 600;
-		color: var(--text-secondary, #475569);
-		background: var(--bg-subtle, #f1f5f9);
-		padding: 3px 8px;
-		border-radius: 6px;
-		border: 1px solid var(--border);
+		gap: 16px;
+		padding-bottom: 14px;
+		border-bottom: 1px solid var(--color-border-subtle);
+		margin-bottom: 14px;
 	}
 
-	:global([data-theme="dark"]) .perk-pill {
-		background: #161d2b;
-		color: #cbd5e1;
+	.meta-item {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.74rem;
+		color: var(--color-text-secondary);
 	}
 
-	/* Footer */
-	.cohort-footer {
+	.card-footer {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 12px;
-		padding-top: 12px;
-		border-top: 1px dashed var(--border);
 		margin-top: auto;
 	}
 
-	.price-container {
+	.price-box {
 		display: flex;
 		flex-direction: column;
 	}
 
-	.price-caption {
+	.price-label {
 		font-size: 0.65rem;
+		color: var(--color-text-muted);
 		text-transform: uppercase;
-		font-weight: 600;
-		color: var(--text-muted);
-		letter-spacing: 0.05em;
 	}
 
 	.price-value {
-		font-size: 1.2rem;
+		font-size: 1.05rem;
 		font-weight: 800;
-		color: #059669;
-		letter-spacing: -0.02em;
+		color: var(--color-text);
 	}
 
-	:global([data-theme="dark"]) .price-value {
-		color: #34d399;
-	}
-
-	.btn-enroll-cohort {
+	.btn-enroll {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		padding: 8px 20px;
-		border-radius: 9999px;
-		background: #059669;
-		color: #ffffff;
-		font-size: 0.8125rem;
-		font-weight: 600;
+		padding: 8px 16px;
+		border-radius: var(--radius-full);
+		font-size: 0.78rem;
+		font-weight: 700;
+		background: var(--color-text);
+		color: var(--color-bg);
 		text-decoration: none;
-		box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.35);
 		transition: all 0.15s ease;
 	}
 
-	.btn-enroll-cohort:hover {
-		background: #047857;
-		transform: scale(1.02);
-		box-shadow: 0 6px 16px -2px rgba(5, 150, 105, 0.45);
-	}
-
-	@media (max-width: 639px) {
-		.live-cohort-card {
-			grid-template-columns: 1fr;
-		}
-
-		.cohort-visual-strip {
-			flex-direction: row;
-			justify-content: space-between;
-			padding: 12px 18px;
-		}
+	.btn-enroll:hover {
+		opacity: 0.9;
+		transform: translateX(2px);
 	}
 </style>

@@ -1,79 +1,54 @@
-# Launchpad
+# Launchpad by Progeta Technologies
 
-![Launchpad by Progeta Technologies](static/launchpadLogo.svg)
+Launchpad is a learning and certification platform centered on reusable digital learning assets—courses, lessons, quizzes, certificates, resources, and live classes. It provides learner, teacher, and administrator areas for delivering and managing learning programs.
 
-Launchpad is a modern learning, certification, and mentoring platform built by Progeta Technologies. It focuses on the ownership of digital assets (PDFs, HTML, Markdown, external links, etc.) rather than traditional video courses.
+## Platform features
 
-## Architecture
+- Course and module catalog, enrollment/checkout, lessons, and downloadable resources.
+- Certification paths, quizzes, exam sessions, and certificates.
+- Learner dashboard, class participation, live classes, and mentoring.
+- Teacher tools for courses, cohorts, students, coupons, communication, and assessments.
+- Administrative controls for users, settings, audit records, events, and content.
 
-- **Framework**: SvelteKit 2 (Svelte 5 runes mode)
-- **Database**: Neon PostgreSQL via Drizzle ORM
-- **Auth**: Better Auth (Google OAuth + Email OTP via Resend)
-- **Payments**: Cashfree (API v3)
-- **Storage**: Provider-agnostic storage layer (Local by default, supports Cloudflare R2 and Supabase)
-- **Event Bus**: Transactional Outbox pattern for reliable async side effects
+## Technology
 
-### Provider-Agnostic Storage Architecture
+Launchpad uses SvelteKit 2, Svelte 5, TypeScript, Tailwind CSS, and Drizzle ORM. Neon PostgreSQL stores application data; Better Auth handles authentication; Cashfree provides payments; Resend provides transactional email. File storage supports local development and optional Cloudflare R2 or Supabase Storage providers.
 
-Launchpad implements a decoupled storage architecture to ensure flexibility. The application never interacts directly with cloud storage APIs.
+## Local development
 
-- **StorageService**: The single source of truth for all file operations in the domain layer.
-- **Providers**: Implement the `IStorageProvider` interface. 
-- **Database tracking**: Every uploaded file is tracked in the `storage_objects` table, including metadata like `mime_type`, `size_bytes`, and a SHA-256 `checksum`. Asset records reference the `public_url`.
+Requires Node.js and npm. From this directory:
 
-By default, the application runs on **Local Storage**, meaning developers can clone the repository and run the application without setting up any cloud storage accounts.
-
-Supported Providers:
-1. `local` (Default, uses the local filesystem)
-2. `r2` (Cloudflare R2, S3 compatible)
-3. `supabase` (Supabase Storage)
-
-## Setup Instructions
-
-### 1. Environment Setup
-Copy the example environment file:
-```bash
-cp .env.example .env
-```
-Fill in the database URL and authentication secrets in `.env`. By default, `UPLOAD_PROVIDER=local` is set, which requires no additional configuration.
-
-### 2. Install Dependencies
-```bash
+```sh
 npm install
-```
-
-### 3. Database Migration & Seeding
-Generate the migration SQL, apply it to your Neon database, and seed the default roles and capabilities:
-```bash
-npm run db:generate
-npm run db:migrate
-npm run db:seed
-```
-
-### 4. Run Development Server
-```bash
+cp .env.example .env
+# Add the database/auth values required for your local environment.
 npm run dev
 ```
 
-## Deployment Guide
+Vite prints the local URL. Check types and Svelte components with `npm run check`; create a production build with `npm run build` and inspect it using `npm run preview`.
 
-Launchpad is optimized for edge deployment (e.g., Cloudflare Pages) using `@sveltejs/adapter-cloudflare`.
+## Database and scripts
 
-### Storage Migration to Cloud
-When you are ready to move from Local Storage to Cloudflare R2 (or Supabase), you do not need to change any business logic or database schemas. 
+Configure `DATABASE_URL` and `BETTER_AUTH_SECRET` first. `.env.example` lists OAuth, Cashfree sandbox, Resend, and storage settings; leave optional providers disabled until configured. Never commit `.env` or production secrets.
 
-1. Setup an R2 Bucket or Supabase Storage bucket.
-2. Update your `.env` with the provider credentials (e.g., `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, etc.).
-3. Run the storage migration script to automatically move local files to your new provider and update the tracking records:
-```bash
-MIGRATE_FROM=local MIGRATE_TO=r2 npx tsx scripts/migrate-storage.ts
-```
-4. Set `UPLOAD_PROVIDER=r2` in your production environment variables.
+| Command | Purpose |
+| --- | --- |
+| `npm run db:generate` | Generate Drizzle migrations from schema changes. |
+| `npm run db:migrate` | Apply checked-in migrations. |
+| `npm run db:push` | Push schema changes directly for local development. |
+| `npm run db:studio` | Open Drizzle Studio. |
+| `npm run db:seed` | Seed the configured database with demo content. |
 
-### Environment Variables
-For production deployment, ensure all variables in `.env.example` are set in your provider's dashboard (e.g., Cloudflare Pages settings), particularly:
-- `DATABASE_URL` (Use the pooled connection string)
-- `BETTER_AUTH_SECRET`
-- `CASHFREE_SECRET_KEY`
-- `RESEND_API_KEY`
-- Storage variables corresponding to your chosen `UPLOAD_PROVIDER`.
+Use `db:push` only against a development database. Review migration files before applying changes to shared or production data. The Cloudflare deployment is configured in `wrangler.json`; the adapter and bindings must match the chosen deployment environment.
+
+## Code map
+
+- `src/routes/` — public catalog, learner, teacher, admin, auth, checkout, and API routes.
+- `src/lib/server/` — auth, payments, storage, mail, database, and business services.
+- `src/lib/` — shared UI, validation, and client utilities.
+- `scripts/` — database/content and storage maintenance utilities.
+- `static/` — public assets.
+
+## Validation
+
+The package exposes `npm run check` but does not currently define an automated test script. Verify a feature with the checks and workflows that apply to it, especially sign-in, payment sandbox callbacks, upload providers, and role-protected pages.

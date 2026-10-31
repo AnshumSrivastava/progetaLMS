@@ -5,7 +5,7 @@ import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { commerceCoupons } from '$lib/server/db/schema/commerce.schema';
 import { cohorts } from '$lib/server/db/schema/cohorts.schema';
 import { CohortService } from '$lib/server/cohorts/CohortService';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { CASHFREE_ENV } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -20,16 +20,20 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		
 		if (foundCohort) {
 			cohort = foundCohort;
-			const [foundAsset] = await db.select().from(assets).where(eq(assets.id, cohort.courseId));
+			const [foundAsset] = await db.select().from(assets).where(
+				or(eq(assets.id, cohort.courseId), eq(assets.slug, cohort.courseId))
+			);
 			asset = foundAsset;
 
 			// Batch enrollment window has closed — send the buyer back to pick the current open batch
 			if (!CohortService.isEnrollmentOpen(foundCohort)) {
-				redirect(303, `/catalog/${foundCohort.courseId}`);
+				redirect(303, `/catalog/${foundAsset?.slug || foundCohort.courseId}`);
 			}
 		} else {
-			// Fallback to searching for the asset directly
-			const [foundAsset] = await db.select().from(assets).where(eq(assets.id, itemId));
+			// Fallback to searching for the asset directly by ID or slug
+			const [foundAsset] = await db.select().from(assets).where(
+				or(eq(assets.id, itemId), eq(assets.slug, itemId))
+			);
 			asset = foundAsset;
 		}
 
@@ -80,6 +84,11 @@ export const actions: Actions = {
 		const [foundCohort] = await db.select().from(cohorts).where(eq(cohorts.id, itemId));
 		if (foundCohort) {
 			assetId = foundCohort.courseId;
+		} else {
+			const [foundAsset] = await db.select({ id: assets.id }).from(assets).where(or(eq(assets.id, itemId), eq(assets.slug, itemId)));
+			if (foundAsset) {
+				assetId = foundAsset.id;
+			}
 		}
 
 		if (coupon.assetId && coupon.assetId !== assetId) {
@@ -126,6 +135,11 @@ export const actions: Actions = {
 		if (foundCohort) {
 			cohortId = foundCohort.id;
 			assetId = foundCohort.courseId;
+		} else {
+			const [foundAsset] = await db.select({ id: assets.id }).from(assets).where(or(eq(assets.id, itemId), eq(assets.slug, itemId)));
+			if (foundAsset) {
+				assetId = foundAsset.id;
+			}
 		}
 
 		try {

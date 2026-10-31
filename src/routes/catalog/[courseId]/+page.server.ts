@@ -1,14 +1,14 @@
 import { db } from '$lib/server/db/client';
 import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { users } from '$lib/server/db/schema/identity.schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, or } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const courseId = params.courseId;
 
-	// Query asset and owner (instructor) in one go
+	// Query asset and owner (instructor) by ID or slug in one go
 	const [record] = await db
 		.select({
 			asset: assets,
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.leftJoin(users, eq(assets.ownerId, users.id))
 		.where(
 			and(
-				eq(assets.id, courseId),
+				or(eq(assets.id, courseId), eq(assets.slug, courseId)),
 				eq(assets.status, 'published'),
 				isNull(assets.deletedAt)
 			)
@@ -28,6 +28,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(404, 'Course not found');
 	}
 
+	const realAssetId = record.asset.id;
 	let alreadyOwned = false;
 	
 	if (locals.user) {
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			.from(assetOwnership)
 			.where(
 				and(
-					eq(assetOwnership.assetId, courseId),
+					eq(assetOwnership.assetId, realAssetId),
 					eq(assetOwnership.ownerId, locals.user.id),
 					isNull(assetOwnership.revokedAt)
 				)
@@ -47,7 +48,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	// Load public cohorts with live capacity: 1 batch at a time, once filled the next unlocks
 	const { CohortService } = await import('$lib/server/cohorts/CohortService');
-	const allBatches = await CohortService.getCourseBatches(courseId);
+	const allBatches = await CohortService.getCourseBatches(realAssetId);
 	// Batches that have started (or are within the enrollment cutoff window) are hidden,
 	// so the catalog automatically rolls over to the next upcoming batch.
 	const now = new Date();

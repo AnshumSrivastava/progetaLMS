@@ -424,7 +424,13 @@
 
 	.workly-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 		gap: 20px;
+	}
+
+	@media (max-width: 640px) {
+		.workly-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

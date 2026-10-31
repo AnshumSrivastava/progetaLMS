@@ -57,7 +57,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 				)
 			);
 
-		ownedCourses = owned.filter(a => ['html', 'markdown', 'pdf'].includes(a.type));
+		const ownedHackathons = owned.filter(
+			(a) =>
+				(a.metadata as any)?.category === 'ctf' ||
+				(a.metadata as any)?.kind === 'hackathon' ||
+				a.id === 'hackdef-2026-ctf-arena'
+		);
+		ownedCourses = owned.filter(
+			(a) =>
+				['html', 'markdown', 'pdf'].includes(a.type) &&
+				(a.metadata as any)?.category !== 'ctf' &&
+				a.id !== 'hackdef-2026-ctf-arena'
+		);
 		ownedResources = owned.filter(a => ['download', 'external'].includes(a.type));
 
 		const issuedCertsWithAsset = await db
@@ -162,14 +173,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 				.where(eq(courseCollaborators.userId, locals.user.id));
 			const collabCourseIds = collabRows.map(r => r.courseId);
 
-			const courseConditions = [
-				and(
-					inArray(assets.type, ['html', 'markdown', 'pdf']),
-					eq(assets.ownerId, locals.user.id),
-					isNull(assets.deletedAt)
-				)
-			];
-			if (collabCourseIds.length > 0) {
+			const courseConditions = isAdmin
+				? [
+					and(
+						inArray(assets.type, ['html', 'markdown', 'pdf']),
+						isNull(assets.deletedAt)
+					)
+				]
+				: [
+					and(
+						inArray(assets.type, ['html', 'markdown', 'pdf']),
+						eq(assets.ownerId, locals.user.id),
+						isNull(assets.deletedAt)
+					)
+				];
+			if (!isAdmin && collabCourseIds.length > 0) {
 				courseConditions.push(
 					and(
 						inArray(assets.type, ['html', 'markdown', 'pdf']),
@@ -182,7 +200,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const rawTeacherCourses = await db
 				.select()
 				.from(assets)
-				.where(sql`(${courseConditions[0]}) ${collabCourseIds.length > 0 ? sql`OR (${courseConditions[1]})` : sql``}`)
+				.where(sql`(${courseConditions[0]}) ${courseConditions.length > 1 ? sql`OR (${courseConditions[1]})` : sql``}`)
 				.orderBy(desc(assets.createdAt));
 
 			const courseIds = rawTeacherCourses.map(a => a.id);
@@ -210,7 +228,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 					rawPrice: c.pricePaise / 100,
 					rawCurrency: c.currency || 'INR',
 					status: c.status === 'published' ? 'Published' : 'Draft',
-					isCourseAdmin: isOwner
+					isCourseAdmin: isAdmin || isOwner
 				};
 			});
 
@@ -295,11 +313,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 				.from(assets)
 				.innerJoin(assessmentTests, eq(assets.id, assessmentTests.assetId))
 				.where(
-					and(
-						eq(assets.type, 'cert_test'),
-						eq(assets.ownerId, locals.user.id),
-						isNull(assets.deletedAt)
-					)
+					isAdmin
+						? and(
+							eq(assets.type, 'cert_test'),
+							isNull(assets.deletedAt)
+						)
+						: and(
+							eq(assets.type, 'cert_test'),
+							eq(assets.ownerId, locals.user.id),
+							isNull(assets.deletedAt)
+						)
 				)
 				.orderBy(desc(assets.createdAt));
 
@@ -592,6 +615,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			ownedCourses,
 			ownedResources,
 			ownedCerts,
+			ownedHackathons,
 			issuedCertificates,
 			upcomingEvents,
 			registeredEventIds,

@@ -1,18 +1,17 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { BookOpen, Video, Award, Users, LayoutDashboard } from 'lucide-svelte';
+	import { Compass, BookOpen, Terminal, Users, LayoutDashboard } from 'lucide-svelte';
 
 	const tabs = [
-		{ href: '/catalog', icon: BookOpen, label: 'Explore' },
-		{ href: '/live-classes', icon: Video, label: 'Live' },
+		{ href: '/catalog', icon: Compass, label: 'Explore' },
 		{ href: '/courses', icon: BookOpen, label: 'Courses' },
-		{ href: '/certifications', icon: Award, label: 'Certs' },
+		{ href: '/labs', icon: Terminal, label: 'Labs' },
 		{ href: '/mentoring', icon: Users, label: 'Mentoring' },
 		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' }
 	];
 </script>
 
-<div class="mobile-tab-bar">
+<div class="mobile-tab-bar" aria-label="Mobile navigation">
 	{#each tabs as tab}
 		{@const isActive =
 		tab.href === '/courses'
@@ -22,7 +21,7 @@
 				: tab.href === '/live-classes'
 				? $page.url.pathname === '/live-classes'
 				: $page.url.pathname.startsWith(tab.href)}
-		<a href={tab.href} class="tab-item" class:active={isActive}>
+		<a href={tab.href} class="tab-item" class:active={isActive} aria-current={isActive ? 'page' : undefined}>
 			<tab.icon size={19} class="tab-icon" />
 			<span class="tab-label">{tab.label}</span>
 		</a>

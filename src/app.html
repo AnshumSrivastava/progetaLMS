@@ -23,18 +23,12 @@
 		<!-- Twitter -->
 		<meta name="twitter:card" content="summary_large_image" />
 
-		<!-- Anti-FOUC Theme Pre-initialization -->
+		<!-- Anti-FOUC Theme Pre-initialization: Forced Dark Everywhere -->
 		<script>
 			try {
-				var saved = localStorage.getItem('launchpad-theme') || 'system';
-				var isDark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-				if (isDark) {
-					document.documentElement.setAttribute('data-theme', 'dark');
-					document.documentElement.classList.add('dark');
-				} else {
-					document.documentElement.setAttribute('data-theme', 'light');
-					document.documentElement.classList.remove('dark');
-				}
+				document.documentElement.setAttribute('data-theme', 'dark');
+				document.documentElement.classList.add('dark');
+				localStorage.setItem('launchpad-theme', 'dark');
 			} catch (_) {}
 		</script>
 

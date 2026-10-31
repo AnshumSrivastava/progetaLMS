@@ -57,9 +57,11 @@
 
 {:else if data.contentType === 'html' || data.contentType === 'reading'}
 	<!-- ── HTML / READING MATERIAL ─────────────────────────────────────── -->
-	<div style="padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6;">
-		{@html data.parsedContent}
-	</div>
+	<ReadingView readingData={{
+		title: data.lesson?.title || data.parsedContent?.title || 'Lesson Reading',
+		readingTime: data.lesson?.duration || data.parsedContent?.readingTime || '5 min',
+		htmlContent: typeof data.parsedContent === 'string' ? data.parsedContent : (data.parsedContent?.htmlContent || '')
+	}} />
 
 {:else}
 	<!-- Fallback empty state if invalid ID -->
