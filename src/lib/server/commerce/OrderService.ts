@@ -415,7 +415,7 @@ export class OrderService {
 			userId,
 			status: isMockMode ? 'confirmed' : 'pending_payment',
 			paymentMethod: 'paid',
-			amountPaidPaise,
+			amountPaidPaise: amountPaise,
 			creditsUsed: 0,
 			orderId: internalOrderId,
 			registeredAt: new Date()
@@ -424,7 +424,7 @@ export class OrderService {
 			set: {
 				status: isMockMode ? 'confirmed' : 'pending_payment',
 				paymentMethod: 'paid',
-				amountPaidPaise,
+				amountPaidPaise: amountPaise,
 				orderId: internalOrderId,
 				registeredAt: new Date()
 			}
