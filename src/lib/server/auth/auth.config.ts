@@ -34,6 +34,11 @@ export const auth = betterAuth({
 	baseURL: PUBLIC_APP_URL,
 	basePath: '/api/auth',
 
+	rateLimit: {
+		window: 60,
+		max: 1000
+	},
+
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		schema: {

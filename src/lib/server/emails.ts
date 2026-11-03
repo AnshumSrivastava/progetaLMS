@@ -488,5 +488,233 @@ export const emailService = {
 			console.error('[DailyReportService] Error sending daily sales digest:', error);
 			return { success: false, error };
 		}
+	},
+
+	async sendEventRegistrationConfirmation(params: {
+		to: string;
+		userName: string;
+		eventTitle: string;
+		eventSlug: string;
+		eventDate: string;
+		eventTime: string;
+		venueType: 'online' | 'offline' | 'hybrid';
+		venueDisplay: string;
+		paymentMethod: 'free' | 'paid' | 'credit';
+		amountPaid?: string;
+		creditsUsed?: number;
+		whatsappGroupUrl?: string;
+		registrationId: string;
+	}) {
+		const resend = getResendClient();
+		if (!resend) {
+			console.warn('[emailService] Resend not configured. Skipping event registration email to', params.to);
+			return;
+		}
+
+		const whatsappUrl = params.whatsappGroupUrl || 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i';
+
+		const paymentDetails =
+			params.paymentMethod === 'free'
+				? 'Free'
+				: params.paymentMethod === 'credit'
+				? `${params.creditsUsed || 0} Credits`
+				: params.amountPaid || 'Paid';
+
+		const html = `
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background: #ffffff;">
+				<div style="margin-bottom: 24px;">
+					<span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: #09090b; text-transform: uppercase;">PROGETA</span>
+				</div>
+
+				<h1 style="font-size: 22px; font-weight: 700; color: #09090b; margin: 0 0 12px 0;">You're registered for ${params.eventTitle}!</h1>
+				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
+					Hi ${params.userName}, your spot has been successfully confirmed.
+				</p>
+
+				<div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+					<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; margin-bottom: 12px;">Session Details</div>
+					<div style="font-size: 14px; font-weight: 600; color: #09090b; margin-bottom: 6px;">📅 ${params.eventDate}</div>
+					<div style="font-size: 13px; color: #52525b; margin-bottom: 6px;">🕙 ${params.eventTime}</div>
+					<div style="font-size: 13px; color: #52525b; margin-bottom: 10px;">📍 ${params.venueDisplay}</div>
+					<div style="border-top: 1px solid #e4e4e7; padding-top: 10px; font-size: 12px; color: #71717a;">
+						Registration ID: <span style="font-family: monospace; color: #09090b;">${params.registrationId}</span> &bull; Payment: <strong style="color: #09090b;">${paymentDetails}</strong>
+					</div>
+				</div>
+
+				<div style="background: #09090b; color: #ffffff; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+					<div style="font-size: 15px; font-weight: 600; margin-bottom: 8px;">Join the Official Community Group</div>
+					<p style="font-size: 13px; color: #a1a1aa; margin: 0 0 16px 0;">All meeting links, resources, and live announcements are shared inside this group.</p>
+					<a href="${whatsappUrl}" style="display: inline-block; background: #ffffff; color: #09090b; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; text-decoration: none;">Join WhatsApp Group &rarr;</a>
+				</div>
+
+				<div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; text-align: center;">
+					&copy; ${new Date().getFullYear()} Progeta Technologies &bull; progetatechnologies@gmail.com
+				</div>
+			</div>
+		`;
+
+		try {
+			await resend.client.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to: params.to,
+				subject: `You're registered for ${params.eventTitle}!`,
+				html
+			});
+			console.log(`[emailService] Registration email sent to ${params.to} for event ${params.eventTitle}`);
+		} catch (error) {
+			console.error('[emailService] Error sending event registration email:', error);
+		}
+	},
+
+	async sendEventReminder(params: {
+		to: string;
+		userName: string;
+		eventTitle: string;
+		eventDate: string;
+		eventTime: string;
+		venueDisplay: string;
+		meetingUrl?: string;
+		joiningInstructions?: string;
+		whatsappGroupUrl?: string;
+	}) {
+		const resend = getResendClient();
+		if (!resend) return;
+
+		const html = `
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background: #ffffff;">
+				<h1 style="font-size: 20px; font-weight: 700; color: #09090b; margin: 0 0 12px 0;">Reminder: ${params.eventTitle} is starting soon</h1>
+				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 20px 0;">
+					Hi ${params.userName}, here are your session joining details:
+				</p>
+				<div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+					<div style="font-size: 14px; font-weight: 600; color: #09090b; margin-bottom: 6px;">📅 ${params.eventDate}</div>
+					<div style="font-size: 13px; color: #52525b; margin-bottom: 6px;">🕙 ${params.eventTime}</div>
+					<div style="font-size: 13px; color: #52525b; margin-bottom: 12px;">📍 ${params.venueDisplay}</div>
+					${params.meetingUrl ? `<a href="${params.meetingUrl}" style="display: inline-block; background: #09090b; color: #ffffff; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Join Session &rarr;</a>` : ''}
+					${params.joiningInstructions ? `<p style="font-size: 12px; color: #71717a; margin-top: 12px;">${params.joiningInstructions}</p>` : ''}
+				</div>
+			</div>
+		`;
+
+		try {
+			await resend.client.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to: params.to,
+				subject: `Reminder: ${params.eventTitle} starts tomorrow!`,
+				html
+			});
+		} catch (error) {
+			console.error('[emailService] Error sending event reminder email:', error);
+		}
+	},
+
+	async sendEventResourcesReleased(params: {
+		to: string;
+		userName: string;
+		eventTitle: string;
+		eventSlug: string;
+		resourceCount: number;
+	}) {
+		const resend = getResendClient();
+		if (!resend) return;
+
+		const html = `
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background: #ffffff;">
+				<h1 style="font-size: 20px; font-weight: 700; color: #09090b; margin: 0 0 12px 0;">Resources Available: ${params.eventTitle}</h1>
+				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 20px 0;">
+					Hi ${params.userName}, the host has released ${params.resourceCount} resource(s) (slides, code repositories, worksheets) for <strong>${params.eventTitle}</strong>.
+				</p>
+				<div style="margin: 24px 0;">
+					<a href="https://lms.progeta.in/events/${params.eventSlug}/resources" style="display: inline-block; background: #09090b; color: #ffffff; padding: 12px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none;">Access Event Resources &rarr;</a>
+				</div>
+			</div>
+		`;
+
+		try {
+			await resend.client.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to: params.to,
+				subject: `Resources now available: ${params.eventTitle}`,
+				html
+			});
+		} catch (error) {
+			console.error('[emailService] Error sending event resources email:', error);
+		}
+	},
+
+	async sendCreditPurchaseConfirmation(params: {
+		to: string;
+		userName: string;
+		packageName: string;
+		credits: number;
+		bonusCredits: number;
+		totalCredits: number;
+		amountPaid: string;
+		newBalance: number;
+	}) {
+		const resend = getResendClient();
+		if (!resend) return;
+
+		const html = `
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background: #ffffff;">
+				<h1 style="font-size: 20px; font-weight: 700; color: #09090b; margin: 0 0 12px 0;">Credits Added to Your Account</h1>
+				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 20px 0;">
+					Hi ${params.userName}, your purchase of ${params.packageName} was successful.
+				</p>
+				<div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+					<div style="font-size: 14px; color: #52525b; margin-bottom: 6px;">Credits Added: <strong style="color: #09090b;">+${params.totalCredits}</strong> (${params.credits} base + ${params.bonusCredits} bonus)</div>
+					<div style="font-size: 14px; color: #52525b; margin-bottom: 6px;">Amount Paid: <strong style="color: #09090b;">${params.amountPaid}</strong></div>
+					<div style="border-top: 1px solid #e4e4e7; padding-top: 10px; font-size: 15px; font-weight: 700; color: #09090b;">
+						Current Balance: ${params.newBalance} Credits
+					</div>
+				</div>
+				<a href="https://lms.progeta.in/events" style="display: inline-block; background: #09090b; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none;">Explore Sessions &rarr;</a>
+			</div>
+		`;
+
+		try {
+			await resend.client.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to: params.to,
+				subject: `+${params.totalCredits} Credits added to your Progeta account`,
+				html
+			});
+		} catch (error) {
+			console.error('[emailService] Error sending credit purchase email:', error);
+		}
+	},
+
+	async sendEventCancellationNotice(params: {
+		to: string;
+		userName: string;
+		eventTitle: string;
+		eventDate: string;
+		cancellationReason?: string;
+		refundNote?: string;
+	}) {
+		const resend = getResendClient();
+		if (!resend) return;
+
+		const html = `
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background: #ffffff;">
+				<h1 style="font-size: 20px; font-weight: 700; color: #09090b; margin: 0 0 12px 0;">Event Cancelled: ${params.eventTitle}</h1>
+				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 20px 0;">
+					Hi ${params.userName}, we regret to inform you that <strong>${params.eventTitle}</strong> scheduled for ${params.eventDate} has been cancelled.
+				</p>
+				${params.cancellationReason ? `<p style="font-size: 13px; color: #71717a; background: #fafafa; padding: 12px; border-radius: 6px;">Reason: ${params.cancellationReason}</p>` : ''}
+				${params.refundNote ? `<p style="font-size: 13px; color: #09090b; font-weight: 600;">${params.refundNote}</p>` : ''}
+			</div>
+		`;
+
+		try {
+			await resend.client.emails.send({
+				from: `${APP_NAME} <${fromEmail}>`,
+				to: params.to,
+				subject: `Event Cancelled: ${params.eventTitle}`,
+				html
+			});
+		} catch (error) {
+			console.error('[emailService] Error sending event cancellation notice:', error);
+		}
 	}
 };

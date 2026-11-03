@@ -1,6 +1,7 @@
 import { db } from '$lib/server/db/client';
 import { assets } from '$lib/server/db/schema/assets.schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { events } from '$lib/server/db/schema/events.schema';
+import { eq, and, isNull, asc } from 'drizzle-orm';
 import { MentoringService } from '$lib/server/mentoring/MentoringService';
 import type { PageServerLoad } from './$types';
 
@@ -38,6 +39,31 @@ export const load: PageServerLoad = async ({ url }) => {
 		console.error('Failed to load assets from db:', e);
 	}
 
+	let upcomingEvents: any[] = [];
+	try {
+		upcomingEvents = await db
+			.select({
+				id: events.id,
+				slug: events.slug,
+				title: events.title,
+				shortDescription: events.shortDescription,
+				eventType: events.eventType,
+				pricePaise: events.pricePaise,
+				priceCredits: events.priceCredits,
+				startAt: events.startAt,
+				endAt: events.endAt,
+				venueType: events.venueType,
+				venueDetails: events.venueDetails,
+				coverImageUrl: events.coverImageUrl
+			})
+			.from(events)
+			.where(eq(events.status, 'published'))
+			.orderBy(asc(events.startAt))
+			.limit(12);
+	} catch (e) {
+		console.error('Failed to load events for catalog:', e);
+	}
+
 	let publicMentors: any[] = [];
 	try {
 		publicMentors = await MentoringService.getPublicMentors();
@@ -70,6 +96,7 @@ export const load: PageServerLoad = async ({ url }) => {
 	const certifications = filtered.filter((a) => a.type === 'cert_test');
 
 	return {
+		events: upcomingEvents,
 		courses,
 		liveClasses,
 		resources,

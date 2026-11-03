@@ -41,6 +41,12 @@ export * from './notifications.schema';
 // Analytics (no strong FK deps — user_id is nullable)
 export * from './analytics.schema';
 
+// Events and Sessions (depends on identity)
+export * from './events.schema';
+
+// Credits and Wallet (depends on identity)
+export * from './credits.schema';
+
 // Infrastructure
 export * from './outbox.schema';
 export * from './platform.schema';

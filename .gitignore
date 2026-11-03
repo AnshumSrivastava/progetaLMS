@@ -1,5 +1,8 @@
 node_modules
 
+# Planning tasks (local only, not for VCS)
+.tasks/
+
 # Output
 .output
 .vercel
@@ -24,3 +27,7 @@ vite.config.ts.timestamp-*
 
 # UX/Design planning docs (internal only)
 .ux-tasks/
+
+# Complete system & security audit
+.completeAudit.md
+

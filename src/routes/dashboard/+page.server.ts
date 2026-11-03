@@ -15,6 +15,7 @@ import { eq, and, isNull, inArray, desc, sql, not } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { createId } from '@paralleldrive/cuid2';
 import { auth } from '$lib/server/auth/auth.config';
+import { CreditService } from '$lib/server/credits/credit.service';
 
 export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 	setHeaders({
@@ -40,6 +41,14 @@ export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 	let registeredEventIds: string[] = [];
 	let userCohorts: any[] = [];
 	let avgQuizScore = '—';
+	let userCredits = 0;
+
+	try {
+		const bal = await CreditService.getBalance(locals.user.id);
+		userCredits = bal.balance;
+	} catch (e) {
+		console.warn('[dashboard] Failed to load credits:', e);
+	}
 
 	try {
 		const owned = await db
@@ -628,6 +637,7 @@ export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 			issuedCertificates,
 			upcomingEvents,
 			registeredEventIds,
+			userCredits,
 			cohorts: userCohorts,
 			liveBatches,
 			pendingTransfer,

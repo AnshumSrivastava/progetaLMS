@@ -693,22 +693,21 @@
 
 	@media (min-width: 540px) {
 		.otp-input-row {
-			flex-direction: row;
+			display: grid;
+			grid-template-columns: 1fr auto;
 			align-items: center;
-			gap: 8px;
+			gap: 10px;
 		}
 	}
 
 	.otp-input-wrap {
-		flex: 1;
-		min-width: 0;
 		width: 100%;
 	}
 
 	.otp-digit-input {
 		width: 100%;
 		height: 44px;
-		background: #09090b;
+		background: var(--bg);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		font-family: var(--font-mono);
@@ -716,7 +715,7 @@
 		font-weight: 700;
 		letter-spacing: 0.3em;
 		text-align: center;
-		color: #ffffff;
+		color: var(--text-primary);
 		outline: none;
 		transition: border-color var(--t-fast);
 		box-sizing: border-box;
@@ -724,7 +723,7 @@
 	}
 
 	.otp-digit-input:focus {
-		border-color: #ffffff;
+		border-color: var(--text-primary);
 	}
 
 	.otp-digit-input::placeholder {
@@ -738,11 +737,11 @@
 		height: 44px;
 		width: 100%;
 		padding: 0 18px;
-		background: #ffffff;
-		color: #09090b;
+		background: #09090b;
+		color: #ffffff;
 		font-size: 0.875rem;
 		font-weight: 700;
-		border: 1px solid #ffffff;
+		border: 1px solid #09090b;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 		display: inline-flex;
@@ -758,20 +757,22 @@
 	@media (min-width: 540px) {
 		.btn-verify-otp {
 			width: auto;
+			min-width: 150px;
 		}
 	}
 
 	.btn-verify-otp:hover:not(:disabled) {
-		background: #e4e4e7;
-		border-color: #e4e4e7;
+		background: #27272a;
+		border-color: #27272a;
+		color: #ffffff;
 	}
 
 	.btn-verify-otp:disabled {
-		opacity: 0.45;
+		opacity: 0.5;
 		cursor: not-allowed;
-		background: #27272a;
-		border-color: #3f3f46;
-		color: #a1a1aa;
+		background: #71717a;
+		border-color: #71717a;
+		color: #ffffff;
 	}
 
 	.payment-info-box {

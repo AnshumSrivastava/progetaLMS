@@ -1,87 +1,65 @@
 <script lang="ts">
-	import { Download, BookOpen, ArrowRight } from 'lucide-svelte';
+	import { Download, BookOpen, ArrowRight, FileText } from 'lucide-svelte';
 
 	let { resource }: { resource: any } = $props();
 
 	const format = (resource.metadata?.format || resource.metadata?.fileType || 'PDF').toUpperCase();
 	const pages = resource.metadata?.pages ? `${resource.metadata.pages} pages` : 'Guide';
 	const targetUrl = $derived(`/catalog/${resource.slug || resource.id}`);
+	const isFree = resource.pricePaise === 0;
+	const priceDisplay = isFree ? 'Free' : `₹${(resource.pricePaise / 100).toFixed(0)}`;
 </script>
 
-<a href={targetUrl} class="dark-resource-card group">
-	<div class="res-icon-box">
-		<BookOpen size={18} class="text-slate-300" />
-	</div>
+<article class="rounded-3xl border border-zinc-200 bg-white overflow-hidden hover:border-zinc-300 hover:shadow-md transition flex flex-col justify-between group">
+	<div>
+		<!-- 16:9 Cover Thumbnail -->
+		<a href={targetUrl} class="block relative aspect-[16/9] overflow-hidden bg-zinc-100 border-b border-zinc-100">
+			<img
+				src={resource.metadata?.coverUrl || '/thumbnails/lab-guided.jpg'}
+				alt={resource.title}
+				class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+			/>
+			<div class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+				<span class="px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase shadow-xs bg-zinc-950 text-white">
+					{format}
+				</span>
+				<span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white text-zinc-950 shadow-xs">
+					{priceDisplay}
+				</span>
+			</div>
+		</a>
 
-	<div class="res-content">
-		<h3 class="res-title">{resource.title}</h3>
-		<div class="res-meta-row">
-			<span class="res-meta-text">{format} • {pages}</span>
+		<!-- Body -->
+		<div class="p-6">
+			<div class="flex items-center gap-2 text-xs font-mono text-zinc-400 mb-2">
+				<span>{resource.ownerName || 'Progeta Engineering'}</span>
+				<span>&bull;</span>
+				<span>{pages}</span>
+			</div>
+
+			<h3 class="text-lg font-bold text-zinc-950 leading-snug group-hover:text-zinc-700 transition">
+				<a href={targetUrl}>
+					{resource.title}
+				</a>
+			</h3>
+
+			<p class="text-xs text-zinc-600 mt-2 line-clamp-2 leading-relaxed">
+				{resource.description || 'Verified practical materials, technical blueprints, and reference frameworks.'}
+			</p>
 		</div>
 	</div>
 
-	<div class="res-download-btn" aria-label="Download or view resource">
-		<Download size={14} />
+	<!-- Footer Action -->
+	<div class="px-6 pb-6 pt-2 flex items-center justify-between border-t border-zinc-100 mt-auto">
+		<span class="text-sm font-mono font-bold text-zinc-950">
+			{priceDisplay}
+		</span>
+		<a
+			href={targetUrl}
+			class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-950 text-white text-xs font-bold hover:bg-zinc-800 transition active:scale-95 shadow-xs"
+		>
+			<Download size={13} />
+			<span>{isFree ? 'Download Free' : 'Get Resource'}</span>
+		</a>
 	</div>
-</a>
-
-<style>
-	.dark-resource-card {
-		border-radius: var(--radius-md);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		padding: 16px;
-		display: flex;
-		align-items: flex-start;
-		gap: 12px;
-		text-decoration: none;
-		transition: all 0.15s ease;
-	}
-
-	.dark-resource-card:hover {
-		border-color: var(--color-border-strong);
-		background: var(--color-surface-elevated);
-		transform: translateY(-2px);
-	}
-
-	.res-icon-box {
-		width: 36px;
-		height: 36px;
-		border-radius: var(--radius-sm);
-		background: var(--color-surface-elevated);
-		border: 1px solid var(--color-border);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		color: var(--color-text-secondary);
-	}
-
-	.res-content {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.res-title {
-		font-size: 0.85rem;
-		font-weight: 700;
-		color: var(--color-text);
-		line-height: 1.35;
-		margin-bottom: 6px;
-	}
-
-	.res-meta-text {
-		font-size: 0.72rem;
-		color: var(--color-text-secondary);
-	}
-
-	.res-download-btn {
-		color: var(--color-text-secondary);
-		padding: 4px;
-		transition: color 0.15s ease;
-	}
-
-	.dark-resource-card:hover .res-download-btn {
-		color: var(--color-text);
-	}
-</style>
+</article>

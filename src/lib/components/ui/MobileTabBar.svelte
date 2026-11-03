@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Compass, BookOpen, Terminal, Users, LayoutDashboard } from 'lucide-svelte';
+	import { Compass, BookOpen, Calendar, Users, LayoutDashboard } from 'lucide-svelte';
 
 	const tabs = [
 		{ href: '/catalog', icon: Compass, label: 'Explore' },
-		{ href: '/courses', icon: BookOpen, label: 'Courses' },
-		{ href: '/labs', icon: Terminal, label: 'Labs' },
+		{ href: '/courses', icon: BookOpen, label: 'Classes' },
+		{ href: '/events', icon: Calendar, label: 'Sessions' },
 		{ href: '/mentoring', icon: Users, label: 'Mentoring' },
 		{ href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' }
 	];

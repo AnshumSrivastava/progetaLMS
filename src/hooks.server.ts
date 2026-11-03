@@ -44,6 +44,18 @@ async function initializeApp() {
 
 // Trigger manual deployment refresh
 export const handle: Handle = async ({ event, resolve }) => {
+	const path = event.url.pathname;
+
+	// Fast-path bypass for static assets, chunks, and fonts to avoid hammering DB & auth
+	if (
+		path.startsWith('/_app/') ||
+		path.startsWith('/favicon') ||
+		path.startsWith('/thumbnails/') ||
+		path.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|css|js|woff2?|map)$/)
+	) {
+		return resolve(event);
+	}
+
 	await initializeApp();
 
 	// Process outbox in background on every request
@@ -76,8 +88,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.session = null;
 		event.locals.isImpersonating = false;
 	}
-
-	const path = event.url.pathname;
 
 	// Enforce Admin password change (ignore if impersonating so we don't break their testing)
 	if (session && !event.locals.isImpersonating) {

@@ -4,7 +4,9 @@ import { db } from '$lib/server/db/client';
 import { identityProfiles } from '$lib/server/db/schema/identity.schema';
 import { eq } from 'drizzle-orm';
 
-export const load: PageServerLoad = async ({ locals, cookies }) => {
+export const load: PageServerLoad = async ({ locals, cookies, url }) => {
+	const returnTo = url.searchParams.get('returnTo');
+
 	if (locals.user && locals.session) {
 		const [profile] = await db
 			.select({ loginPreference: identityProfiles.loginPreference })
@@ -19,8 +21,14 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 			}
 		}
 
+		if (returnTo && returnTo.startsWith('/')) {
+			throw redirect(302, returnTo);
+		}
+
 		throw redirect(302, '/dashboard');
 	}
 
-	return {};
+	return {
+		returnTo: returnTo && returnTo.startsWith('/') ? returnTo : null
+	};
 };

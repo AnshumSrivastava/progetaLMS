@@ -23,12 +23,12 @@
 		<!-- Twitter -->
 		<meta name="twitter:card" content="summary_large_image" />
 
-		<!-- Anti-FOUC Theme Pre-initialization: Forced Dark Everywhere -->
+		<!-- Permanent Editorial Light Theme -->
 		<script>
 			try {
-				document.documentElement.setAttribute('data-theme', 'dark');
-				document.documentElement.classList.add('dark');
-				localStorage.setItem('launchpad-theme', 'dark');
+				document.documentElement.setAttribute('data-theme', 'light');
+				document.documentElement.classList.remove('dark');
+				localStorage.removeItem('launchpad-theme');
 			} catch (_) {}
 		</script>
 

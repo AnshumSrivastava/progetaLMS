@@ -8,6 +8,13 @@
       "when": 1785081837034,
       "tag": "0000_spotty_bulldozer",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793621606344,
+      "tag": "0001_events_and_credits",
+      "breakpoints": true
     }
   ]
 }

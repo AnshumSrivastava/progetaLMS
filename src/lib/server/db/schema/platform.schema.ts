@@ -13,25 +13,24 @@ export const platformSettings = pgTable('platform_settings', {
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 });
 
-
-
-export const events = pgTable('events', {
-	id: text('id').primaryKey(),
-	title: text('title').notNull(),
-	description: text('description'),
-	hostId: text('host_id').notNull(), // reference to users.id
-	date: timestamp('date', { withTimezone: true }).notNull(),
-	link: text('link'), // e.g. zoom link
-	type: text('type', { enum: ['public', 'private'] }).notNull().default('public'),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
-});
-
-export const eventAttendees = pgTable('event_attendees', {
-	id: text('id').primaryKey(),
-	eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
-	userId: text('user_id').notNull(), // reference to users.id
-	registeredAt: timestamp('registered_at', { withTimezone: true }).notNull().defaultNow()
-});
+// Re-export events domain from events.schema for seamless backward compatibility
+export {
+	events,
+	eventAttendees,
+	eventRegistrations,
+	eventResources,
+	userEventProfiles,
+	type Event,
+	type NewEvent,
+	type EventAttendee,
+	type NewEventAttendee,
+	type EventRegistration,
+	type NewEventRegistration,
+	type EventResource,
+	type NewEventResource,
+	type UserEventProfile,
+	type NewUserEventProfile
+} from './events.schema';
 
 export type PlatformSettings = typeof platformSettings.$inferSelect;
 export type Event = typeof events.$inferSelect;

@@ -3,241 +3,129 @@
 
 	let { course }: { course: any } = $props();
 
-	const category = $derived(course.metadata?.category || (course.deliveryFormat === 'live_batch' ? 'LIVE BATCH' : 'SELF-PACED'));
+	const category = $derived(
+		course.metadata?.category ||
+			(course.deliveryFormat === 'live_batch' ? 'LIVE BATCH' : 'SELF-PACED')
+	);
 	const level = $derived(course.metadata?.level || 'Intermediate');
-	const duration = $derived(course.metadata?.duration || course.metadata?.hours || '8 Hours');
+	const duration = $derived(
+		course.metadata?.duration || course.metadata?.hours || '8 Hours'
+	);
 	const free = $derived(!course.pricePaise || course.pricePaise === 0);
-	const priceFormatted = $derived(free ? 'Free' : `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`);
+	const priceFormatted = $derived(
+		free ? 'Free' : `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`
+	);
 	const targetUrl = $derived(`/catalog/${course.slug || course.id}`);
-	const thumbnail = $derived(course.thumbnail || '/thumbnails/course-pentest.jpg');
+	const thumbnail = $derived(course.thumbnail || null);
+
+	const fallbackGradients = [
+		'linear-gradient(135deg, #18181b 0%, #27272a 100%)',
+		'linear-gradient(135deg, #09090b 0%, #1c1917 100%)',
+		'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)'
+	];
+
+	const cardGradient = $derived(
+		fallbackGradients[Math.abs(course.title.length) % fallbackGradients.length]
+	);
 </script>
 
-<article class="dark-course-card group">
+<div class="course-card group">
 	<!-- Thumbnail Header -->
-	<a href={targetUrl} class="thumb-wrap" tabindex="-1">
-		<img
-			src={thumbnail}
-			alt={course.title}
-			class="thumb-img"
-			loading="lazy"
-		/>
-		<div class="thumb-gradient"></div>
+	<a href={targetUrl} class="block relative aspect-[16/10] overflow-hidden bg-[var(--color-surface-subtle)]">
+		{#if thumbnail}
+			<img
+				src={thumbnail}
+				alt={course.title}
+				class="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+				loading="lazy"
+			/>
+		{:else}
+			<div
+				class="w-full h-full flex flex-col items-center justify-center p-6 text-center transition duration-300 group-hover:scale-105"
+				style={`background: ${cardGradient};`}
+			>
+				<span class="text-xs uppercase tracking-widest font-mono text-white/50 mb-1">
+					{category}
+				</span>
+				<span class="text-base font-bold text-white/90 line-clamp-2 px-4">
+					{course.title}
+				</span>
+			</div>
+		{/if}
 
-		<div class="thumb-top-badges">
-			<span class="category-badge">{category}</span>
-			<span class="level-badge level-{level.toLowerCase()}">{level}</span>
+		<!-- Top Badges Overlay -->
+		<div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+			<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase shadow-sm bg-black/80 text-white backdrop-blur-md border border-white/10">
+				<span>{category}</span>
+			</span>
+
+			<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide shadow-sm"
+				class:bg-emerald-500={free}
+				class:text-white={free}
+				class:bg-white={!free}
+				class:text-black={!free}
+			>
+				{priceFormatted}
+			</span>
 		</div>
 	</a>
 
 	<!-- Content Body -->
-	<div class="card-body">
-		<h3 class="card-title">
-			<a href={targetUrl} class="title-link">
+	<div class="p-5 flex flex-col flex-1">
+		<div class="flex items-center gap-2 text-xs font-mono font-medium text-[var(--text-muted)] mb-2">
+			<span>{level}</span>
+			<span>&bull;</span>
+			<span class="flex items-center gap-1">
+				<Clock size={12} />
+				<span>{duration}</span>
+			</span>
+		</div>
+
+		<!-- Title -->
+		<h3 class="text-base font-bold text-[var(--text-primary)] hover:text-rose-600 transition-colors line-clamp-2 leading-snug mb-2">
+			<a href={targetUrl} class="hover:underline">
 				{course.title}
 			</a>
 		</h3>
 
 		{#if course.description}
-			<p class="card-desc">
+			<p class="text-xs text-[var(--text-secondary)] line-clamp-2 mb-4 leading-relaxed">
 				{course.description}
 			</p>
 		{/if}
 
-		<!-- Bottom Row -->
-		<div class="card-footer">
-			<div class="meta-info">
-				<span class="meta-item">
-					<Clock size={12} class="text-slate-400" />
-					<span>{duration}</span>
-				</span>
-				<span class="meta-sep">•</span>
-				<span class="price-tag" class:price-free={free}>
-					{priceFormatted}
-				</span>
+		<!-- Card Footer -->
+		<div class="pt-3 border-t border-[var(--border-subtle)] mt-auto flex items-center justify-between gap-3">
+			<div class="text-xs font-mono font-bold text-[var(--text-primary)]">
+				{priceFormatted}
 			</div>
 
-			<a href={targetUrl} class="circle-action-btn" aria-label={`View ${course.title}`}>
-				<ArrowRight size={13} />
+			<a
+				href={targetUrl}
+				class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] transition active:scale-95 shadow-sm"
+			>
+				<span>View Course</span>
+				<ArrowRight size={12} />
 			</a>
 		</div>
 	</div>
-</article>
+</div>
 
 <style>
-	.dark-course-card {
-		border-radius: var(--radius-lg);
+	.course-card {
 		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
+		height: 100%;
 		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 	}
 
-	.dark-course-card:hover {
-		transform: translateY(-3px);
-		border-color: var(--color-border-strong);
-		box-shadow: var(--shadow-lg);
-	}
-
-	.thumb-wrap {
-		position: relative;
-		width: 100%;
-		height: 160px;
-		background: var(--color-bg);
-		overflow: hidden;
-		display: block;
-	}
-
-	.thumb-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		opacity: 0.85;
-		transition: transform 0.3s ease;
-	}
-
-	.dark-course-card:hover .thumb-img {
-		transform: scale(1.04);
-	}
-
-	.thumb-gradient {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(180deg, rgba(8, 11, 17, 0.1) 0%, var(--color-surface) 100%);
-	}
-
-	.thumb-top-badges {
-		position: absolute;
-		top: 12px;
-		left: 12px;
-		right: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		z-index: 2;
-	}
-
-	.category-badge {
-		padding: 3px 8px;
-		border-radius: var(--radius-xs);
-		font-size: 0.65rem;
-		font-weight: 700;
-		background: var(--color-surface-subtle);
-		color: var(--lp-accent);
-		border: 1px solid var(--lp-accent-border);
-		backdrop-filter: blur(6px);
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-
-	.level-badge {
-		padding: 3px 8px;
-		border-radius: var(--radius-xs);
-		font-size: 0.65rem;
-		font-weight: 700;
-		background: var(--color-surface-elevated);
-		border: 1px solid var(--color-border);
-		color: var(--color-text-secondary);
-		text-transform: capitalize;
-	}
-
-	.level-badge.level-beginner { color: var(--color-success); border-color: var(--color-success-border); }
-	.level-badge.level-intermediate { color: var(--color-info); border-color: rgba(56, 189, 248, 0.3); }
-	.level-badge.level-advanced { color: var(--color-warning); border-color: rgba(245, 158, 11, 0.3); }
-
-	.card-body {
-		padding: 18px;
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		justify-content: space-between;
-	}
-
-	.card-title {
-		font-size: 1rem;
-		font-weight: 700;
-		color: var(--color-text);
-		line-height: 1.35;
-		margin-bottom: 8px;
-	}
-
-	.title-link {
-		color: var(--color-text);
-		text-decoration: none;
-		transition: color 0.15s ease;
-	}
-
-	.title-link:hover {
-		color: var(--lp-accent);
-	}
-
-	.card-desc {
-		font-size: 0.8rem;
-		color: var(--color-text-secondary);
-		line-height: 1.5;
-		margin-bottom: 14px;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.card-footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: auto;
-		padding-top: 14px;
-		border-top: 1px solid var(--color-border-subtle);
-	}
-
-	.meta-info {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.meta-item {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		font-size: 0.74rem;
-		color: var(--color-text-secondary);
-	}
-
-	.meta-sep {
-		color: var(--color-border-strong);
-		font-size: 0.7rem;
-	}
-
-	.price-tag {
-		font-size: 0.82rem;
-		font-weight: 700;
-		color: var(--color-text);
-	}
-
-	.price-free {
-		color: var(--color-success);
-	}
-
-	.circle-action-btn {
-		width: 32px;
-		height: 32px;
-		border-radius: var(--radius-full);
-		background: var(--color-surface-elevated);
-		border: 1px solid var(--color-border);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--color-text-secondary);
-		text-decoration: none;
-		transition: all 0.15s ease;
-	}
-
-	.dark-course-card:hover .circle-action-btn {
-		background: var(--color-text);
-		color: var(--color-bg);
-		transform: translateX(2px);
+	.course-card:hover {
+		border-color: var(--border-strong);
+		transform: translateY(-2px);
+		box-shadow: var(--card-shadow);
 	}
 </style>

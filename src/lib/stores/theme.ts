@@ -1,32 +1,25 @@
-import { writable } from 'svelte/store';
+import { readable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type Theme = 'dark';
+export type Theme = 'light';
 
 function createThemeStore() {
-	const { subscribe, set } = writable<Theme>('dark');
+	const { subscribe } = readable<Theme>('light');
 
-	function applyDark() {
+	function enforceLight() {
 		if (!browser) return;
-		document.documentElement.setAttribute('data-theme', 'dark');
-		document.documentElement.classList.add('dark');
-		localStorage.setItem('launchpad-theme', 'dark');
+		document.documentElement.setAttribute('data-theme', 'light');
+		document.documentElement.classList.remove('dark');
+		try {
+			localStorage.removeItem('launchpad-theme');
+		} catch (_) {}
 	}
 
 	return {
 		subscribe,
-		setTheme: (_newTheme?: any) => {
-			applyDark();
-			set('dark');
-		},
-		init: () => {
-			applyDark();
-			set('dark');
-		},
-		toggle: () => {
-			applyDark();
-			set('dark');
-		}
+		setTheme: (_: string) => enforceLight(),
+		init: () => enforceLight(),
+		toggle: () => enforceLight()
 	};
 }
 

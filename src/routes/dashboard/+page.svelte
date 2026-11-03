@@ -55,7 +55,8 @@
 		Terminal,
 		Trophy,
 		Flag,
-		Flame
+		Flame,
+		Wallet
 	} from 'lucide-svelte';
 	import LaunchpadLogo from '$lib/components/ui/LaunchpadLogo.svelte';
 	import { APP_NAME } from '$lib/shared/constants';
@@ -222,35 +223,8 @@
 			currentTime = Date.now();
 		}, 1000);
 
-		// Real-time live data polling every 30s when window/tab is active
-		const syncInterval = setInterval(() => {
-			if (typeof document !== 'undefined' && !document.hidden) {
-				invalidateAll();
-			}
-		}, 30000);
-
-		const handleSyncFocus = () => {
-			invalidateAll();
-		};
-
-		const handleVisibilitySync = () => {
-			if (!document.hidden) {
-				invalidateAll();
-			}
-		};
-
-		if (typeof window !== 'undefined') {
-			window.addEventListener('focus', handleSyncFocus);
-			document.addEventListener('visibilitychange', handleVisibilitySync);
-		}
-
 		return () => {
 			clearInterval(timer);
-			clearInterval(syncInterval);
-			if (typeof window !== 'undefined') {
-				window.removeEventListener('focus', handleSyncFocus);
-				document.removeEventListener('visibilitychange', handleVisibilitySync);
-			}
 		};
 	});
 
@@ -835,12 +809,15 @@
 					<button class="nav-btn" class:active={activeTab === 'my_overview'} onclick={() => activeTab = 'my_overview'} title="Overview" aria-label="Dashboard">
 						<LayoutDashboard size={18} /> <span>Dashboard</span>
 					</button>
+					<!-- Temporarily hidden: Hackathons & Labs / Assessments per instructions -->
+					{#if false}
 					<button class="nav-btn" class:active={activeTab === 'my_hackathons'} onclick={() => activeTab = 'my_hackathons'} title="Hackathons & Labs" aria-label="Hackathons & Labs">
 						<Terminal size={18} /> <span>Hackathons &amp; Labs</span>
 						{#if (data.learner.ownedHackathons || []).length > 0}
 							<span class="count-pill">{(data.learner.ownedHackathons || []).length}</span>
 						{/if}
 					</button>
+					{/if}
 					<button class="nav-btn" class:active={activeTab === 'my_courses'} onclick={() => activeTab = 'my_courses'} title="Courses" aria-label="Courses">
 						<GraduationCap size={18} /> <span>Courses</span>
 						{#if data.learner.ownedCourses.length > 0}
@@ -853,9 +830,11 @@
 							<span class="count-pill">{data.learner.ownedResources.length}</span>
 						{/if}
 					</button>
+					{#if false}
 					<button class="nav-btn" class:active={activeTab === 'my_certs'} onclick={() => activeTab = 'my_certs'} title="Assessments" aria-label="Assessments">
 						<FileBadge2 size={18} /> <span>Assessments</span>
 					</button>
+					{/if}
 					<button class="nav-btn" class:active={activeTab === 'my_mentoring'} onclick={() => activeTab = 'my_mentoring'} title="1-on-1 Mentoring" aria-label="1-on-1 Mentoring">
 						<Video size={18} /> <span>1-on-1 Mentoring</span>
 						{#if (data.learner.mentoringBookings || []).length > 0}
@@ -868,6 +847,9 @@
 					<button class="nav-btn" class:active={activeTab === 'my_events'} onclick={() => activeTab = 'my_events'} title="Live Events" aria-label="Live Events">
 						<Calendar size={18} /> <span>Live Events</span>
 					</button>
+					<a href="/credits" class="nav-btn" title="Credits" aria-label="Credits">
+						<Wallet size={18} /> <span>Credits ({data.learner.userCredits || 0})</span>
+					</a>
 				</div>
 			{/if}
 
@@ -1078,14 +1060,14 @@
 						</div>
 						<div class="new-user-text">
 							<h3>Welcome to Launchpad! Let's get started.</h3>
-							<p>Explore courses, labs, and certifications — your learning journey begins here.</p>
+							<p>Explore live classes, sessions, events, and resources — your learning journey begins here.</p>
 						</div>
 						<a href="/catalog" class="btn-primary" style="margin-top: 8px;">Explore Catalog →</a>
 					</div>
 				{/if}
 
-				<!-- Active Hackathon CTF Arena Banner (if enrolled) -->
-				{#if (data.learner.ownedHackathons || []).length > 0}
+				<!-- Active Hackathon CTF Arena Banner (Temporarily hidden per instructions) -->
+				{#if false && (data.learner.ownedHackathons || []).length > 0}
 					<div class="mb-6 p-5 rounded-2xl bg-gradient-to-r from-red-950/40 via-neutral-900/90 to-amber-950/20 border border-red-500/30 shadow-xl relative overflow-hidden">
 						<div class="absolute -right-8 -bottom-8 w-40 h-40 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
 						<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
@@ -1237,12 +1219,9 @@
 									</div>
 									<div class="dash-event-right">
 										{#if isReg}
-											<a href={ev.link || '#'} target="_blank" class="dash-btn-joined">Join Live &rarr;</a>
+											<a href={ev.link || `/events/${ev.slug || ev.id}`} target="_blank" class="dash-btn-joined">Join Live &rarr;</a>
 										{:else}
-											<form method="POST" action="?/registerEvent">
-												<input type="hidden" name="eventId" value={ev.id} />
-												<button type="submit" class="dash-btn-register">Register Free</button>
-											</form>
+											<a href={`/events/${ev.slug || ev.id}`} class="dash-btn-register">View & Register &rarr;</a>
 										{/if}
 									</div>
 								</div>
@@ -1370,16 +1349,22 @@
 							
 							<div class="flex items-center gap-2 sm:self-center">
 								{#if isRegistered}
-									<a href={ev.link || '#'} target="_blank" class="px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border-strong)] text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--color-surface-subtle)] transition-colors">
-										Join Live Call &rarr;
-									</a>
+									<div class="flex items-center gap-2">
+										{#if ev.link}
+											<a href={ev.link} target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--surface)] border border-[var(--border-strong)] text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[var(--color-surface-subtle)] transition-colors">
+												Join Session &rarr;
+											</a>
+										{/if}
+										{#if ev.isResourcesReleased}
+											<a href="/events/{ev.slug || ev.id}/resources" class="px-3.5 py-1.5 rounded-[var(--radius-sm)] bg-[var(--text-primary)] text-[var(--color-background)] text-[12px] font-bold hover:opacity-90 transition-opacity">
+												Resources
+											</a>
+										{/if}
+									</div>
 								{:else}
-									<form method="POST" action="?/registerEvent">
-										<input type="hidden" name="eventId" value={ev.id} />
-										<button type="submit" class="px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--color-primary)] text-white text-[12px] font-semibold hover:bg-[var(--color-primary-hover)] transition-colors">
-											Register Free
-										</button>
-									</form>
+									<a href="/events/{ev.slug || ev.id}" class="px-4 py-2 rounded-[var(--radius-sm)] bg-[var(--text-primary)] text-[var(--color-background)] text-[12px] font-bold hover:opacity-90 transition-opacity">
+										View & Register &rarr;
+									</a>
 								{/if}
 							</div>
 						</div>
@@ -4417,9 +4402,9 @@
 				<GraduationCap size={20} />
 				<span>Courses</span>
 			</button>
-			<button class="dmn-btn" class:active={activeTab === 'my_certs'} onclick={() => activeTab = 'my_certs'}>
-				<FileBadge2 size={20} />
-				<span>Certs</span>
+			<button class="dmn-btn" class:active={activeTab === 'my_events'} onclick={() => activeTab = 'my_events'}>
+				<Calendar size={20} />
+				<span>Sessions</span>
 			</button>
 			<button class="dmn-btn" class:active={activeTab === 'my_mentoring'} onclick={() => activeTab = 'my_mentoring'}>
 				<Video size={20} />
@@ -4559,9 +4544,11 @@
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
-		position: sticky;
+		position: fixed;
 		top: 0;
-		z-index: 20;
+		left: 0;
+		bottom: 0;
+		z-index: 30;
 		width: var(--dash-sidebar-w, 240px);
 		transition: width 0.2s cubic-bezier(0.2, 0, 0, 1);
 	}

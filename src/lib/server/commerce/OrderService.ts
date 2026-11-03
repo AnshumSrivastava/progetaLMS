@@ -3,6 +3,9 @@ import { assets, assetOwnership } from '$lib/server/db/schema/assets.schema';
 import { commerceOrders, commerceCoupons, commerceCouponUses } from '$lib/server/db/schema/commerce.schema';
 import { cohorts, cohortMemberships } from '$lib/server/db/schema/cohorts.schema';
 import { users, verifications } from '$lib/server/db/schema/identity.schema';
+import { creditPackages } from '$lib/server/db/schema/credits.schema';
+import { events, eventRegistrations } from '$lib/server/db/schema/events.schema';
+import { CreditService } from '$lib/server/credits/credit.service';
 import { eq, and, sql } from 'drizzle-orm';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV } from '$env/static/private';
@@ -230,6 +233,231 @@ export class OrderService {
 	}
 
 	/**
+	 * Creates a pending Cashfree order for a credit bundle purchase.
+	 */
+	static async createCreditOrder(
+		packageId: string,
+		userId: string,
+		customerDetails: { name: string; email: string; phone: string },
+		requestOrigin?: string
+	) {
+		const [pkg] = await db
+			.select()
+			.from(creditPackages)
+			.where(eq(creditPackages.id, packageId));
+
+		if (!pkg || !pkg.isActive) {
+			throw new Error('Credit package not found or currently unavailable');
+		}
+
+		const totalCredits = pkg.credits + (pkg.bonusCredits || 0);
+		const amountPaise = pkg.pricePaise;
+		const cashfreeOrderId = `CRD_${randomUUID()}`;
+		const amountRupees = amountPaise / 100;
+		const baseUrl = resolveBaseUrl(requestOrigin);
+
+		const requestBody = {
+			order_id: cashfreeOrderId,
+			order_amount: amountRupees,
+			order_currency: 'INR',
+			customer_details: {
+				customer_id: userId,
+				customer_name: customerDetails.name || 'Student',
+				customer_email: customerDetails.email || 'student@progeta.in',
+				customer_phone: customerDetails.phone || '9999999999'
+			},
+			order_meta: {
+				return_url: `${baseUrl}/credits?success=true&order_id={order_id}`,
+				notify_url: `${baseUrl}/api/webhooks/cashfree`
+			}
+		};
+
+		let paymentSessionId = 'mock_session_id_no_keys_provided';
+
+		if (CASHFREE_APP_ID && CASHFREE_SECRET_KEY) {
+			const cfResponse = await fetch(CASHFREE_API, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-client-id': CASHFREE_APP_ID,
+					'x-client-secret': CASHFREE_SECRET_KEY,
+					'x-api-version': '2023-08-01'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!cfResponse.ok) {
+				const error = await cfResponse.text();
+				throw new Error(`Failed to initialize payment gateway: ${error}`);
+			}
+			const cfData = await cfResponse.json();
+			paymentSessionId = cfData.payment_session_id;
+		}
+
+		const internalOrderId = randomUUID();
+		const isMockMode = (paymentSessionId === 'mock_session_id_no_keys_provided');
+
+		await db.insert(commerceOrders).values({
+			id: internalOrderId,
+			cashfreeOrderId,
+			userId,
+			orderType: 'credit_package',
+			targetId: packageId,
+			assetId: null,
+			amountPaise,
+			discountPaise: 0,
+			status: isMockMode ? 'paid' : 'pending',
+			paidAt: isMockMode ? new Date() : null,
+			metadata: {
+				packageId: pkg.id,
+				packageName: pkg.name,
+				credits: pkg.credits,
+				bonusCredits: pkg.bonusCredits,
+				totalCredits
+			}
+		});
+
+		if (isMockMode) {
+			await CreditService.addCredits(userId, totalCredits, {
+				type: 'purchase',
+				referenceId: internalOrderId,
+				referenceType: 'credit_package_order',
+				description: `Purchase of ${pkg.name} (${totalCredits} credits)`,
+				idempotencyKey: `CREDIT_ORD_${internalOrderId}`
+			});
+		}
+
+		return {
+			paymentSessionId,
+			cashfreeOrderId,
+			isMockMode
+		};
+	}
+
+	/**
+	 * Creates a pending Cashfree order for paid event registration.
+	 */
+	static async createEventOrder(
+		eventId: string,
+		userId: string,
+		customerDetails: { name: string; email: string; phone: string },
+		requestOrigin?: string,
+		ticketTier?: { id: string; name: string; pricePaise: number }
+	) {
+		const [event] = await db
+			.select()
+			.from(events)
+			.where(eq(events.id, eventId));
+
+		if (!event || event.status !== 'published') {
+			throw new Error('Event is not available for registration');
+		}
+
+		if (new Date() > new Date(event.registrationDeadline)) {
+			throw new Error('Registration for this event has closed');
+		}
+
+		const amountPaise = ticketTier?.pricePaise || event.pricePaise;
+
+		if (amountPaise <= 0) {
+			throw new Error('This event is free, no payment required');
+		}
+
+		const cashfreeOrderId = `EVT_${randomUUID()}`;
+		const amountRupees = amountPaise / 100;
+		const baseUrl = resolveBaseUrl(requestOrigin);
+
+		const requestBody = {
+			order_id: cashfreeOrderId,
+			order_amount: amountRupees,
+			order_currency: 'INR',
+			customer_details: {
+				customer_id: userId,
+				customer_name: customerDetails.name || 'Student',
+				customer_email: customerDetails.email || 'student@progeta.in',
+				customer_phone: customerDetails.phone || '9999999999'
+			},
+			order_meta: {
+				return_url: `${baseUrl}/events/${event.slug}?registered=true&order_id={order_id}`,
+				notify_url: `${baseUrl}/api/webhooks/cashfree`
+			}
+		};
+
+		let paymentSessionId = 'mock_session_id_no_keys_provided';
+
+		if (CASHFREE_APP_ID && CASHFREE_SECRET_KEY) {
+			const cfResponse = await fetch(CASHFREE_API, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-client-id': CASHFREE_APP_ID,
+					'x-client-secret': CASHFREE_SECRET_KEY,
+					'x-api-version': '2023-08-01'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!cfResponse.ok) {
+				const error = await cfResponse.text();
+				throw new Error(`Failed to initialize payment gateway: ${error}`);
+			}
+			const cfData = await cfResponse.json();
+			paymentSessionId = cfData.payment_session_id;
+		}
+
+		const internalOrderId = randomUUID();
+		const isMockMode = (paymentSessionId === 'mock_session_id_no_keys_provided');
+
+		// Create a pending registration row
+		await db.insert(eventRegistrations).values({
+			id: randomUUID(),
+			eventId,
+			userId,
+			status: isMockMode ? 'confirmed' : 'pending_payment',
+			paymentMethod: 'paid',
+			amountPaidPaise,
+			creditsUsed: 0,
+			orderId: internalOrderId,
+			registeredAt: new Date()
+		}).onConflictDoUpdate({
+			target: [eventRegistrations.eventId, eventRegistrations.userId],
+			set: {
+				status: isMockMode ? 'confirmed' : 'pending_payment',
+				paymentMethod: 'paid',
+				amountPaidPaise,
+				orderId: internalOrderId,
+				registeredAt: new Date()
+			}
+		});
+
+		await db.insert(commerceOrders).values({
+			id: internalOrderId,
+			cashfreeOrderId,
+			userId,
+			orderType: 'event',
+			targetId: eventId,
+			assetId: null,
+			amountPaise,
+			discountPaise: 0,
+			status: isMockMode ? 'paid' : 'pending',
+			paidAt: isMockMode ? new Date() : null,
+			metadata: {
+				eventId: event.id,
+				eventTitle: event.title,
+				eventSlug: event.slug,
+				ticketTier: ticketTier?.name || 'Standard Pass',
+				ticketTierId: ticketTier?.id || 'standard'
+			}
+		});
+
+		return {
+			paymentSessionId,
+			cashfreeOrderId,
+			isMockMode
+		};
+	}
+
+	/**
 	 * Called by the Cashfree Webhook when payment succeeds.
 	 */
 	static async handlePaymentSuccess(cashfreeOrderId: string, payload: any) {
@@ -245,8 +473,83 @@ export class OrderService {
 			return;
 		}
 
-		// 1. Grant Access to Asset First (idempotent)
-		await OrderService.grantAccess(order.id, order.assetId, order.userId, 'purchase');
+		// Handle Credit Package Orders
+		if (order.orderType === 'credit_package') {
+			const meta = order.metadata as { totalCredits?: number; packageName?: string };
+			const credits = meta?.totalCredits || Math.floor(order.amountPaise / 100);
+
+			await CreditService.addCredits(order.userId, credits, {
+				type: 'purchase',
+				referenceId: order.id,
+				referenceType: 'credit_package_order',
+				description: `Purchase of ${meta?.packageName || 'Credits'} (+${credits} credits)`,
+				idempotencyKey: `CREDIT_ORDER_${order.id}`
+			});
+
+			await db.update(commerceOrders)
+				.set({ status: 'paid', paidAt: new Date() })
+				.where(eq(commerceOrders.id, order.id));
+
+			const [user] = await db.select().from(users).where(eq(users.id, order.userId));
+			if (user?.email) {
+				const balance = await CreditService.getBalance(order.userId);
+				await emailService.sendCreditPurchaseConfirmation({
+					to: user.email,
+					userName: user.name || 'Student',
+					packageName: meta?.packageName || 'Credits Package',
+					credits,
+					bonusCredits: 0,
+					totalCredits: credits,
+					amountPaid: `₹${(order.amountPaise / 100).toFixed(2)}`,
+					newBalance: balance.balance
+				});
+			}
+			console.log(`[OrderService] Processed credit package purchase for user ${order.userId}: +${credits} credits`);
+			return;
+		}
+
+		// Handle Event Orders
+		if (order.orderType === 'event') {
+			const meta = order.metadata as { eventId?: string };
+			const eventId = meta?.eventId || order.targetId;
+
+			await db.update(eventRegistrations)
+				.set({ status: 'confirmed', registeredAt: new Date() })
+				.where(and(
+					eq(eventRegistrations.eventId, eventId!),
+					eq(eventRegistrations.userId, order.userId)
+				));
+
+			await db.update(commerceOrders)
+				.set({ status: 'paid', paidAt: new Date() })
+				.where(eq(commerceOrders.id, order.id));
+
+			const [event] = await db.select().from(events).where(eq(events.id, eventId!));
+			const [user] = await db.select().from(users).where(eq(users.id, order.userId));
+			if (event && user?.email) {
+				await emailService.sendEventRegistrationConfirmation({
+					to: user.email,
+					userName: user.name || 'Student',
+					eventTitle: event.title,
+					eventSlug: event.slug,
+					eventDate: new Date(event.startAt).toLocaleDateString('en-IN', { dateStyle: 'full' }),
+					eventTime: new Date(event.startAt).toLocaleTimeString('en-IN', { timeStyle: 'short' }),
+					venueType: (event.venueType as any) || 'online',
+					venueDisplay: event.venueType === 'offline' ? 'In-person / Venue' : 'Online Session',
+					paymentMethod: 'paid',
+					amountPaid: `₹${(order.amountPaise / 100).toFixed(2)}`,
+					whatsappGroupUrl: event.whatsappGroupUrl || undefined,
+					registrationId: order.id
+				});
+			}
+			console.log(`[OrderService] Processed paid event registration for user ${order.userId} on event ${eventId}`);
+			return;
+		}
+
+		// Standard Asset Orders
+		if (order.assetId) {
+			await OrderService.grantAccess(order.id, order.assetId, order.userId, 'purchase');
+		}
 		
 		const metadata = order.metadata as { cohortId?: string };
 		if (metadata?.cohortId) {

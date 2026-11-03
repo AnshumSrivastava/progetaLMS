@@ -8,12 +8,10 @@
 		LogOut,
 		BookOpen,
 		Compass,
-		Award,
 		Users,
 		Download,
-		Video,
-		Terminal,
-		Command
+		Calendar,
+		Wallet
 	} from 'lucide-svelte';
 	import LaunchpadLogo from './LaunchpadLogo.svelte';
 	import { authClient } from '$lib/auth.client';
@@ -22,10 +20,9 @@
 	import type { AuthUser } from '$lib/server/auth/auth.types';
 	import { onMount } from 'svelte';
 
-	let { user }: { user: AuthUser | null } = $props();
+	let { user, userCredits = 0 }: { user: AuthUser | null; userCredits?: number } = $props();
 
 	let currentPath = $derived($page.url.pathname);
-	let searchParams = $derived($page.url.searchParams);
 	let isDashboard = $derived(currentPath.startsWith('/dashboard'));
 
 	let menuOpen = $state(false);
@@ -38,9 +35,11 @@
 
 	const links = [
 		{ href: '/catalog', label: 'Explore', icon: Compass },
-		{ href: '/courses', label: 'Courses', icon: BookOpen },
-		{ href: '/labs', label: 'Labs & CTF', icon: Terminal },
-		{ href: '/certifications', label: 'Certifications', icon: Award },
+		{ href: '/courses', label: 'Live Classes', icon: BookOpen },
+		{ href: '/events', label: 'Sessions & Events', icon: Calendar },
+		// Temporarily hidden: Certifications & Assessments
+		// { href: '/labs', label: 'Labs & CTF', icon: Terminal },
+		// { href: '/certifications', label: 'Certifications', icon: Award },
 		{ href: '/mentoring', label: 'Mentorship', icon: Users },
 		{ href: '/resources', label: 'Resources', icon: Download }
 	];
@@ -125,20 +124,17 @@
 </script>
 
 <nav class="nav-root" class:is-dashboard={isDashboard}>
-	<div class="nav-container" class:centered-nav={!isDashboard}>
-		<!-- Brand / Logo (Left) -->
-		<div class="nav-left">
+	<div class="nav-container">
+		<!-- Left Group: Brand + Desktop Links -->
+		<div class="nav-left-group">
 			{#if !isDashboard}
 				<a href="/" class="brand-link" aria-label="Launchpad Home">
 					<LaunchpadLogo class="brand-logo-svg" />
 					<span class="brand-title">Launchpad</span>
 				</a>
 			{/if}
-		</div>
 
-		<!-- Desktop links (Centered when not in dashboard) -->
-		<div class="nav-center">
-			<div class="hidden md:flex items-center gap-1">
+			<nav class="desktop-nav" aria-label="Primary Navigation">
 				{#each links as link}
 					{@const isActive =
 						link.href === '/courses'
@@ -150,32 +146,35 @@
 						href={link.href}
 						class="nav-link"
 						class:active={isActive}
-						class:live-nav-link={link.isLive}
 						aria-current={isActive ? 'page' : undefined}
 					>
-						{#if link.isLive}
-							<span class="live-nav-dot"></span>
-						{/if}
 						{link.label}
 					</a>
 				{/each}
-			</div>
+			</nav>
 		</div>
 
-		<!-- Middle / Right: Search & Profile Actions -->
-		<div class="nav-right">
-			<!-- Universal Search Trigger Bar -->
+		<!-- Right Group: Credit Wallet + Spotlight Search Trigger + Profile / Auth + Mobile Toggle -->
+		<div class="nav-right-group">
+			<!-- Credit Wallet Pill (logged-in users only) -->
+			{#if user}
+				<a href="/credits" class="wallet-pill" title="Credits balance & top-up">
+					<Wallet size={13} class="wallet-icon" />
+					<span class="wallet-count">{userCredits} Credits</span>
+					<span class="wallet-plus">+</span>
+				</a>
+			{/if}
+
+			<!-- Universal Spotlight Search Trigger -->
 			<button
 				type="button"
-				class="search-trigger"
+				class="search-spotlight-btn"
 				onclick={openSearch}
 				aria-label="Search catalog (Cmd+K)"
 			>
-				<Search size={15} class="search-icon-muted" />
-				<span class="search-trigger-placeholder">Search courses, labs, certifications...</span>
-				<kbd class="search-kbd">
-					<span class="text-[10px]">⌘</span>K
-				</kbd>
+				<Search size={14} class="search-spotlight-icon" />
+				<span class="search-spotlight-label">Search</span>
+				<kbd class="spotlight-kbd">⌘K</kbd>
 			</button>
 
 			<!-- Auth / Profile Section -->
@@ -229,7 +228,19 @@
 								<span>Settings</span>
 							</a>
 
-
+							<a
+								href="/credits"
+								class="profile-item"
+								onclick={() => (profileDropdownOpen = false)}
+							>
+								<Wallet size={15} />
+								<div class="flex items-center justify-between flex-1">
+									<span>Credits</span>
+									<span class="profile-credits-badge">
+										{userCredits} cr
+									</span>
+								</div>
+							</a>
 
 							<div class="profile-divider"></div>
 
@@ -242,15 +253,15 @@
 					{/if}
 				</div>
 			{:else}
-				<div class="hidden sm:flex items-center gap-2">
-					<a href="/sign-in" class="btn-ghost"> Sign in </a>
-					<a href="/catalog" class="btn-solid"> Explore </a>
+				<div class="auth-btn-group">
+					<a href="/sign-in" class="btn-signin">Sign in</a>
+					<a href="/catalog" class="btn-join">Explore</a>
 				</div>
 			{/if}
 
 			<!-- Mobile menu toggle button -->
 			<button
-				class="md:hidden mobile-toggle"
+				class="mobile-toggle"
 				onclick={() => (menuOpen = !menuOpen)}
 				aria-label="Toggle mobile menu"
 			>
@@ -277,12 +288,12 @@
 			{#each links as link}
 				{@const IconComponent = link.icon}
 				{@const isActive =
-				link.href === '/courses'
+					link.href === '/courses'
 						? currentPath === '/courses'
 						: link.href === '/catalog'
-							? currentPath === '/catalog'
+						? currentPath === '/catalog'
 						: link.href === '/live-classes'
-							? currentPath === '/live-classes'
+						? currentPath === '/live-classes'
 						: currentPath.startsWith(link.href)}
 				<a
 					href={link.href}
@@ -297,7 +308,7 @@
 			{/each}
 
 			{#if user}
-				<div class="my-1 border-t border-[var(--color-border-subtle)]"></div>
+				<div class="my-1 border-t border-[#f4f4f5]"></div>
 				<a
 					href="/dashboard"
 					onclick={() => (menuOpen = false)}
@@ -315,22 +326,34 @@
 					<Settings size={17} />
 					<span>Settings</span>
 				</a>
+				<a
+					href="/credits"
+					onclick={() => (menuOpen = false)}
+					class="mobile-nav-link"
+					class:active={currentPath.startsWith('/credits')}
+				>
+					<Wallet size={17} />
+					<div class="flex items-center justify-between flex-1">
+						<span>Credits</span>
+						<span class="profile-credits-badge">
+							{userCredits} cr
+						</span>
+					</div>
+				</a>
 			{/if}
 		</div>
 
-
-
 		{#if !user}
 			<div class="mobile-auth-actions">
-				<a href="/sign-in" onclick={() => (menuOpen = false)} class="btn-ghost flex-1 text-center">
+				<a href="/sign-in" onclick={() => (menuOpen = false)} class="btn-signin flex-1 text-center border border-[#e4e4e7]">
 					Sign in
 				</a>
-				<a href="/catalog" onclick={() => (menuOpen = false)} class="btn-solid flex-1 text-center">
+				<a href="/catalog" onclick={() => (menuOpen = false)} class="btn-join flex-1 text-center">
 					Explore
 				</a>
 			</div>
 		{:else}
-			<div class="px-4 py-2 border-t border-[var(--color-border-subtle)]">
+			<div class="px-4 py-2 border-t border-[#f4f4f5]">
 				<button type="button" class="profile-item profile-item-danger w-full justify-center" onclick={handleSignOut}>
 					<LogOut size={15} />
 					<span>Sign out</span>
@@ -355,12 +378,12 @@
 	>
 		<div class="search-dialog" role="dialog" aria-modal="true" aria-label="Universal Search">
 			<form onsubmit={handleSearchSubmit} class="search-form-wrap">
-				<Search size={18} class="text-[var(--text-muted)] shrink-0 ml-4" />
+				<Search size={18} class="text-[#71717a] shrink-0 ml-4" />
 				<input
 					bind:this={searchInputRef}
 					bind:value={searchQuery}
 					type="text"
-					placeholder="Search courses, labs, certifications, mentors..."
+					placeholder="Search live classes, sessions, events, resources..."
 					class="search-input"
 				/>
 				{#if searchQuery}
@@ -380,20 +403,20 @@
 
 			<div class="search-dialog-footer">
 				<div class="flex items-center gap-2">
-					<span class="text-[11px] text-[var(--text-muted)]">Quick jumps:</span>
+					<span class="text-[11px] text-[#71717a]">Quick jumps:</span>
 					<a
 						href="/courses"
 						onclick={closeSearch}
 						class="search-chip"
 					>
-						Courses
+						Live Classes
 					</a>
 					<a
-						href="/certifications"
+						href="/events"
 						onclick={closeSearch}
 						class="search-chip"
 					>
-						Certifications
+						Sessions
 					</a>
 					<a
 						href="/mentoring"
@@ -402,8 +425,15 @@
 					>
 						Mentoring
 					</a>
+					<a
+						href="/resources"
+						onclick={closeSearch}
+						class="search-chip"
+					>
+						Resources
+					</a>
 				</div>
-				<span class="text-[11px] text-[var(--text-muted)] hidden sm:inline">
+				<span class="text-[11px] text-[#71717a] hidden sm:inline">
 					ESC to exit
 				</span>
 			</div>
@@ -418,248 +448,219 @@
 		left: 0;
 		right: 0;
 		height: var(--nav-h);
-		background: color-mix(in srgb, var(--bg) 92%, transparent);
-		border-bottom: 1px solid var(--border);
+		background: rgba(255, 255, 255, 0.88);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 		z-index: 50;
 		display: flex;
 		align-items: center;
 		transition: background-color 0.2s ease, border-color 0.2s ease, left 0.2s cubic-bezier(0.2, 0, 0, 1);
 	}
 
-	.nav-root.is-dashboard {
-		left: var(--dash-sidebar-w, 240px);
-		border-bottom: 1px solid var(--border);
-	}
-
-	@supports (backdrop-filter: blur(12px)) {
+	@supports (backdrop-filter: blur(16px)) {
 		.nav-root {
-			background: color-mix(in srgb, var(--bg) 88%, transparent);
-			backdrop-filter: blur(12px);
-			-webkit-backdrop-filter: blur(12px);
+			backdrop-filter: blur(16px);
+			-webkit-backdrop-filter: blur(16px);
 		}
 	}
 
-	.nav-container {
-		width: 100%;
-		max-width: 1440px;
-		margin-inline: auto;
-		padding-inline: 28px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		position: relative;
-	}
-
-	.nav-container.centered-nav {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		position: relative;
-	}
-
-	.nav-left {
-		display: flex;
-		align-items: center;
-		justify-content: flex-start;
-		min-width: 0;
-		z-index: 2;
-	}
-
-	.nav-center {
-		position: static;
-		transform: none;
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1;
-		pointer-events: auto;
-		padding-inline: 12px;
-	}
-
-	.nav-right {
-		display: flex;
-		align-items: center;
-		justify-content: flex-end;
-		gap: 10px;
-		z-index: 2;
-	}
-
-	.nav-root.is-dashboard .nav-container {
-		max-width: 1360px;
-		margin-inline: auto;
-		padding-inline: 2rem;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.nav-root.is-dashboard .nav-left {
-		display: none;
-	}
-
-	.nav-root.is-dashboard .nav-center {
-		justify-content: flex-start;
+	.nav-root.is-dashboard {
+		left: var(--dash-sidebar-w, 240px);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 	}
 
 	@media (max-width: 1024px) {
 		.nav-root.is-dashboard {
 			left: 0;
-			border-bottom: 1px solid var(--border);
-		}
-		.nav-root.is-dashboard .nav-container {
-			padding-inline: 1.25rem;
 		}
 	}
 
-	/* Brand */
+	.nav-container {
+		width: 100%;
+		max-width: 1600px;
+		margin-inline: auto;
+		padding-inline: clamp(16px, 2.5vw, 48px);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px;
+	}
+
+	/* Left Group: Brand + Links */
+	.nav-left-group {
+		display: flex;
+		align-items: center;
+		gap: 32px;
+		min-width: 0;
+	}
+
 	.brand-link {
 		display: flex;
 		align-items: center;
-		gap: 9px;
-		color: var(--text-primary);
+		gap: 10px;
+		color: #09090b;
 		text-decoration: none;
 		transition: opacity 0.15s ease;
+		flex-shrink: 0;
 	}
 
 	.brand-link:hover {
-		opacity: 0.85;
+		opacity: 0.82;
 	}
 
 	:global(.brand-logo-svg) {
-		width: 26px;
-		height: 26px;
-		color: var(--text-primary);
+		width: 25px;
+		height: 25px;
+		color: #09090b;
 		flex-shrink: 0;
 	}
 
 	.brand-title {
 		font-weight: 700;
-		font-size: 1.22rem;
-		letter-spacing: -0.02em;
-		color: var(--text-primary);
+		font-size: 1.18rem;
+		letter-spacing: -0.025em;
+		color: #09090b;
 	}
 
 	/* Desktop Links */
+	.desktop-nav {
+		display: none;
+	}
+
+	@media (min-width: 880px) {
+		.desktop-nav {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+		}
+	}
+
 	.nav-link {
-		color: var(--text-secondary);
-		font-size: 0.95rem;
+		color: #52525b;
+		font-size: 0.875rem;
 		font-weight: 500;
-		padding: 8px 14px;
-		border-radius: var(--radius-md);
+		padding: 6px 12px;
+		border-radius: 8px;
+		text-decoration: none;
 		transition: all 0.15s ease;
+		white-space: nowrap;
 	}
 
 	.nav-link:hover {
-		color: var(--text-primary);
-		background: var(--bg-elevated);
+		color: #09090b;
+		background: rgba(0, 0, 0, 0.04);
 	}
 
 	.nav-link.active {
-		color: var(--color-text);
+		color: #09090b;
 		font-weight: 600;
-		background: var(--color-surface-elevated);
-		box-shadow: inset 0 0 0 1px var(--color-border-strong);
+		background: rgba(0, 0, 0, 0.06);
 	}
 
-	.nav-link.live-nav-link {
+	/* Right Group: Wallet + Spotlight Search + Auth / Profile */
+	.nav-right-group {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-left: auto;
+		flex-shrink: 0;
+	}
+
+	/* Credit Wallet Pill */
+	.wallet-pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-	}
-
-	.nav-link.live-nav-link.active {
-		color: #059669;
-		background: rgba(16, 185, 129, 0.1);
-		box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.25);
-	}
-
-	:global([data-theme="dark"]) .nav-link.live-nav-link.active {
-		color: #34d399;
-	}
-
-	.live-nav-dot {
-		width: 6px;
-		height: 6px;
-		background: #10b981;
+		padding: 5px 11px;
+		background: #fffbeb;
+		border: 1px solid #fde68a;
 		border-radius: 9999px;
-		box-shadow: 0 0 6px #10b981;
-		animation: nav-pulse 1.5s infinite;
+		text-decoration: none;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
 	}
 
-	@keyframes nav-pulse {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50% { opacity: 0.35; transform: scale(0.75); }
+	.wallet-pill:hover {
+		background: #fef3c7;
+		border-color: #fcd34d;
+		transform: translateY(-0.5px);
 	}
 
-	/* Universal Search Trigger */
-	.search-trigger {
-		display: flex;
+	:global(.wallet-icon) {
+		color: #d97706;
+	}
+
+	.wallet-count {
+		font-size: 0.76rem;
+		font-weight: 600;
+		color: #92400e;
+		letter-spacing: -0.01em;
+	}
+
+	.wallet-plus {
+		font-size: 0.72rem;
+		font-weight: 700;
+		color: #b45309;
+		margin-left: 1px;
+	}
+
+	/* Compact Spotlight Trigger Button */
+	.search-spotlight-btn {
+		display: inline-flex;
 		align-items: center;
-		gap: 9px;
-		background: var(--bg);
-		border: 1px solid var(--border);
-		color: var(--text-secondary);
-		padding: 6px 14px;
-		border-radius: var(--radius-sm);
-		font-size: 0.9rem;
+		gap: 8px;
+		padding: 6px 12px;
+		background: #ffffff;
+		border: 1px solid #e4e4e7;
+		border-radius: 8px;
 		cursor: pointer;
+		color: #71717a;
 		transition: all 0.15s ease;
 		outline: none;
 	}
 
-	.search-trigger:hover {
-		background: var(--bg-elevated);
-		border-color: var(--border-strong);
-		color: var(--text-primary);
+	.search-spotlight-btn:hover {
+		background: #f4f4f5;
+		border-color: #d4d4d8;
+		color: #18181b;
 	}
 
-	.search-trigger-placeholder {
-		display: none;
+	.search-spotlight-btn:focus-visible {
+		border-color: #09090b;
+		box-shadow: 0 0 0 2px rgba(9, 9, 11, 0.08);
 	}
 
-	@media (min-width: 1024px) {
-		.search-trigger {
-			padding: 5px 12px;
-		}
-		.search-trigger-placeholder {
-			display: inline;
-		}
-		.search-kbd {
-			display: flex;
-		}
+	:global(.search-spotlight-icon) {
+		color: #71717a;
+		flex-shrink: 0;
 	}
 
-	:global(.search-icon-muted) {
-		color: var(--text-muted);
+	.search-spotlight-label {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: #71717a;
 	}
 
-	.search-kbd {
-		display: none;
+	.spotlight-kbd {
+		display: inline-flex;
 		align-items: center;
-		gap: 2px;
 		padding: 1px 5px;
-		background: var(--bg);
-		border: 1px solid var(--border);
+		background: #f4f4f5;
+		border: 1px solid #e4e4e7;
 		border-radius: 4px;
-		font-size: 0.6875rem;
+		font-size: 0.675rem;
 		font-family: inherit;
-		color: var(--text-muted);
+		font-weight: 500;
+		color: #71717a;
 		line-height: 1.2;
+		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 	}
 
-	@media (min-width: 768px) {
-		.search-kbd {
-			display: inline-flex;
-		}
-	}
-
-	/* Avatar Dropdown Trigger */
+	/* Profile Avatar Dropdown Trigger */
 	.avatar-trigger {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 2px;
+		padding: 1px;
 		background: none;
 		border: 2px solid transparent;
 		border-radius: 9999px;
@@ -670,27 +671,28 @@
 
 	.avatar-trigger:hover,
 	.avatar-trigger:focus-visible {
-		border-color: var(--text-muted);
+		border-color: #d4d4d8;
 	}
 
 	.avatar-img {
-		width: 30px;
-		height: 30px;
+		width: 32px;
+		height: 32px;
 		border-radius: 9999px;
 		object-fit: cover;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+		border: 1px solid #e4e4e7;
 	}
 
 	.avatar-initials {
-		width: 30px;
-		height: 30px;
+		width: 32px;
+		height: 32px;
 		border-radius: 9999px;
-		background: #F0F0F0;
-		color: #222;
+		background: #f4f4f5;
+		color: #09090b;
+		border: 1px solid #e4e4e7;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: 0.72rem;
+		font-size: 0.75rem;
 		font-weight: 700;
 		letter-spacing: -0.02em;
 	}
@@ -700,11 +702,11 @@
 		position: absolute;
 		top: calc(100% + 8px);
 		right: 0;
-		width: 210px;
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 10px;
-		box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+		width: 220px;
+		background: #ffffff;
+		border: 1px solid #e4e4e7;
+		border-radius: 12px;
+		box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
 		padding: 6px;
 		display: flex;
 		flex-direction: column;
@@ -728,9 +730,9 @@
 	}
 
 	.profile-name {
-		font-size: 0.875rem;
+		font-size: 0.85rem;
 		font-weight: 600;
-		color: var(--text-primary);
+		color: #09090b;
 		margin-bottom: 2px;
 		white-space: nowrap;
 		overflow: hidden;
@@ -738,8 +740,8 @@
 	}
 
 	.profile-email {
-		font-size: 0.76rem;
-		color: var(--text-muted);
+		font-size: 0.75rem;
+		color: #71717a;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -747,7 +749,7 @@
 
 	.profile-divider {
 		height: 1px;
-		background: var(--border-subtle);
+		background: #f4f4f5;
 		margin: 4px 0;
 	}
 
@@ -755,11 +757,11 @@
 		display: flex;
 		align-items: center;
 		gap: 9px;
-		padding: 8px 12px;
-		border-radius: var(--radius-sm);
-		font-size: 0.875rem;
+		padding: 7px 10px;
+		border-radius: 6px;
+		font-size: 0.825rem;
 		font-weight: 500;
-		color: var(--text-secondary);
+		color: #52525b;
 		text-decoration: none;
 		background: none;
 		border: none;
@@ -770,75 +772,102 @@
 	}
 
 	.profile-item:hover {
-		color: var(--text-primary);
-		background: var(--bg-elevated);
+		color: #09090b;
+		background: #f4f4f5;
+	}
+
+	.profile-credits-badge {
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 2px 7px;
+		border-radius: 9999px;
+		background: #fffbeb;
+		color: #b45309;
+		border: 1px solid #fde68a;
 	}
 
 	.profile-item-danger {
-		color: #444;
+		color: #dc2626;
 	}
 
 	.profile-item-danger:hover {
-		color: #111;
-		background: #F0F0F0;
+		color: #b91c1c;
+		background: #fef2f2;
 	}
 
-	:global([data-theme='dark']) .profile-item-danger:hover {
-		background: rgba(255, 255, 255, 0.08);
+	/* Auth Buttons (Logged Out) */
+	.auth-btn-group {
+		display: none;
 	}
 
-	/* Buttons */
-	.btn-ghost {
-		font-size: 0.92rem;
+	@media (min-width: 640px) {
+		.auth-btn-group {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+	}
+
+	.btn-signin {
+		font-size: 0.84rem;
 		font-weight: 500;
-		color: var(--text-secondary);
-		padding: 7px 14px;
-		border-radius: var(--radius-md);
-		transition: all 0.12s ease;
+		color: #52525b;
+		padding: 6px 12px;
+		border-radius: 8px;
 		text-decoration: none;
+		transition: all 0.15s ease;
 	}
 
-	.btn-ghost:hover {
-		color: var(--text-primary);
-		background: var(--bg-elevated);
+	.btn-signin:hover {
+		color: #09090b;
+		background: rgba(0, 0, 0, 0.04);
 	}
 
-	.btn-solid {
-		font-size: 0.92rem;
-		font-weight: 500;
-		background: var(--text-primary);
-		color: var(--bg);
-		padding: 7px 16px;
-		border-radius: var(--radius-md);
+	.btn-join {
+		font-size: 0.84rem;
+		font-weight: 600;
+		background: #09090b;
+		color: #ffffff;
+		padding: 6px 14px;
+		border-radius: 8px;
 		text-decoration: none;
-		transition: opacity 0.12s ease;
+		transition: opacity 0.15s ease;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 	}
 
-	.btn-solid:hover {
-		opacity: 0.9;
+	.btn-join:hover {
+		opacity: 0.88;
 	}
 
 	/* Mobile Toggle */
 	.mobile-toggle {
+		display: none;
 		padding: 6px;
-		border-radius: var(--radius-md);
-		color: var(--text-secondary);
+		border-radius: 8px;
+		color: #09090b;
 		background: none;
 		border: none;
 		cursor: pointer;
 		transition: all 0.12s ease;
 	}
 
+	@media (max-width: 879px) {
+		.mobile-toggle {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+	}
+
 	.mobile-toggle:hover {
-		background: var(--bg-elevated);
-		color: var(--text-primary);
+		background: #f4f4f5;
 	}
 
 	/* Mobile Drawer */
 	.mobile-drawer-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: rgba(0, 0, 0, 0.4);
 		z-index: 45;
 		backdrop-filter: blur(2px);
 		-webkit-backdrop-filter: blur(2px);
@@ -849,10 +878,10 @@
 		top: var(--nav-h);
 		left: 0;
 		right: 0;
-		background: var(--bg);
-		border-bottom: 1px solid var(--border);
+		background: #ffffff;
+		border-bottom: 1px solid #e4e4e7;
 		z-index: 49;
-		box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.3);
+		box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.1);
 		max-height: calc(100vh - var(--nav-h) - 60px);
 		overflow-y: auto;
 		animation: drawerSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -867,23 +896,23 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 11px 14px;
-		border-radius: var(--radius-md);
-		color: var(--text-secondary);
-		font-size: 1rem;
+		padding: 10px 14px;
+		border-radius: 8px;
+		color: #52525b;
+		font-size: 0.925rem;
 		font-weight: 500;
 		text-decoration: none;
 		transition: all 0.12s ease;
 	}
 
 	.mobile-nav-link:hover {
-		color: var(--text-primary);
-		background: var(--bg-elevated);
+		color: #09090b;
+		background: #f4f4f5;
 	}
 
 	.mobile-nav-link.active {
-		color: var(--color-primary);
-		background: var(--color-primary-subtle);
+		color: #09090b;
+		background: #f4f4f5;
 		font-weight: 600;
 	}
 
@@ -891,16 +920,16 @@
 		display: flex;
 		gap: 10px;
 		padding: 12px 16px 16px;
-		border-top: 1px solid var(--border-subtle);
+		border-top: 1px solid #f4f4f5;
 	}
 
-	/* Universal Search Backdrop & Dialog */
+	/* Universal Search Modal / Command Palette */
 	.search-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.45);
-		backdrop-filter: blur(4px);
-		-webkit-backdrop-filter: blur(4px);
+		background: rgba(0, 0, 0, 0.35);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
 		z-index: 100;
 		display: flex;
 		align-items: flex-start;
@@ -910,21 +939,17 @@
 	}
 
 	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
+		from { opacity: 0; }
+		to { opacity: 1; }
 	}
 
 	.search-dialog {
 		width: 100%;
 		max-width: 580px;
-		background: var(--bg);
-		border: 1px solid var(--border-strong);
+		background: #ffffff;
+		border: 1px solid #e4e4e7;
 		border-radius: 12px;
-		box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
+		box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.15), 0 4px 16px -2px rgba(0, 0, 0, 0.05);
 		overflow: hidden;
 		animation: modalSlide 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 	}
@@ -943,8 +968,8 @@
 	.search-form-wrap {
 		display: flex;
 		align-items: center;
-		border-bottom: 1px solid var(--border);
-		background: var(--bg);
+		border-bottom: 1px solid #e4e4e7;
+		background: #ffffff;
 	}
 
 	.search-input {
@@ -955,14 +980,14 @@
 		border: none;
 		outline: none;
 		font-size: 0.95rem;
-		color: var(--text-primary);
+		color: #09090b;
 		font-family: inherit;
 	}
 
 	.search-clear-btn {
 		background: none;
 		border: none;
-		color: var(--text-muted);
+		color: #a1a1aa;
 		padding: 8px;
 		cursor: pointer;
 		display: flex;
@@ -971,29 +996,30 @@
 	}
 
 	.search-clear-btn:hover {
-		color: var(--text-primary);
+		color: #09090b;
 	}
 
 	.search-submit-btn {
-		margin-right: 10px;
+		margin-right: 12px;
 		padding: 6px 14px;
 		font-size: 0.8125rem;
-		font-weight: 500;
-		background: var(--text-primary);
-		color: var(--bg);
+		font-weight: 600;
+		background: #09090b;
+		color: #ffffff;
 		border: none;
-		border-radius: var(--radius-sm);
+		border-radius: 6px;
 		cursor: pointer;
 		transition: opacity 0.12s ease;
 	}
 
 	.search-submit-btn:hover {
-		opacity: 0.9;
+		opacity: 0.88;
 	}
 
 	.search-dialog-footer {
 		padding: 10px 16px;
-		background: var(--bg-subtle);
+		background: #fafafa;
+		border-top: 1px solid #f4f4f5;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1002,17 +1028,18 @@
 	.search-chip {
 		font-size: 0.72rem;
 		font-weight: 500;
-		color: var(--text-secondary);
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		padding: 2px 7px;
-		border-radius: var(--radius-sm);
+		color: #52525b;
+		background: #ffffff;
+		border: 1px solid #e4e4e7;
+		padding: 3px 8px;
+		border-radius: 6px;
 		text-decoration: none;
 		transition: all 0.12s ease;
 	}
 
 	.search-chip:hover {
-		color: var(--text-primary);
-		border-color: var(--border-strong);
+		color: #09090b;
+		border-color: #d4d4d8;
+		background: #f4f4f5;
 	}
 </style>

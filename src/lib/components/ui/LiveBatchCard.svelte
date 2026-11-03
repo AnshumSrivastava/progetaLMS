@@ -5,268 +5,127 @@
 
 	const category = $derived(course.metadata?.category || 'CYBERSECURITY');
 	const level = $derived(course.metadata?.level || 'Intermediate');
-	const duration = $derived(course.metadata?.duration || course.metadata?.hours || '4-8 Weeks');
-	const seats = $derived(course.metadata?.seats || course.max_students || '25 Seats');
-	const startDate = $derived(course.metadata?.startDate || course.start_date || 'Upcoming Batch');
+	const duration = $derived(
+		course.metadata?.duration || course.metadata?.hours || 'Live Cohort'
+	);
+	const startDate = $derived(
+		course.metadata?.startDate || course.start_date || 'Upcoming'
+	);
 	const free = $derived(!course.pricePaise || course.pricePaise === 0);
-	const priceFormatted = $derived(free ? 'Free' : `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`);
+	const priceFormatted = $derived(
+		free ? 'Free' : `₹${(course.pricePaise / 100).toLocaleString('en-IN')}`
+	);
 	const targetUrl = $derived(`/catalog/${course.slug || course.id}`);
-	const thumbnail = $derived(course.thumbnail || '/thumbnails/practical-cybersecurity.jpg');
+	const thumbnail = $derived(course.thumbnail || null);
+
+	const fallbackGradients = [
+		'linear-gradient(135deg, #09090b 0%, #1e1b4b 100%)',
+		'linear-gradient(135deg, #18181b 0%, #064e3b 100%)'
+	];
+
+	const cardGradient = $derived(
+		fallbackGradients[Math.abs(course.title.length) % fallbackGradients.length]
+	);
 </script>
 
-<article class="dark-live-card group">
+<div class="live-card group">
 	<!-- Visual Banner -->
-	<div class="card-visual-wrap">
-		<img
-			src={thumbnail}
-			alt={course.title}
-			class="card-img"
-			loading="lazy"
-		/>
-		<div class="card-gradient"></div>
+	<a href={targetUrl} class="block relative aspect-[16/10] overflow-hidden bg-[var(--color-surface-subtle)]">
+		{#if thumbnail}
+			<img
+				src={thumbnail}
+				alt={course.title}
+				class="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+				loading="lazy"
+			/>
+		{:else}
+			<div
+				class="w-full h-full flex flex-col items-center justify-center p-6 text-center transition duration-300 group-hover:scale-105"
+				style={`background: ${cardGradient};`}
+			>
+				<span class="text-xs uppercase tracking-widest font-mono text-white/50 mb-1">
+					Live Cohort Batch
+				</span>
+				<span class="text-base font-bold text-white/90 line-clamp-2 px-4">
+					{course.title}
+				</span>
+			</div>
+		{/if}
 
-		<div class="card-top-badges">
-			<span class="live-pill">
-				<span class="pulsing-green-dot"></span>
-				<span>LIVE BATCH</span>
+		<!-- Top Badges Overlay -->
+		<div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-none">
+			<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase shadow-sm bg-black/80 text-white backdrop-blur-md border border-white/10">
+				<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+				<span>Live Batch</span>
 			</span>
-			<span class="category-pill">{category}</span>
+
+			<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide shadow-sm"
+				class:bg-emerald-500={free}
+				class:text-white={free}
+				class:bg-white={!free}
+				class:text-black={!free}
+			>
+				{priceFormatted}
+			</span>
 		</div>
-	</div>
+	</a>
 
 	<!-- Card Body -->
-	<div class="card-body">
-		<div class="level-indicator">
+	<div class="p-5 flex flex-col flex-1">
+		<div class="flex items-center gap-2 text-xs font-mono font-medium text-[var(--text-muted)] mb-2">
 			<span>{level}</span>
+			<span>&bull;</span>
+			<span class="flex items-center gap-1">
+				<Calendar size={12} class="text-rose-400" />
+				<span>{startDate}</span>
+			</span>
 		</div>
 
-		<h3 class="card-title">
-			<a href={targetUrl} class="title-link">
+		<!-- Title -->
+		<h3 class="text-base font-bold text-[var(--text-primary)] hover:text-rose-600 transition-colors line-clamp-2 leading-snug mb-2">
+			<a href={targetUrl} class="hover:underline">
 				{course.title}
 			</a>
 		</h3>
 
-		<p class="card-desc">
-			{course.description || 'Interactive live cohort with live practitioner sessions, real-world capstone projects, and peer discussions.'}
-		</p>
+		{#if course.description}
+			<p class="text-xs text-[var(--text-secondary)] line-clamp-2 mb-4 leading-relaxed">
+				{course.description}
+			</p>
+		{/if}
 
-		<!-- Schedule & Seats Row -->
-		<div class="meta-row">
-			<div class="meta-item">
-				<Calendar size={13} class="text-slate-400" />
-				<span>{startDate}</span>
-			</div>
-			<div class="meta-item">
-				<Users size={13} class="text-slate-400" />
-				<span>{seats}</span>
-			</div>
-		</div>
-
-		<!-- Footer CTA -->
-		<div class="card-footer">
-			<div class="price-box">
-				<span class="price-label">Tuition</span>
-				<span class="price-value">{priceFormatted}</span>
+		<!-- Card Footer -->
+		<div class="pt-3 border-t border-[var(--border-subtle)] mt-auto flex items-center justify-between gap-3">
+			<div class="text-xs font-mono font-bold text-[var(--text-primary)]">
+				{priceFormatted}
 			</div>
 
-			<a href={targetUrl} class="btn-enroll">
-				<span>View Batch</span>
-				<ArrowRight size={13} />
+			<a
+				href={targetUrl}
+				class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] transition active:scale-95 shadow-sm"
+			>
+				<span>Join Batch</span>
+				<ArrowRight size={12} />
 			</a>
 		</div>
 	</div>
-</article>
+</div>
 
 <style>
-	.dark-live-card {
-		border-radius: var(--radius-lg);
+	.live-card {
 		background: var(--color-surface);
-		border: 1px solid var(--color-border);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-md);
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
+		height: 100%;
 		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 	}
 
-	.dark-live-card:hover {
-		transform: translateY(-3px);
-		border-color: var(--color-border-strong);
-		box-shadow: var(--shadow-lg);
-	}
-
-	.card-visual-wrap {
-		position: relative;
-		width: 100%;
-		height: 170px;
-		background: var(--color-bg);
-		overflow: hidden;
-	}
-
-	.card-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-		opacity: 0.85;
-		transition: transform 0.3s ease;
-	}
-
-	.dark-live-card:hover .card-img {
-		transform: scale(1.04);
-	}
-
-	.card-gradient {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(180deg, rgba(8, 11, 17, 0.1) 0%, var(--color-surface) 100%);
-	}
-
-	.card-top-badges {
-		position: absolute;
-		top: 12px;
-		left: 12px;
-		right: 12px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		z-index: 2;
-	}
-
-	.live-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 3px 8px;
-		border-radius: var(--radius-full);
-		font-size: 0.65rem;
-		font-weight: 800;
-		background: var(--color-success-bg);
-		border: 1px solid var(--color-success-border);
-		color: var(--color-success);
-		letter-spacing: 0.05em;
-	}
-
-	.pulsing-green-dot {
-		width: 5px;
-		height: 5px;
-		border-radius: var(--radius-full);
-		background: var(--color-success);
-		box-shadow: 0 0 6px var(--color-success);
-	}
-
-	.category-pill {
-		padding: 3px 8px;
-		border-radius: var(--radius-xs);
-		font-size: 0.65rem;
-		font-weight: 700;
-		background: var(--color-surface-subtle);
-		border: 1px solid var(--color-border);
-		color: var(--color-text-secondary);
-		letter-spacing: 0.04em;
-	}
-
-	.card-body {
-		padding: 20px;
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		justify-content: space-between;
-	}
-
-	.level-indicator {
-		font-size: 0.68rem;
-		font-weight: 600;
-		color: var(--color-text-muted);
-		margin-bottom: 6px;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.card-title {
-		font-size: 1.05rem;
-		font-weight: 700;
-		color: var(--color-text);
-		line-height: 1.35;
-		margin-bottom: 8px;
-	}
-
-	.title-link {
-		color: var(--color-text);
-		text-decoration: none;
-		transition: color 0.15s ease;
-	}
-
-	.title-link:hover {
-		color: var(--lp-accent);
-	}
-
-	.card-desc {
-		font-size: 0.8rem;
-		color: var(--color-text-secondary);
-		line-height: 1.5;
-		margin-bottom: 16px;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.meta-row {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		padding-bottom: 14px;
-		border-bottom: 1px solid var(--color-border-subtle);
-		margin-bottom: 14px;
-	}
-
-	.meta-item {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.74rem;
-		color: var(--color-text-secondary);
-	}
-
-	.card-footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: auto;
-	}
-
-	.price-box {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.price-label {
-		font-size: 0.65rem;
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-	}
-
-	.price-value {
-		font-size: 1.05rem;
-		font-weight: 800;
-		color: var(--color-text);
-	}
-
-	.btn-enroll {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 8px 16px;
-		border-radius: var(--radius-full);
-		font-size: 0.78rem;
-		font-weight: 700;
-		background: var(--color-text);
-		color: var(--color-bg);
-		text-decoration: none;
-		transition: all 0.15s ease;
-	}
-
-	.btn-enroll:hover {
-		opacity: 0.9;
-		transform: translateX(2px);
+	.live-card:hover {
+		border-color: var(--border-strong);
+		transform: translateY(-2px);
+		box-shadow: var(--card-shadow);
 	}
 </style>

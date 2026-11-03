@@ -49,7 +49,7 @@
 
 <div class="app-layout" class:is-auth={isAuthRoute}>
 	{#if !isAuthRoute && !isPlayerRoute}
-		<Navbar user={data.user} />
+		<Navbar user={data.user} userCredits={data.userCredits ?? 0} />
 	{/if}
 
 	{#if isNavigating}

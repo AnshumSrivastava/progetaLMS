@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Calendar, ArrowRight } from 'lucide-svelte';
+	import { Calendar, ArrowRight, ShieldCheck } from 'lucide-svelte';
 
 	let { mentor }: { mentor: any } = $props();
 
@@ -19,182 +19,66 @@
 	const targetUrl = $derived(`/mentoring/${mentor.handle || mentor.id}`);
 </script>
 
-<article class="dark-mentor-card group">
-	<!-- Header -->
-	<div class="mentor-header">
-		<div class="mentor-avatar">
-			{#if mentor.avatarUrl}
-				<img src={mentor.avatarUrl} alt={mentor.name} class="avatar-img" />
+<article class="rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 hover:border-zinc-300 hover:shadow-md transition flex flex-col justify-between group">
+	<div>
+		<!-- Avatar & Header Row -->
+		<div class="flex items-center gap-3.5 mb-4">
+			<div class="w-14 h-14 rounded-2xl bg-zinc-950 text-white font-bold text-base flex items-center justify-center shrink-0 overflow-hidden">
+				{#if mentor.avatarUrl}
+					<img src={mentor.avatarUrl} alt={mentor.name} class="w-full h-full object-cover" />
+				{:else}
+					<span>{initials}</span>
+				{/if}
+			</div>
+
+			<div class="min-w-0">
+				<div class="flex items-center gap-1.5">
+					<h3 class="text-base font-bold text-zinc-950 truncate group-hover:text-zinc-700 transition">
+						<a href={targetUrl}>
+							{mentor.name}
+						</a>
+					</h3>
+					<ShieldCheck size={14} class="text-emerald-500 shrink-0" />
+				</div>
+				<p class="text-xs text-zinc-500 truncate mt-0.5">{mentor.headline || 'Practitioner Mentor'}</p>
+			</div>
+		</div>
+
+		<!-- Specialties Tags -->
+		<div class="flex flex-wrap items-center gap-1.5 mb-4">
+			{#each specialties.slice(0, 3) as tag}
+				<span class="px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-700 text-[11px] font-mono font-medium">
+					{tag}
+				</span>
+			{/each}
+		</div>
+
+		<!-- Bio snippet -->
+		<p class="text-xs text-zinc-600 leading-relaxed line-clamp-3 mb-6">
+			{mentor.bio || mentor.headline || 'Architecture reviews, career guidance, and hands-on technical mentoring with verified practitioners.'}
+		</p>
+	</div>
+
+	<!-- Bottom Row -->
+	<div class="pt-4 border-t border-zinc-100 flex items-center justify-between mt-auto">
+		<div class="text-xs font-mono text-zinc-500">
+			{#if mentor.lowestPricePaise > 0}
+				<span class="font-bold text-zinc-950 font-sans">₹{(mentor.lowestPricePaise / 100).toFixed(0)}</span>
+				<span class="text-[11px] text-zinc-400">/ session</span>
 			{:else}
-				<span class="avatar-text">{initials}</span>
+				<div class="flex items-center gap-1.5">
+					<Calendar size={13} class="text-zinc-400" />
+					<span>1-on-1 Sessions</span>
+				</div>
 			{/if}
 		</div>
 
-		<div>
-			<h3 class="mentor-name">
-				<a href={targetUrl} class="name-link">
-					{mentor.name}
-				</a>
-			</h3>
-			<p class="mentor-role">{mentor.headline || 'Cloud Security Architect'}</p>
-		</div>
-	</div>
-
-	<!-- Tags -->
-	<div class="mentor-tags-row">
-		{#each specialties.slice(0, 3) as tag}
-			<span class="mentor-tag-pill">{tag}</span>
-		{/each}
-	</div>
-
-	<!-- Services -->
-	<p class="mentor-services">
-		{mentor.bio || mentor.headline || 'Architecture reviews • Career guidance • Hands-on technical mentoring.'}
-	</p>
-
-	<!-- Footer Row -->
-	<div class="mentor-bottom-row">
-		<div class="session-pill">
-			<Calendar size={13} class="text-slate-400" />
-			<span>1-on-1 Sessions</span>
-		</div>
-
-		<a href={targetUrl} class="btn-book">
-			<span>Book Session</span>
+		<a
+			href={targetUrl}
+			class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-950 text-white text-xs font-bold hover:bg-zinc-800 transition active:scale-95 shadow-xs"
+		>
+			<span>Book 1-on-1</span>
+			<ArrowRight size={13} />
 		</a>
 	</div>
 </article>
-
-<style>
-	.dark-mentor-card {
-		border-radius: var(--radius-lg);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		padding: 22px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-	}
-
-	.dark-mentor-card:hover {
-		transform: translateY(-3px);
-		border-color: var(--color-border-strong);
-		box-shadow: var(--shadow-lg);
-	}
-
-	.mentor-header {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.mentor-avatar {
-		width: 44px;
-		height: 44px;
-		border-radius: var(--radius-full);
-		background: var(--color-surface-elevated);
-		border: 1px solid var(--color-border);
-		color: var(--color-text);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		overflow: hidden;
-		flex-shrink: 0;
-	}
-
-	.avatar-img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.avatar-text {
-		font-weight: 700;
-		font-size: 0.95rem;
-		color: var(--color-text);
-	}
-
-	.mentor-name {
-		font-size: 0.98rem;
-		font-weight: 700;
-		color: var(--color-text);
-	}
-
-	.name-link {
-		color: var(--color-text);
-		text-decoration: none;
-		transition: color 0.15s ease;
-	}
-
-	.name-link:hover {
-		color: var(--lp-accent);
-	}
-
-	.mentor-role {
-		font-size: 0.78rem;
-		color: var(--color-text-secondary);
-	}
-
-	.mentor-tags-row {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		flex-wrap: wrap;
-	}
-
-	.mentor-tag-pill {
-		padding: 3px 8px;
-		border-radius: var(--radius-xs);
-		font-size: 0.68rem;
-		font-weight: 500;
-		background: var(--color-surface-subtle);
-		color: var(--color-text-secondary);
-		border: 1px solid var(--color-border);
-	}
-
-	.mentor-services {
-		font-size: 0.78rem;
-		color: var(--color-text-secondary);
-		line-height: 1.45;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.mentor-bottom-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding-top: 12px;
-		border-top: 1px solid var(--color-border-subtle);
-		margin-top: auto;
-	}
-
-	.session-pill {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.75rem;
-		color: var(--color-text-secondary);
-	}
-
-	.btn-book {
-		display: inline-flex;
-		align-items: center;
-		padding: 7px 14px;
-		border-radius: var(--radius-full);
-		font-size: 0.78rem;
-		font-weight: 700;
-		background: var(--color-text);
-		color: var(--color-bg);
-		text-decoration: none;
-		transition: all 0.15s ease;
-	}
-
-	.btn-book:hover {
-		opacity: 0.9;
-		transform: translateY(-1px);
-	}
-</style>

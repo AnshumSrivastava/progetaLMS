@@ -1,397 +1,278 @@
 <script lang="ts">
 	import { APP_NAME } from '$lib/shared/constants';
-	import { Search, X, Download, FileText, CheckCircle2 } from 'lucide-svelte';
+	import {
+		Search,
+		X,
+		Download,
+		FileText,
+		CheckCircle2,
+		Sparkles,
+		Clock,
+		ArrowRight,
+		ShieldCheck,
+		FolderGit2,
+		BookOpen
+	} from 'lucide-svelte';
 	import ResourceCard from '$lib/components/ui/ResourceCard.svelte';
-	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	let searchQuery = $state('');
-	let selectedSource = $state('All'); // 'All' | 'official' | 'mentor'
-	let sortBy = $state('default');
+	let selectedSource = $state('All');
 
 	const sources = [
-		{ id: 'All', label: 'All Resources' },
-		{ id: 'official', label: 'Launchpad Official' },
-		{ id: 'mentor', label: 'Mentor Shared' }
+		{ value: 'All', label: 'All Resources' },
+		{ value: 'official', label: 'Progeta Official' },
+		{ value: 'mentor', label: 'Mentor Shared' }
 	];
 
-	const filteredResources = $derived(() => {
-		let list = data.resources;
+	const filteredResources = $derived.by(() => {
+		let list = data.resources || [];
 
-		// Source filter
 		if (selectedSource === 'official') {
 			list = list.filter((r) => r.source === 'platform');
 		} else if (selectedSource === 'mentor') {
 			list = list.filter((r) => r.source === 'mentor');
 		}
 
-		// Search filter
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase();
-			list = list.filter((r) =>
-				r.title.toLowerCase().includes(q) ||
-				(r.description || '').toLowerCase().includes(q) ||
-				(r.ownerName || '').toLowerCase().includes(q) ||
-				((r.metadata as any)?.category || '').toLowerCase().includes(q) ||
-				((r.metadata as any)?.format || '').toLowerCase().includes(q)
+			list = list.filter(
+				(r) =>
+					r.title.toLowerCase().includes(q) ||
+					(r.description || '').toLowerCase().includes(q) ||
+					(r.ownerName || '').toLowerCase().includes(q) ||
+					((r.metadata as any)?.category || '').toLowerCase().includes(q) ||
+					((r.metadata as any)?.format || '').toLowerCase().includes(q)
 			);
-		}
-
-		// Sort
-		if (sortBy === 'free-first') {
-			list = [...list].sort((a, b) => (a.pricePaise || 0) - (b.pricePaise || 0));
-		} else if (sortBy === 'price-desc') {
-			list = [...list].sort((a, b) => (b.pricePaise || 0) - (a.pricePaise || 0));
 		}
 
 		return list;
 	});
 
-	const hasFilters = $derived(selectedSource !== 'All' || searchQuery.trim() !== '');
-
 	function clearFilters() {
 		searchQuery = '';
 		selectedSource = 'All';
-		sortBy = 'default';
 	}
 </script>
 
 <svelte:head>
-	<title>Technical Resources & Downloads — {APP_NAME}</title>
-	<meta name="description" content="Download practical cheatsheets, security checklists, and reference guides provided by Launchpad and verified practitioners." />
+	<title>Resources & Artifacts &bull; Launchpad</title>
+	<meta
+		name="description"
+		content="Cheatsheets, architecture blueprints, detection rules, and downloadable practitioner files."
+	/>
 </svelte:head>
 
-<div class="resources-page">
-	<!-- ── WORKLY-STYLE TOP HEADER & SEARCH ──────────────── -->
-	<header class="resources-header">
-		<div class="container-custom">
-			<div class="header-main-row">
-				<div>
-					<span class="meta-label">TOOLKITS & GUIDES</span>
-					<h1 class="page-title">Technical Resources</h1>
-					<p class="page-subtitle">Production checklists, reference cheatsheets, and digital guides provided by Launchpad and verified mentors.</p>
-				</div>
+<div class="min-h-screen bg-white text-zinc-950 pb-28">
 
-				<!-- Search Input (Workly Reference Style) -->
-				<div class="search-wrap">
-					<Search size={16} class="search-icon" />
-					<input
-						type="text"
-						bind:value={searchQuery}
-						placeholder="Search resources, topics, or mentors..."
-						class="workly-search-input"
-					/>
-					{#if searchQuery}
-						<button class="clear-btn" onclick={() => (searchQuery = '')} aria-label="Clear search">
-							<X size={14} />
-						</button>
-					{/if}
+	<!-- ── 1. FULL-WIDTH CINEMATIC HERO SECTION ──────────────────────── -->
+	<section class="relative w-full bg-zinc-950 text-white border-b border-zinc-800/80 overflow-hidden select-none">
+		<!-- Background Visual Elements -->
+		<div class="absolute inset-0 pointer-events-none z-0">
+			<img
+				src="/thumbnails/lab-guided.jpg"
+				alt="Resources Hero Backdrop"
+				class="w-full h-full object-cover object-center opacity-30 filter brightness-90"
+			/>
+			<div class="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/90 to-zinc-950/50"></div>
+			<div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-zinc-950/40"></div>
+		</div>
+
+		<div class="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 py-12 sm:py-16 lg:py-20 min-h-[500px] sm:min-h-[560px] flex flex-col justify-between">
+			<!-- Top Eyebrow -->
+			<div class="flex items-center gap-3 mb-6">
+				<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold tracking-wider text-white uppercase">
+					<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+					<span>TECHNICAL ARTIFACTS & PLAYBOOKS</span>
 				</div>
+				<span class="text-xs font-mono text-zinc-400 hidden sm:inline">
+					&mdash; CURATED CYBERSECURITY VAULT
+				</span>
 			</div>
 
-			<!-- Source Filter Pills Strip -->
-			<div class="filter-strip">
-				<div class="source-pills">
-					{#each sources as src}
-						<button
-							type="button"
-							class="source-pill"
-							class:active={selectedSource === src.id}
-							onclick={() => (selectedSource = src.id)}
-						>
-							{src.label}
-						</button>
-					{/each}
-				</div>
-			</div>
+			<!-- Center Stage -->
+			<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center my-auto py-4">
+				<!-- Left 8 cols: Title, Specs & Action -->
+				<div class="lg:col-span-8 max-w-3xl">
+					<h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.04] mb-4">
+						Technical Resources & Defense Checklists
+					</h1>
+					<p class="text-base sm:text-lg text-zinc-300 leading-relaxed max-w-2xl mb-8">
+						Downloadable security playbooks, detection rules, architecture cheat sheets, and hardening guides curated by active practitioners and engineering teams.
+					</p>
 
-			<!-- Meta & Secondary Controls Strip -->
-			<div class="header-sub-strip">
-				<div class="results-count">
-					Showing <strong>{filteredResources().length}</strong> of {data.resources.length} resources
-				</div>
-
-				<div class="filter-controls">
-					<!-- Sort Selector -->
-					<div class="select-wrap">
-						<span class="select-label">Sort by:</span>
-						<select bind:value={sortBy} class="control-select">
-							<option value="default">Recommended</option>
-							<option value="free-first">Free First</option>
-							<option value="price-desc">Price: High to Low</option>
-						</select>
+					<!-- Spec Pills -->
+					<div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm font-mono text-zinc-300 mb-8">
+						<span class="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+							Downloadable Blueprints & PDFs
+						</span>
+						<span class="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+							Sigma & YARA Detection Rules
+						</span>
+						<span class="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+							Free with Enrolled Programs
+						</span>
 					</div>
 
-					{#if hasFilters}
-						<button type="button" class="btn-reset" onclick={clearFilters}>
-							Reset filters
-						</button>
-					{/if}
+					<!-- CTAs -->
+					<div class="flex flex-wrap items-center gap-5">
+						<a
+							href="#browse-resources"
+							class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold bg-white text-zinc-950 hover:bg-zinc-100 transition shadow-xl active:scale-95"
+						>
+							<span>Browse Resource Vault</span>
+							<ArrowRight size={16} />
+						</a>
+						<span class="text-xs sm:text-sm font-mono text-zinc-400">
+							Instant Downloads &bull; Unlocked with Programs
+						</span>
+					</div>
+				</div>
+
+				<!-- Right 4 cols: Feature Spotlight Card -->
+				<div class="lg:col-span-4 bg-black/65 backdrop-blur-md border border-white/15 p-6 sm:p-8 rounded-2xl text-left">
+					<div class="flex items-center justify-between mb-5 pb-3 border-b border-white/10">
+						<span class="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+							Progeta Engineering Vault
+						</span>
+						<span class="text-xs font-mono font-bold text-white bg-white/10 px-2.5 py-1 rounded-md">
+							PDF & Rules
+						</span>
+					</div>
+					<h3 class="text-lg font-bold text-white mb-2">
+						Enterprise Defense Bundles
+					</h3>
+					<div class="space-y-3 text-xs font-mono text-zinc-300 mb-6">
+						<div class="flex items-center gap-2.5">
+							<FileText size={15} class="text-emerald-400 shrink-0" />
+							<span>Comprehensive step-by-step guides</span>
+						</div>
+						<div class="flex items-center gap-2.5">
+							<FolderGit2 size={15} class="text-emerald-400 shrink-0" />
+							<span>Tested SIEM rules & SOAR playbooks</span>
+						</div>
+						<div class="flex items-center gap-2.5">
+							<ShieldCheck size={15} class="text-emerald-400 shrink-0" />
+							<span>Verified by Launchpad practitioners</span>
+						</div>
+					</div>
+					<a
+						href="#browse-resources"
+						class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-zinc-950 hover:bg-zinc-100 font-mono text-xs font-bold transition shadow-lg active:scale-95"
+					>
+						<span>Explore Vault Assets</span>
+						<ArrowRight size={14} />
+					</a>
 				</div>
 			</div>
 		</div>
-	</header>
+	</section>
 
-	<!-- ── RESOURCE CARDS CANVAS ──────────────────────────── -->
-	<main class="container-custom content-canvas">
-		{#if filteredResources().length > 0}
-			<div class="workly-grid">
-				{#each filteredResources() as resource}
-					<ResourceCard {resource} />
+	<main class="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">
+
+		<!-- ── 2. FOUR RESOURCE METHODOLOGY PILLARS ───────────────────── -->
+		<section class="py-10 border-b border-zinc-200 mb-12">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">01 / Documentation</span>
+					<h3 class="text-sm font-bold text-zinc-950">Field Guides</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">In-depth reference manuals covering terminal tooling, log analysis, and system architecture.</p>
+				</div>
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">02 / Detection</span>
+					<h3 class="text-sm font-bold text-zinc-950">Detection Rules</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Ready-to-deploy Sigma, YARA, and regex rules tested against common adversary tactics.</p>
+				</div>
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">03 / Auditing</span>
+					<h3 class="text-sm font-bold text-zinc-950">Hardening Checklists</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Actionable baseline checklists for Linux, Docker, AWS, and enterprise networks.</p>
+				</div>
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">04 / Accessibility</span>
+					<h3 class="text-sm font-bold text-zinc-950">Instant Access</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Direct PDF downloads and copy-paste detection logic unlocked with any program enrollment.</p>
+				</div>
+			</div>
+		</section>
+
+		<!-- ── 3. RESOURCES CATALOGUE & FILTER BAR ────────────────────── -->
+		<section class="py-6" id="browse-resources">
+			<!-- Header & Search -->
+			<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+				<div>
+					<h2 class="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+						Resource Library & Artifacts
+					</h2>
+					<p class="text-xs sm:text-sm text-zinc-500 mt-1">
+						Showing {filteredResources.length} technical playbooks, guides, and defense frameworks.
+					</p>
+				</div>
+
+				<!-- Search Input -->
+				<div class="w-full md:w-80 relative">
+					<Search size={14} class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+					<input
+						bind:value={searchQuery}
+						type="text"
+						placeholder="Search resources by keyword..."
+						class="w-full pl-9 pr-8 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-zinc-400 transition"
+					/>
+					{#if searchQuery}
+						<button
+							type="button"
+							onclick={() => (searchQuery = '')}
+							class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 p-0.5"
+							aria-label="Clear search"
+						>
+							<X size={13} />
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Filter Category Pills -->
+			<div class="flex items-center gap-2 mb-8 overflow-x-auto pb-1 no-scrollbar border-b border-zinc-100">
+				{#each sources as src}
+					<button
+						type="button"
+						onclick={() => (selectedSource = src.value)}
+						class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition whitespace-nowrap"
+						class:bg-zinc-950={selectedSource === src.value}
+						class:text-white={selectedSource === src.value}
+						class:bg-zinc-100={selectedSource !== src.value}
+						class:text-zinc-600={selectedSource !== src.value}
+						class:hover:text-zinc-950={selectedSource !== src.value}
+					>
+						{src.label}
+					</button>
 				{/each}
 			</div>
-		{:else}
-			<EmptyState
-				title="No resources found"
-				description="No downloadable guides match your chosen search or category filter. Try clearing your filters."
-				actionText="Clear all filters"
-				onaction={clearFilters}
-			/>
-		{/if}
+
+			<!-- Resources Grid -->
+			{#if filteredResources.length === 0}
+				<div class="text-center py-20 bg-zinc-50 rounded-3xl border border-zinc-200">
+					<BookOpen size={36} class="mx-auto text-zinc-400 mb-3" />
+					<h3 class="text-base font-bold text-zinc-950">No resources found</h3>
+					<p class="text-xs text-zinc-500 mt-1 mb-5">Try adjusting your search query or filter options.</p>
+					<button
+						type="button"
+						onclick={clearFilters}
+						class="px-5 py-2.5 rounded-xl bg-zinc-950 text-white text-xs font-bold hover:bg-zinc-800 transition"
+					>
+						Clear Filters
+					</button>
+				</div>
+			{:else}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+					{#each filteredResources as resource (resource.id)}
+						<ResourceCard {resource} />
+					{/each}
+				</div>
+			{/if}
+		</section>
+
 	</main>
 </div>
-
-<style>
-	.resources-page {
-		min-height: 100vh;
-		background: var(--bg, #f8fafc);
-	}
-
-	.resources-header {
-		background: var(--bg-elevated, #ffffff);
-		border-bottom: 1px solid var(--border);
-		padding: 32px 0 20px 0;
-	}
-
-	.header-main-row {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-		margin-bottom: 24px;
-	}
-
-	@media (min-width: 768px) {
-		.header-main-row {
-			flex-direction: row;
-			align-items: center;
-			justify-content: space-between;
-		}
-	}
-
-	.meta-label {
-		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		color: #f59e0b;
-		text-transform: uppercase;
-	}
-
-	.page-title {
-		font-size: clamp(1.75rem, 3vw, 2.25rem);
-		font-weight: 800;
-		color: var(--text-primary, #0f172a);
-		letter-spacing: -0.03em;
-		margin-top: 4px;
-	}
-
-	.page-subtitle {
-		font-size: 0.875rem;
-		color: var(--text-secondary, #64748b);
-		margin-top: 4px;
-		max-width: 580px;
-	}
-
-	.search-wrap {
-		position: relative;
-		width: 100%;
-		max-width: 420px;
-	}
-
-	.workly-search-input {
-		width: 100%;
-		height: 46px;
-		background: var(--bg, #f1f5f9);
-		border: 1px solid var(--border);
-		border-radius: 9999px;
-		padding: 0 40px 0 42px;
-		font-size: 0.9375rem;
-		color: var(--text-primary);
-		outline: none;
-		transition: all 0.2s ease;
-	}
-
-	.workly-search-input:focus {
-		background: var(--bg-elevated, #ffffff);
-		border-color: #f59e0b;
-		box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
-	}
-
-	:global(.search-icon) {
-		position: absolute;
-		left: 16px;
-		top: 50%;
-		transform: translateY(-50%);
-		color: var(--text-muted, #94a3b8);
-		pointer-events: none;
-	}
-
-	.clear-btn {
-		position: absolute;
-		right: 14px;
-		top: 50%;
-		transform: translateY(-50%);
-		background: none;
-		border: none;
-		color: var(--text-muted);
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	/* Source Pills Strip */
-	.filter-strip {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-bottom: 20px;
-		overflow-x: auto;
-		scrollbar-width: none;
-	}
-
-	.filter-strip::-webkit-scrollbar {
-		display: none;
-	}
-
-	.source-pills {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.source-pill {
-		display: inline-flex;
-		align-items: center;
-		padding: 6px 14px;
-		border-radius: 9999px;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-secondary, #64748b);
-		background: var(--bg, #f8fafc);
-		border: 1px solid var(--border);
-		cursor: pointer;
-		white-space: nowrap;
-		transition: all 0.15s ease;
-	}
-
-	.source-pill:hover {
-		color: #f59e0b;
-		border-color: rgba(245, 158, 11, 0.3);
-		background: rgba(245, 158, 11, 0.04);
-	}
-
-	.source-pill.active {
-		color: #ffffff;
-		background: #f59e0b;
-		border-color: #f59e0b;
-		box-shadow: 0 2px 8px -2px rgba(245, 158, 11, 0.4);
-	}
-
-	/* Sub-strip */
-	.header-sub-strip {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding-top: 16px;
-		border-top: 1px solid var(--border);
-	}
-
-	@media (min-width: 768px) {
-		.header-sub-strip {
-			flex-direction: row;
-			align-items: center;
-			justify-content: space-between;
-		}
-	}
-
-	.results-count {
-		font-size: 0.875rem;
-		color: var(--text-secondary, #64748b);
-	}
-
-	.results-count strong {
-		color: var(--text-primary, #0f172a);
-	}
-
-	.filter-controls {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		flex-wrap: wrap;
-	}
-
-	.select-wrap {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.8125rem;
-	}
-
-	.select-label {
-		color: var(--text-muted, #94a3b8);
-		font-weight: 500;
-	}
-
-	.control-select {
-		background: var(--bg, #f1f5f9);
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		padding: 5px 10px;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		outline: none;
-		cursor: pointer;
-		transition: border-color 0.15s ease;
-	}
-
-	.control-select:focus {
-		border-color: #f59e0b;
-	}
-
-	.btn-reset {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: #f59e0b;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 4px 8px;
-		border-radius: 6px;
-		transition: background 0.15s ease;
-	}
-
-	.btn-reset:hover {
-		background: rgba(245, 158, 11, 0.08);
-	}
-
-	/* Grid Canvas */
-	.content-canvas {
-		padding-top: 36px;
-		padding-bottom: 80px;
-	}
-
-	.workly-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		gap: 20px;
-	}
-
-	@media (max-width: 640px) {
-		.workly-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>

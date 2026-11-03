@@ -2,7 +2,10 @@
 	import { APP_NAME } from '$lib/shared/constants';
 	import { authClient } from '$lib/auth.client';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
 	import LaunchpadLogo from '$lib/components/ui/LaunchpadLogo.svelte';
+
+	let { data } = $props();
 
 	// Steps: 'email' | 'password' | 'otp' | 'loading'
 	type Step = 'email' | 'password' | 'otp' | 'loading';
@@ -36,7 +39,8 @@
 
 	async function handleGoogleSignIn() {
 		step = 'loading';
-		await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
+		const targetUrl = data?.returnTo || $page.url.searchParams.get('returnTo') || '/dashboard';
+		await authClient.signIn.social({ provider: 'google', callbackURL: targetUrl });
 	}
 
 	// ── Step 1: Submit Email and determine next step ──────────────────────────
@@ -123,7 +127,8 @@
 
 			// Direct password login success
 			await invalidateAll();
-			goto('/dashboard');
+			const targetUrl = data?.returnTo || $page.url.searchParams.get('returnTo') || '/dashboard';
+			goto(targetUrl);
 		} catch (e: any) {
 			error = e.message || 'Failed to verify password. Please try again.';
 		} finally {
@@ -162,7 +167,8 @@
 			}
 
 			await invalidateAll();
-			goto('/dashboard');
+			const targetUrl = data?.returnTo || $page.url.searchParams.get('returnTo') || '/dashboard';
+			goto(targetUrl);
 		} catch (e: any) {
 			error = e.message || 'Something went wrong. Please try again.';
 		} finally {

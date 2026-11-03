@@ -7,6 +7,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/dashboard');
 	}
 
-	// Home page removed as requested: redirect visitors directly to sign-in
+	// Home page removed: visitors redirect directly to sign-in
 	throw redirect(302, '/sign-in');
 };

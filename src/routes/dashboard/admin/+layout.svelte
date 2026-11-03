@@ -106,7 +106,9 @@
 		flex-direction: column;
 		position: sticky;
 		top: var(--nav-h);
+		align-self: flex-start;
 		height: calc(100vh - var(--nav-h));
+		z-index: 20;
 	}
 
 	.sidebar-top {

@@ -81,7 +81,9 @@ export const commerceOrders = pgTable('commerce_orders', {
 	id:               text('id').primaryKey(),   // CUID2
 	cashfreeOrderId:  text('cashfree_order_id').notNull().unique(),
 	userId:           text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-	assetId:          text('asset_id').notNull().references(() => assets.id),
+	orderType:        text('order_type', { enum: ['asset', 'event', 'credit_package'] }).notNull().default('asset'),
+	targetId:         text('target_id'),          // ID of target asset, event, or credit package
+	assetId:          text('asset_id').references(() => assets.id),
 	amountPaise:      integer('amount_paise').notNull(),
 	currency:         text('currency').notNull().default('INR'),
 	status:           text('status', {
@@ -96,7 +98,8 @@ export const commerceOrders = pgTable('commerce_orders', {
 }, (t) => [
 	index('orders_user_idx').on(t.userId),
 	index('orders_asset_idx').on(t.assetId),
-	index('orders_status_idx').on(t.status)
+	index('orders_status_idx').on(t.status),
+	index('orders_type_target_idx').on(t.orderType, t.targetId)
 ]);
 
 export const commerceCoupons = pgTable('commerce_coupons', {

@@ -1,25 +1,26 @@
 <script lang="ts">
 	import { APP_COMPANY } from '$lib/shared/constants';
 	import LaunchpadLogo from './LaunchpadLogo.svelte';
+	import { ShieldCheck, Award, Lock } from 'lucide-svelte';
 
 	const platformLinks = [
-		{ href: '/catalog', label: 'Explore' },
-		{ href: '/live-classes', label: 'Live Classes' },
-		{ href: '/courses', label: 'Courses' },
-		{ href: '/labs', label: 'Labs & CTF' }
+		{ href: '/catalog', label: 'Explore All' },
+		{ href: '/courses', label: 'Live Classes' },
+		{ href: '/events', label: 'Sessions & Events' },
+		{ href: '/mentoring', label: '1-on-1 Mentorship' },
+		{ href: '/resources', label: 'Resources Hub' }
 	];
 
 	const moreLinks = [
-		{ href: '/certifications', label: 'Certifications' },
-		{ href: '/mentoring', label: 'Mentorship' },
-		{ href: '/resources', label: 'Resources' },
-		{ href: '/courses', label: 'Pricing' }
+		{ href: '/credits', label: 'Credits Wallet' },
+		{ href: '/events', label: 'Upcoming Workshops' },
+		{ href: '/mentoring', label: 'Find a Mentor' }
 	];
 
 	const legalLinks = [
-		{ href: '/privacy', label: 'Privacy' },
-		{ href: '/terms', label: 'Terms' },
-		{ href: '/refunds', label: 'Refunds' }
+		{ href: '/privacy', label: 'Privacy Policy' },
+		{ href: '/terms', label: 'Terms of Service' },
+		{ href: '/refunds', label: 'Refund Policy' }
 	];
 
 	const year = 2026;
@@ -27,6 +28,32 @@
 
 <footer class="footer-root">
 	<div class="footer-container">
+		
+		<!-- Trust Badges Strip -->
+		<div class="trust-strip">
+			<div class="trust-item">
+				<ShieldCheck size={18} class="text-emerald-600 shrink-0" />
+				<div>
+					<span class="trust-title">Verified Practitioners</span>
+					<span class="trust-desc">Sessions taught exclusively by vetted cybersecurity engineers</span>
+				</div>
+			</div>
+			<div class="trust-item">
+				<Lock size={18} class="text-indigo-600 shrink-0" />
+				<div>
+					<span class="trust-title">Encrypted Checkout</span>
+					<span class="trust-desc">Cashfree PCI-DSS compliant 256-bit secure checkout</span>
+				</div>
+			</div>
+			<div class="trust-item">
+				<Award size={18} class="text-amber-600 shrink-0" />
+				<div>
+					<span class="trust-title">Branded Resource Bundles</span>
+					<span class="trust-desc">Official slides, playbooks, and assets upon completion</span>
+				</div>
+			</div>
+		</div>
+
 		<div class="footer-grid">
 			<!-- Brand Info -->
 			<div class="brand-column">
@@ -35,8 +62,8 @@
 					<span class="brand-name">Launchpad</span>
 				</a>
 				<p class="brand-desc">
-					A learning platform by Progeta Technologies.<br />
-					Practical skills. Real opportunities.
+					Official technical learning and live events platform by <strong>Progeta Technologies</strong>.<br />
+					Real practitioners. Hands-on skills. Trusted outcomes.
 				</p>
 			</div>
 
@@ -54,7 +81,7 @@
 				</div>
 
 				<div class="nav-col">
-					<h3 class="col-title">More</h3>
+					<h3 class="col-title">Programs</h3>
 					<ul class="col-list">
 						{#each moreLinks as link}
 							<li>
@@ -102,19 +129,19 @@
 						</svg>
 					</a>
 					<a
-						href="https://github.com"
+						href="https://x.com"
 						target="_blank"
 						rel="noopener noreferrer"
 						class="social-btn"
-						aria-label="GitHub"
+						aria-label="X"
 					>
 						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-							<path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+							<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
 						</svg>
 					</a>
 				</div>
 				<p class="copyright">
-					&copy; {year} Progeta Technologies.<br class="hidden sm:inline" />
+					&copy; {year} Launchpad by {APP_COMPANY}.<br />
 					All rights reserved.
 				</p>
 			</div>
@@ -124,18 +151,54 @@
 
 <style>
 	.footer-root {
-		position: relative;
-		z-index: 40;
-		background: #080b11;
-		border-top: 1px solid rgba(255, 255, 255, 0.07);
-		color: #94a3b8;
+		background: #09090b;
+		border-top: 1px solid rgba(255, 255, 255, 0.12);
 		padding: 48px 0 36px 0;
+		color: #a1a1aa;
 	}
 
 	.footer-container {
-		max-width: 1400px;
-		margin: 0 auto;
-		padding: 0 28px;
+		width: 100%;
+		max-width: 1600px;
+		margin-inline: auto;
+		padding-inline: clamp(16px, 2.5vw, 48px);
+	}
+
+	.trust-strip {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 20px;
+		padding-bottom: 36px;
+		margin-bottom: 36px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	@media (min-width: 768px) {
+		.trust-strip {
+			grid-template-columns: repeat(3, 1fr);
+		}
+	}
+
+	.trust-item {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+	}
+
+	.trust-title {
+		display: block;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: #ffffff;
+		letter-spacing: -0.01em;
+	}
+
+	.trust-desc {
+		display: block;
+		font-size: 0.76rem;
+		color: #a1a1aa;
+		margin-top: 2px;
+		line-height: 1.45;
 	}
 
 	.footer-grid {
@@ -173,15 +236,19 @@
 
 	.brand-name {
 		font-size: 1.25rem;
-		font-weight: 700;
+		font-weight: 800;
 		color: #ffffff;
 		letter-spacing: -0.02em;
 	}
 
 	.brand-desc {
 		font-size: 0.82rem;
-		color: #64748b;
+		color: #a1a1aa;
 		line-height: 1.6;
+	}
+
+	.brand-desc strong {
+		color: #ffffff;
 	}
 
 	.links-columns {
@@ -197,10 +264,12 @@
 	}
 
 	.col-title {
-		font-size: 0.82rem;
-		font-weight: 600;
+		font-size: 0.75rem;
+		font-weight: 700;
 		color: #ffffff;
-		letter-spacing: -0.01em;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		font-family: var(--font-mono);
 	}
 
 	.col-list {
@@ -212,13 +281,13 @@
 
 	.footer-nav-link {
 		font-size: 0.82rem;
-		color: #64748b;
+		color: #a1a1aa;
 		text-decoration: none;
 		transition: color 0.15s ease;
 	}
 
 	.footer-nav-link:hover {
-		color: #f1f5f9;
+		color: #ffffff;
 	}
 
 	.social-column {
@@ -242,7 +311,7 @@
 	}
 
 	.social-btn {
-		color: #64748b;
+		color: #71717a;
 		transition: color 0.15s ease;
 		display: flex;
 		align-items: center;
@@ -255,7 +324,7 @@
 
 	.copyright {
 		font-size: 0.78rem;
-		color: #475569;
+		color: #71717a;
 		line-height: 1.5;
 	}
 </style>

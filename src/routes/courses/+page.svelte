@@ -1,23 +1,29 @@
 <script lang="ts">
-	import { APP_NAME } from '$lib/shared/constants';
-	import { Search, X, SlidersHorizontal, BookOpen, Layers, Video, Calendar, Users } from 'lucide-svelte';
-	import CourseCard from '$lib/components/ui/CourseCard.svelte';
-	import LiveBatchCard from '$lib/components/ui/LiveBatchCard.svelte';
-	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import {
+		Search,
+		X,
+		BookOpen,
+		Video,
+		Calendar,
+		Users,
+		Clock,
+		ArrowRight,
+		CheckCircle2,
+		Award,
+		Sparkles,
+		Shield
+	} from 'lucide-svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
 	let searchQuery = $state(data.initialSearch || '');
 	let selectedCategory = $state(data.initialCategory || 'All');
-	let selectedLevel = $state(data.initialLevel || 'All');
 	let formatTab = $state<'all' | 'live' | 'self_paced'>('all');
-	let sortBy = $state('default');
 
 	const predefinedCategories = ['All', 'Network Security', 'Cloud Security', 'Penetration Testing', 'Compliance'];
-	
-	// Dynamic categories from database courses
-	const categories = $derived(() => {
+
+	const categories = $derived.by(() => {
 		const cats = new Set(predefinedCategories);
 		for (const c of [...(data.courses || []), ...(data.liveClasses || [])]) {
 			const cat = (c.metadata as any)?.category;
@@ -26,61 +32,35 @@
 		return Array.from(cats);
 	});
 
-	const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
-
-	const filteredLiveClasses = $derived(() => {
-		let list = data.liveClasses || [];
-
-		// Category filter
-		if (selectedCategory && selectedCategory !== 'All') {
-			list = list.filter((c: any) => (c.metadata as any)?.category === selectedCategory);
-		}
-
-		// Level filter
-		if (selectedLevel && selectedLevel !== 'All') {
-			list = list.filter((c: any) => {
-				const lvl = ((c.metadata as any)?.level || 'Intermediate').toLowerCase();
-				return lvl === selectedLevel.toLowerCase();
-			});
-		}
-
-		// Search filter
-		if (searchQuery.trim()) {
-			const q = searchQuery.toLowerCase();
-			list = list.filter((c: any) =>
-				c.title.toLowerCase().includes(q) ||
-				(c.description || '').toLowerCase().includes(q) ||
-				((c.metadata as any)?.category || '').toLowerCase().includes(q)
-			);
-		}
-
-		// Sort
-		if (sortBy === 'price-asc') {
-			list = [...list].sort((a: any, b: any) => (a.pricePaise || 0) - (b.pricePaise || 0));
-		} else if (sortBy === 'price-desc') {
-			list = [...list].sort((a: any, b: any) => (b.pricePaise || 0) - (a.pricePaise || 0));
-		}
-
-		return list;
+	const allItems = $derived.by(() => {
+		const live = (data.liveClasses || []).map((c: any) => ({
+			...c,
+			isLive: true,
+			badge: 'LIVE COHORT',
+			badgeColor: 'bg-zinc-950 text-white'
+		}));
+		const selfPaced = (data.courses || []).map((c: any) => ({
+			...c,
+			isLive: false,
+			badge: 'PRACTICAL TRACK',
+			badgeColor: 'bg-zinc-100 text-zinc-900 border border-zinc-200'
+		}));
+		return [...live, ...selfPaced];
 	});
 
-	const filteredCourses = $derived(() => {
-		let list = data.courses;
+	const filteredItems = $derived.by(() => {
+		let list = allItems;
 
-		// Category filter
+		if (formatTab === 'live') {
+			list = list.filter((i) => i.isLive);
+		} else if (formatTab === 'self_paced') {
+			list = list.filter((i) => !i.isLive);
+		}
+
 		if (selectedCategory && selectedCategory !== 'All') {
 			list = list.filter((c: any) => (c.metadata as any)?.category === selectedCategory);
 		}
 
-		// Level filter
-		if (selectedLevel && selectedLevel !== 'All') {
-			list = list.filter((c: any) => {
-				const lvl = ((c.metadata as any)?.level || 'Intermediate').toLowerCase();
-				return lvl === selectedLevel.toLowerCase();
-			});
-		}
-
-		// Search filter
 		if (searchQuery.trim()) {
 			const q = searchQuery.toLowerCase();
 			list = list.filter((c: any) =>
@@ -88,13 +68,6 @@
 				(c.description || '').toLowerCase().includes(q) ||
 				((c.metadata as any)?.category || '').toLowerCase().includes(q)
 			);
-		}
-
-		// Sort
-		if (sortBy === 'price-asc') {
-			list = [...list].sort((a: any, b: any) => (a.pricePaise || 0) - (b.pricePaise || 0));
-		} else if (sortBy === 'price-desc') {
-			list = [...list].sort((a: any, b: any) => (b.pricePaise || 0) - (a.pricePaise || 0));
 		}
 
 		return list;
@@ -103,494 +76,332 @@
 	function clearFilters() {
 		searchQuery = '';
 		selectedCategory = 'All';
-		selectedLevel = 'All';
 		formatTab = 'all';
-		sortBy = 'default';
 	}
 </script>
 
 <svelte:head>
-	<title>Courses — {APP_NAME}</title>
-	<meta name="description" content="Browse focused practitioner-led courses from Launchpad and verified instructors." />
+	<title>Live Classes & Cohorts &bull; Launchpad</title>
+	<meta
+		name="description"
+		content="Practitioner-led live cybersecurity cohorts, hands-on Linux and SIEM detection labs, and small group mentorship."
+	/>
 </svelte:head>
 
-<div class="courses-page">
-	<!-- ── WORKLY-STYLE TOP HEADER & SEARCH ──────────────── -->
-	<header class="courses-header">
-		<div class="container-custom">
-			<div class="header-main-row">
-				<div>
-					<span class="meta-label">CURRICULUM & PATHWAYS</span>
-					<h1 class="page-title">Explore Courses</h1>
-					<p class="page-subtitle">Hands-on pathways and technical lessons designed for immediate practical application.</p>
-				</div>
+<div class="min-h-screen bg-white text-zinc-950 pb-28">
 
-				<!-- Search Input (Workly Reference Style) -->
-				<div class="search-wrap">
-					<Search size={16} class="search-icon" />
-					<input
-						type="text"
-						bind:value={searchQuery}
-						placeholder="Search courses, skills, or topics..."
-						class="workly-search-input"
-					/>
-					{#if searchQuery}
-						<button class="clear-btn" onclick={() => (searchQuery = '')} aria-label="Clear search">
-							<X size={14} />
-						</button>
-					{/if}
+	<!-- ── 1. FULL-WIDTH CINEMATIC HERO SECTION ──────────────────────── -->
+	<section class="relative w-full bg-zinc-950 text-white border-b border-zinc-800/80 overflow-hidden select-none">
+		<!-- Background Visual Elements -->
+		<div class="absolute inset-0 pointer-events-none z-0">
+			<img
+				src="/thumbnails/practical-cybersecurity.jpg"
+				alt="Live Classes Hero Backdrop"
+				class="w-full h-full object-cover object-center opacity-30 filter brightness-90"
+			/>
+			<div class="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/90 to-zinc-950/50"></div>
+			<div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-zinc-950/40"></div>
+		</div>
+
+		<div class="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 py-12 sm:py-16 lg:py-20 min-h-[500px] sm:min-h-[560px] flex flex-col justify-between">
+			<!-- Top Eyebrow -->
+			<div class="flex items-center gap-3 mb-6">
+				<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/15 text-[11px] font-mono font-bold tracking-wider text-white uppercase">
+					<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+					<span>LIVE CLASSES & COHORTS</span>
 				</div>
+				<span class="text-xs font-mono text-zinc-400 hidden sm:inline">
+					&mdash; PRACTITIONER-LED DEFENSE ENGINEERING
+				</span>
 			</div>
 
-			<!-- Format Switcher & Category Pills -->
-			<div class="format-and-category-row">
-				<div class="format-tabs">
-					<button
-						type="button"
-						class="format-tab-btn"
-						class:active={formatTab === 'all'}
-						onclick={() => (formatTab = 'all')}
-					>
-						<Layers size={14} />
-						<span>All ({filteredLiveClasses().length + filteredCourses().length})</span>
-					</button>
-					<button
-						type="button"
-						class="format-tab-btn live-tab-btn"
-						class:active={formatTab === 'live'}
-						onclick={() => (formatTab = 'live')}
-					>
-						<span class="live-dot-mini"></span>
-						<span>Live Classes ({filteredLiveClasses().length})</span>
-					</button>
-					<button
-						type="button"
-						class="format-tab-btn"
-						class:active={formatTab === 'self_paced'}
-						onclick={() => (formatTab = 'self_paced')}
-					>
-						<BookOpen size={14} />
-						<span>Self-Paced ({filteredCourses().length})</span>
-					</button>
-				</div>
+			<!-- Center Content Grid -->
+			<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center my-auto py-4">
+				<!-- Left 8 cols: Title, Specs & Action -->
+				<div class="lg:col-span-8 max-w-3xl">
+					<h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.04] mb-4">
+						Live Classes & Cohorts
+					</h1>
+					<p class="text-base sm:text-lg text-zinc-300 leading-relaxed max-w-2xl mb-8">
+						Interactive, project-led engineering programs taught directly by active cybersecurity practitioners. Capped at 25 students for direct weekly code reviews, hands-on lab defense, and tactical career positioning.
+					</p>
 
-				<!-- Category Pills Navigation Strip -->
-				<div class="category-strip">
-					{#each categories() as cat}
-						<button
-							type="button"
-							class="category-pill"
-							class:active={selectedCategory === cat}
-							onclick={() => (selectedCategory = cat)}
+					<!-- Spec Pills -->
+					<div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm font-mono text-zinc-300 mb-8">
+						<span class="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+							25+ Live Interactive Hours
+						</span>
+						<span class="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+							Max 25 Students per Cohort
+						</span>
+						<span class="px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10">
+							Hands-on Linux & SIEM Labs
+						</span>
+					</div>
+
+					<!-- CTAs -->
+					<div class="flex flex-wrap items-center gap-5">
+						<a
+							href="/catalog/practical-cybersecurity"
+							class="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold bg-white text-zinc-950 hover:bg-zinc-100 transition shadow-xl active:scale-95"
 						>
-							{cat === 'All' ? 'All Subjects' : cat}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Meta & Secondary Controls Strip -->
-			<div class="header-sub-strip">
-				<div class="results-count">
-					Showing <strong>
-						{formatTab === 'all'
-							? filteredLiveClasses().length + filteredCourses().length
-							: formatTab === 'live'
-								? filteredLiveClasses().length
-								: filteredCourses().length}
-					</strong> learning programs
+							<span>Explore Flagship Cohort</span>
+							<ArrowRight size={16} />
+						</a>
+						<span class="text-xs sm:text-sm font-mono text-zinc-400">
+							Enrolling Now &bull; MSET Academy Accredited
+						</span>
+					</div>
 				</div>
 
-				<div class="filter-controls">
-					<!-- Level Selector -->
-					<div class="select-wrap">
-						<span class="select-label">Level:</span>
-						<select bind:value={selectedLevel} class="control-select">
-							{#each levels as lvl}
-								<option value={lvl}>{lvl === 'All' ? 'All Levels' : lvl}</option>
-							{/each}
-						</select>
+				<!-- Right 4 cols: Featured Cohort Spotlight Card -->
+				<div class="lg:col-span-4 bg-black/65 backdrop-blur-md border border-white/15 p-6 sm:p-8 rounded-2xl text-left">
+					<div class="flex items-center justify-between mb-5 pb-3 border-b border-white/10">
+						<span class="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+							Next Batch Enrolling
+						</span>
+						<span class="text-base font-mono font-bold text-white">
+							₹15,999
+						</span>
 					</div>
-
-					<!-- Sort Selector -->
-					<div class="select-wrap">
-						<span class="select-label">Sort by:</span>
-						<select bind:value={sortBy} class="control-select">
-							<option value="default">Most Popular</option>
-							<option value="price-asc">Price: Low to High</option>
-							<option value="price-desc">Price: High to Low</option>
-						</select>
+					<h3 class="text-lg font-bold text-white mb-2">
+						Practical Cybersecurity: Beginner to Intermediate
+					</h3>
+					<div class="space-y-3 text-xs font-mono text-zinc-300 mb-6">
+						<div class="flex items-center gap-2.5">
+							<Users size={15} class="text-emerald-400 shrink-0" />
+							<span>Strictly capped at 25 seats</span>
+						</div>
+						<div class="flex items-center gap-2.5">
+							<Clock size={15} class="text-emerald-400 shrink-0" />
+							<span>25+ Hours live interactive instruction</span>
+						</div>
+						<div class="flex items-center gap-2.5">
+							<Award size={15} class="text-emerald-400 shrink-0" />
+							<span>MSET Academy accredited credential</span>
+						</div>
 					</div>
-
-					{#if selectedCategory !== 'All' || selectedLevel !== 'All' || searchQuery || formatTab !== 'all'}
-						<button type="button" class="btn-reset" onclick={clearFilters}>
-							Reset
-						</button>
-					{/if}
+					<a
+						href="/catalog/practical-cybersecurity"
+						class="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-zinc-950 hover:bg-zinc-100 font-mono text-xs font-bold transition shadow-lg active:scale-95"
+					>
+						<span>View Curriculum & Batches</span>
+						<ArrowRight size={14} />
+					</a>
 				</div>
 			</div>
 		</div>
-	</header>
+	</section>
 
-	<!-- ── COURSES CARDS CANVAS ───────────────────────────── -->
-	<main class="container-custom content-canvas">
-		{#if (formatTab === 'all' || formatTab === 'live') && filteredLiveClasses().length > 0}
-			<section class="mb-12">
-				<div class="section-title-wrap">
-					<div class="flex items-center gap-2">
-						<span class="live-dot-mini"></span>
-						<h2 class="text-xl font-bold text-[var(--text-primary)]">Live Classroom Cohorts</h2>
-					</div>
-					<p class="text-xs text-[var(--text-secondary)] mt-0.5">
-						Interactive scheduled live batches hosted externally with practitioner mentorship and peer group access.
+	<main class="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12">
+
+		<!-- ── 2. FOUR PLATFORM PILLARS ───────────────────────────────── -->
+		<section class="py-10 border-b border-zinc-200 mb-12">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">01 / Practice</span>
+					<h3 class="text-sm font-bold text-zinc-950">Hands-on Learning</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Work with real enterprise tools, live networks, and continuous defensive scenarios.</p>
+				</div>
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">02 / Pathway</span>
+					<h3 class="text-sm font-bold text-zinc-950">Beginner to Advanced</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Structured progression from Linux & networking to SIEM detection and SOAR automation.</p>
+				</div>
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">03 / Attention</span>
+					<h3 class="text-sm font-bold text-zinc-950">Small Cohorts (Max 25)</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Strictly capped at 25 students per batch for direct weekly practitioner mentorship.</p>
+				</div>
+				<div class="p-6 rounded-2xl bg-zinc-50 border border-zinc-200/80 hover:border-zinc-300 transition space-y-1.5">
+					<span class="text-[11px] font-mono font-bold text-zinc-400 tracking-wider uppercase block">04 / Verification</span>
+					<h3 class="text-sm font-bold text-zinc-950">Capstone Project</h3>
+					<p class="text-xs text-zinc-500 leading-relaxed">Architect and defend a real-world security pipeline accredited upon capstone defense.</p>
+				</div>
+			</div>
+		</section>
+
+		<!-- ── 3. CATALOGUE & FILTER BAR ──────────────────────────────── -->
+		<section class="py-6">
+			<!-- Header & Search -->
+			<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+				<div>
+					<h2 class="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
+						All Classes & Pathways
+					</h2>
+					<p class="text-xs sm:text-sm text-zinc-500 mt-1">
+						Showing {filteredItems.length} technical offerings across live cohorts and practical tracks.
 					</p>
 				</div>
-				<div class="workly-grid">
-					{#each filteredLiveClasses() as course}
-						<LiveBatchCard {course} />
+
+				<!-- Search Input -->
+				<div class="w-full md:w-80 relative">
+					<Search size={14} class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+					<input
+						bind:value={searchQuery}
+						type="text"
+						placeholder="Search classes or topics..."
+						class="w-full pl-9 pr-8 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 placeholder-zinc-400 focus:bg-white focus:outline-none focus:border-zinc-400 transition"
+					/>
+					{#if searchQuery}
+						<button
+							type="button"
+							onclick={() => (searchQuery = '')}
+							class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 p-0.5"
+							aria-label="Clear search"
+						>
+							<X size={13} />
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Format Selector & Category Pills -->
+			<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-zinc-100">
+				<!-- Format Tabs -->
+				<div class="flex items-center gap-1.5 bg-zinc-100 p-1 rounded-xl">
+					<button
+						type="button"
+						onclick={() => (formatTab = 'all')}
+						class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition"
+						class:bg-white={formatTab === 'all'}
+						class:text-zinc-950={formatTab === 'all'}
+						class:shadow-xs={formatTab === 'all'}
+						class:text-zinc-500={formatTab !== 'all'}
+					>
+						All Formats
+					</button>
+					<button
+						type="button"
+						onclick={() => (formatTab = 'live')}
+						class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5"
+						class:bg-white={formatTab === 'live'}
+						class:text-zinc-950={formatTab === 'live'}
+						class:shadow-xs={formatTab === 'live'}
+						class:text-zinc-500={formatTab !== 'live'}
+					>
+						<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+						<span>Live Cohorts</span>
+					</button>
+					<button
+						type="button"
+						onclick={() => (formatTab = 'self_paced')}
+						class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition"
+						class:bg-white={formatTab === 'self_paced'}
+						class:text-zinc-950={formatTab === 'self_paced'}
+						class:shadow-xs={formatTab === 'self_paced'}
+						class:text-zinc-500={formatTab !== 'self_paced'}
+					>
+						Practical Tracks
+					</button>
+				</div>
+
+				<!-- Category Pills -->
+				<div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+					{#each categories as cat}
+						<button
+							type="button"
+							onclick={() => (selectedCategory = cat)}
+							class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap"
+							class:bg-zinc-950={selectedCategory === cat}
+							class:text-white={selectedCategory === cat}
+							class:bg-zinc-100={selectedCategory !== cat}
+							class:text-zinc-600={selectedCategory !== cat}
+							class:hover:text-zinc-950={selectedCategory !== cat}
+						>
+							{cat}
+						</button>
 					{/each}
 				</div>
-			</section>
-		{/if}
+			</div>
 
-		{#if (formatTab === 'all' || formatTab === 'self_paced') && filteredCourses().length > 0}
-			<section class="mb-12">
-				<div class="section-title-wrap">
-					<h2 class="text-xl font-bold text-[var(--text-primary)]">Self-Paced Courses</h2>
-					<p class="text-xs text-[var(--text-secondary)] mt-0.5">
-						On-demand curriculum with instant access, hands-on modules, and self-directed completion.
-					</p>
+			<!-- Course Cards Grid -->
+			{#if filteredItems.length === 0}
+				<div class="text-center py-20 bg-zinc-50 rounded-3xl border border-zinc-200">
+					<BookOpen size={36} class="mx-auto text-zinc-400 mb-3" />
+					<h3 class="text-base font-bold text-zinc-900">No classes match your criteria</h3>
+					<p class="text-xs text-zinc-500 mt-1 mb-5">Try adjusting your search query or category filters.</p>
+					<button
+						type="button"
+						onclick={clearFilters}
+						class="px-5 py-2.5 rounded-xl bg-zinc-950 text-white text-xs font-bold hover:bg-zinc-800 transition"
+					>
+						Clear Filters
+					</button>
 				</div>
-				<div class="workly-grid">
-					{#each filteredCourses() as course}
-						<CourseCard {course} />
+			{:else}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+					{#each filteredItems as item (item.id)}
+						<article class="rounded-3xl border border-zinc-200 bg-white overflow-hidden hover:border-zinc-300 hover:shadow-md transition flex flex-col justify-between group">
+							<div>
+								<!-- 16:9 Thumbnail -->
+								<a href={`/catalog/${item.slug || item.id}`} class="block relative aspect-[16/9] overflow-hidden bg-zinc-100 border-b border-zinc-100">
+									<img
+										src={item.thumbnail || '/thumbnails/practical-cybersecurity.jpg'}
+										alt={item.title}
+										class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+									/>
+									<div class="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
+										<span class="px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider uppercase shadow-xs {item.badgeColor}">
+											{item.badge}
+										</span>
+										<span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white text-zinc-950 shadow-xs">
+											{item.pricePaise === 0 ? 'Free' : `₹${(item.pricePaise / 100).toFixed(0)}`}
+										</span>
+									</div>
+								</a>
+
+								<!-- Body -->
+								<div class="p-6">
+									<div class="flex items-center gap-2 text-xs font-mono text-zinc-400 mb-2">
+										<span>{(item.metadata as any)?.category || 'Cybersecurity'}</span>
+										<span>&bull;</span>
+										<span>{item.isLive ? 'Live Interactive' : 'Practical Track'}</span>
+									</div>
+
+									<h3 class="text-lg font-bold text-zinc-950 leading-snug group-hover:text-zinc-700 transition">
+										<a href={`/catalog/${item.slug || item.id}`}>
+											{item.title}
+										</a>
+									</h3>
+
+									<p class="text-xs text-zinc-600 mt-2 line-clamp-2 leading-relaxed">
+										{item.description || 'Hands-on practical engineering modules designed for enterprise security.'}
+									</p>
+
+									<div class="flex items-center gap-3 mt-4 text-xs font-mono text-zinc-500">
+										{#if item.isLive}
+											<div class="flex items-center gap-1.5 text-emerald-600 font-semibold">
+												<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+												<span>Live Classes</span>
+											</div>
+										{/if}
+										<div class="flex items-center gap-1">
+											<Clock size={13} class="text-zinc-400" />
+											<span>{(item.metadata as any)?.duration || 'Guided Track'}</span>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Footer Action -->
+							<div class="px-6 pb-6 pt-3 flex items-center justify-between border-t border-zinc-100 mt-auto">
+								<span class="text-sm font-mono font-bold text-zinc-950">
+									{item.pricePaise === 0 ? 'Free' : `₹${(item.pricePaise / 100).toFixed(0)}`}
+								</span>
+								<a
+									href={`/catalog/${item.slug || item.id}`}
+									class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-950 text-white text-xs font-bold hover:bg-zinc-800 transition active:scale-95 shadow-xs"
+								>
+									<span>{item.isLive ? 'Explore Cohort' : 'View Track'}</span>
+									<ArrowRight size={13} />
+								</a>
+							</div>
+						</article>
 					{/each}
 				</div>
-			</section>
-		{/if}
+			{/if}
+		</section>
 
-		{#if filteredLiveClasses().length === 0 && filteredCourses().length === 0}
-			<EmptyState
-				title="No courses found"
-				description="No courses match your selected search or subject category. Try clearing your filters."
-				actionText="Clear all filters"
-				onaction={clearFilters}
-			/>
-		{/if}
 	</main>
 </div>
-
-<style>
-	.courses-page {
-		min-height: 100vh;
-		background: var(--bg, #f8fafc);
-	}
-
-	.courses-header {
-		background: var(--bg-elevated, #ffffff);
-		border-bottom: 1px solid var(--border);
-		padding: 32px 0 20px 0;
-	}
-
-	.header-main-row {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-		margin-bottom: 24px;
-	}
-
-	@media (min-width: 768px) {
-		.header-main-row {
-			flex-direction: row;
-			align-items: center;
-			justify-content: space-between;
-		}
-	}
-
-	.meta-label {
-		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.08em;
-		color: #6366f1;
-		text-transform: uppercase;
-	}
-
-	.page-title {
-		font-size: clamp(1.75rem, 3vw, 2.25rem);
-		font-weight: 800;
-		color: var(--text-primary, #0f172a);
-		letter-spacing: -0.03em;
-		margin-top: 4px;
-	}
-
-	.page-subtitle {
-		font-size: 0.875rem;
-		color: var(--text-secondary, #64748b);
-		margin-top: 4px;
-		max-width: 580px;
-	}
-
-	.search-wrap {
-		position: relative;
-		width: 100%;
-		max-width: 420px;
-	}
-
-	.workly-search-input {
-		width: 100%;
-		height: 46px;
-		background: var(--bg, #f1f5f9);
-		border: 1px solid var(--border);
-		border-radius: 9999px;
-		padding: 0 40px 0 42px;
-		font-size: 0.9375rem;
-		color: var(--text-primary);
-		outline: none;
-		transition: all 0.2s ease;
-	}
-
-	.workly-search-input:focus {
-		background: var(--bg-elevated, #ffffff);
-		border-color: #6366f1;
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-	}
-
-	:global(.search-icon) {
-		position: absolute;
-		left: 16px;
-		top: 50%;
-		transform: translateY(-50%);
-		color: var(--text-muted, #94a3b8);
-		pointer-events: none;
-	}
-
-	.clear-btn {
-		position: absolute;
-		right: 14px;
-		top: 50%;
-		transform: translateY(-50%);
-		background: none;
-		border: none;
-		color: var(--text-muted);
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	/* Format & Category Row */
-	.format-and-category-row {
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		margin-bottom: 20px;
-	}
-
-	@media (min-width: 900px) {
-		.format-and-category-row {
-			flex-direction: row;
-			align-items: center;
-			justify-content: space-between;
-		}
-	}
-
-	.format-tabs {
-		display: inline-flex;
-		align-items: center;
-		padding: 4px;
-		background: var(--bg-subtle, #f1f5f9);
-		border: 1px solid var(--border);
-		border-radius: 9999px;
-		gap: 4px;
-		width: fit-content;
-	}
-
-	:global([data-theme="dark"]) .format-tabs {
-		background: #141b28;
-	}
-
-	.format-tab-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 14px;
-		border-radius: 9999px;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-secondary);
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		transition: all 0.15s ease;
-	}
-
-	.format-tab-btn:hover {
-		color: var(--text-primary);
-	}
-
-	.format-tab-btn.active {
-		background: var(--bg-elevated, #ffffff);
-		color: var(--text-primary);
-		box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.08);
-	}
-
-	:global([data-theme="dark"]) .format-tab-btn.active {
-		background: #1e293b;
-		color: #ffffff;
-	}
-
-	.format-tab-btn.live-tab-btn.active {
-		color: #059669;
-	}
-
-	:global([data-theme="dark"]) .format-tab-btn.live-tab-btn.active {
-		color: #34d399;
-	}
-
-	.live-dot-mini {
-		width: 7px;
-		height: 7px;
-		background: #10b981;
-		border-radius: 9999px;
-		box-shadow: 0 0 6px #10b981;
-	}
-
-	/* Category Pills Strip */
-	.category-strip {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		overflow-x: auto;
-		padding-bottom: 4px;
-		scrollbar-width: none;
-		-ms-overflow-style: none;
-	}
-
-	.category-strip::-webkit-scrollbar {
-		display: none;
-	}
-
-	.category-pill {
-		display: inline-flex;
-		align-items: center;
-		padding: 6px 14px;
-		border-radius: 9999px;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-secondary, #64748b);
-		background: var(--bg, #f8fafc);
-		border: 1px solid var(--border);
-		cursor: pointer;
-		white-space: nowrap;
-		transition: all 0.15s ease;
-	}
-
-	.category-pill:hover {
-		color: #6366f1;
-		border-color: rgba(99, 102, 241, 0.3);
-		background: rgba(99, 102, 241, 0.04);
-	}
-
-	.category-pill.active {
-		color: #ffffff;
-		background: #6366f1;
-		border-color: #6366f1;
-		box-shadow: 0 2px 8px -2px rgba(99, 102, 241, 0.4);
-	}
-
-	/* Sub-strip: Results count & filter/sort selects */
-	.header-sub-strip {
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		padding-top: 16px;
-		border-top: 1px solid var(--border);
-	}
-
-	@media (min-width: 768px) {
-		.header-sub-strip {
-			flex-direction: row;
-			align-items: center;
-			justify-content: space-between;
-		}
-	}
-
-	.results-count {
-		font-size: 0.875rem;
-		color: var(--text-secondary, #64748b);
-	}
-
-	.results-count strong {
-		color: var(--text-primary, #0f172a);
-	}
-
-	.filter-controls {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		flex-wrap: wrap;
-	}
-
-	.select-wrap {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 0.8125rem;
-	}
-
-	.select-label {
-		color: var(--text-muted, #94a3b8);
-		font-weight: 500;
-	}
-
-	.control-select {
-		background: var(--bg, #f1f5f9);
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		padding: 5px 10px;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: var(--text-primary);
-		outline: none;
-		cursor: pointer;
-		transition: border-color 0.15s ease;
-	}
-
-	.control-select:focus {
-		border-color: #6366f1;
-	}
-
-	.btn-reset {
-		font-size: 0.8125rem;
-		font-weight: 600;
-		color: #6366f1;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 4px 8px;
-		border-radius: 6px;
-		transition: background 0.15s ease;
-	}
-
-	.btn-reset:hover {
-		background: rgba(99, 102, 241, 0.08);
-	}
-
-	/* Grid Canvas */
-	.content-canvas {
-		padding-top: 36px;
-		padding-bottom: 80px;
-	}
-
-	.workly-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		gap: 20px;
-	}
-
-	@media (max-width: 640px) {
-		.workly-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-</style>
