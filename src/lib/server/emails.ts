@@ -561,7 +561,7 @@ export const emailService = {
 
 		const perksHtml = tierPerks.map(p => `
 			<li style="margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #27272a; line-height: 1.5;">
-				<span style="color: #16a34a; font-weight: bold; font-size: 14px; margin-right: 4px;">✓</span>
+				<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #16a34a; margin-top: 6px; margin-right: 6px; flex-shrink: 0;"></span>
 				<span>${p}</span>
 			</li>
 		`).join('');
@@ -584,7 +584,7 @@ export const emailService = {
 					Your seat is reserved! We're looking forward to meeting you.
 				</h1>
 				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
-					Hi <strong>${params.userName}</strong>, your registration for <strong>${params.eventTitle}</strong> is confirmed. Our team and lead instructor Anmol Madan are looking forward to hosting you for this intensive live session.
+					Hi <strong>${params.userName}</strong>, your registration for <strong>${params.eventTitle}</strong> is confirmed. The Progeta team is looking forward to hosting you for this intensive live session.
 				</p>
 
 				<!-- Confirmed Ticket Tier Card -->
@@ -624,15 +624,15 @@ export const emailService = {
 					<table style="width: 100%; border-collapse: collapse; font-size: 13px;">
 						<tr>
 							<td style="padding: 6px 0; color: #71717a; width: 100px;">Date:</td>
-							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">📅 ${params.eventDate}</td>
+							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">${params.eventDate}</td>
 						</tr>
 						<tr>
 							<td style="padding: 6px 0; color: #71717a;">Time:</td>
-							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">🕙 ${params.eventTime}</td>
+							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">${params.eventTime}</td>
 						</tr>
 						<tr>
 							<td style="padding: 6px 0; color: #71717a;">Location:</td>
-							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">📍 ${params.venueDisplay}</td>
+							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">${params.venueDisplay}</td>
 						</tr>
 						<tr>
 							<td style="padding: 6px 0; color: #71717a;">Order ID:</td>
@@ -657,7 +657,7 @@ export const emailService = {
 				<!-- Warm Closing -->
 				<div style="font-size: 13px; color: #52525b; line-height: 1.6; margin-bottom: 24px; border-top: 1px solid #f4f4f5; padding-top: 20px;">
 					<p style="margin: 0 0 4px 0;">Looking forward to seeing you live in the session,</p>
-					<p style="margin: 0; font-weight: 700; color: #09090b;">Anmol Madan &amp; The Progeta Team</p>
+					<p style="margin: 0; font-weight: 700; color: #09090b;">The Progeta Team</p>
 					<p style="margin: 0; font-size: 12px; color: #71717a;">Progeta Technologies &bull; lms.progeta.in</p>
 				</div>
 
