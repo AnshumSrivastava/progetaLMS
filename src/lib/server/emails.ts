@@ -513,7 +513,7 @@ export const emailService = {
 			return;
 		}
 
-		const whatsappUrl = params.whatsappGroupUrl || 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i';
+		const whatsappUrl = params.whatsappGroupUrl || 'https://chat.whatsapp.com/FsWKfyjKE3a3ZLin549wcC';
 
 		const paymentDetails =
 			params.paymentMethod === 'free'

@@ -39,7 +39,7 @@
 	let isRegistered = $state(data.isRegistered);
 
 	const event = data.event;
-	const whatsappUrl = event.whatsappGroupUrl || 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i';
+	const whatsappUrl = event.whatsappGroupUrl || 'https://chat.whatsapp.com/FsWKfyjKE3a3ZLin549wcC';
 
 	const isSocialEngineering = $derived(
 		event.slug?.includes('social-engineering') ||

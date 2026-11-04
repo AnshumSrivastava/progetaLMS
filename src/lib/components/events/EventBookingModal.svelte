@@ -87,7 +87,7 @@
 	let isCompleted = $state(false);
 	let bookingResult = $state<any>(null);
 
-	const whatsappUrl = event.whatsappGroupUrl || 'https://chat.whatsapp.com/FaTkNU1448QIbVc2lfzQ7i';
+	const whatsappUrl = event.whatsappGroupUrl || 'https://chat.whatsapp.com/FsWKfyjKE3a3ZLin549wcC';
 
 	async function handleRegister() {
 		errorMessage = '';
