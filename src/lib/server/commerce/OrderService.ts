@@ -445,10 +445,33 @@ export class OrderService {
 				eventId: event.id,
 				eventTitle: event.title,
 				eventSlug: event.slug,
-				ticketTier: ticketTier?.name || 'Standard Pass',
-				ticketTierId: ticketTier?.id || 'standard'
+				ticketTier: ticketTier?.name || 'Normal Attendee Pass',
+				ticketTierId: ticketTier?.id || 'attendee'
 			}
 		});
+
+		if (isMockMode && customerDetails.email) {
+			try {
+				await emailService.sendEventRegistrationConfirmation({
+					to: customerDetails.email,
+					userName: customerDetails.name || 'Student',
+					eventTitle: event.title,
+					eventSlug: event.slug,
+					eventDate: new Date(event.startAt).toLocaleDateString('en-IN', { dateStyle: 'full' }),
+					eventTime: new Date(event.startAt).toLocaleTimeString('en-IN', { timeStyle: 'short' }),
+					venueType: (event.venueType as any) || 'online',
+					venueDisplay: event.venueType === 'offline' ? 'In-person / Venue' : 'Online Session',
+					paymentMethod: 'paid',
+					amountPaid: `₹${(amountPaise / 100).toFixed(2)}`,
+					whatsappGroupUrl: event.whatsappGroupUrl || undefined,
+					registrationId: internalOrderId,
+					ticketTierName: ticketTier?.name || 'Normal Attendee Pass',
+					ticketTierId: ticketTier?.id || 'attendee'
+				});
+			} catch (e) {
+				console.error('[OrderService] Failed to send instant confirmation email in mock mode:', e);
+			}
+		}
 
 		return {
 			paymentSessionId,
@@ -510,7 +533,7 @@ export class OrderService {
 
 		// Handle Event Orders
 		if (order.orderType === 'event') {
-			const meta = order.metadata as { eventId?: string };
+			const meta = order.metadata as { eventId?: string; ticketTier?: string; ticketTierId?: string };
 			const eventId = meta?.eventId || order.targetId;
 
 			await db.update(eventRegistrations)
@@ -539,7 +562,9 @@ export class OrderService {
 					paymentMethod: 'paid',
 					amountPaid: `₹${(order.amountPaise / 100).toFixed(2)}`,
 					whatsappGroupUrl: event.whatsappGroupUrl || undefined,
-					registrationId: order.id
+					registrationId: order.id,
+					ticketTierName: meta?.ticketTier || 'Normal Attendee Pass',
+					ticketTierId: meta?.ticketTierId || 'attendee'
 				});
 			}
 			console.log(`[OrderService] Processed paid event registration for user ${order.userId} on event ${eventId}`);

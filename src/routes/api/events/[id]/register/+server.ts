@@ -209,7 +209,9 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 				venueDisplay: event.venueType === 'offline' ? 'In-person / Venue' : 'Online Session',
 				paymentMethod: 'free',
 				whatsappGroupUrl: event.whatsappGroupUrl || undefined,
-				registrationId: regId
+				registrationId: regId,
+				ticketTierName: selectedTier?.name || 'Normal Attendee Pass',
+				ticketTierId: selectedTier?.id || 'attendee'
 			});
 		}
 
@@ -243,7 +245,9 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 					paymentMethod: 'credit',
 					creditsUsed: result.creditsSpent,
 					whatsappGroupUrl: event.whatsappGroupUrl || undefined,
-					registrationId: result.registrationId
+					registrationId: result.registrationId,
+					ticketTierName: selectedTier?.name || 'Normal Attendee Pass',
+					ticketTierId: selectedTier?.id || 'attendee'
 				});
 			}
 

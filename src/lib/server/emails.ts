@@ -504,6 +504,8 @@ export const emailService = {
 		creditsUsed?: number;
 		whatsappGroupUrl?: string;
 		registrationId: string;
+		ticketTierName?: string;
+		ticketTierId?: string;
 	}) {
 		const resend = getResendClient();
 		if (!resend) {
@@ -520,35 +522,148 @@ export const emailService = {
 				? `${params.creditsUsed || 0} Credits`
 				: params.amountPaid || 'Paid';
 
+		// Resolve tier details & deliverables
+		const tierKey = (params.ticketTierId || '').toLowerCase();
+		let tierName = params.ticketTierName || 'Normal Attendee Pass';
+		let tierBadge = 'CONFIRMED PASS';
+		let tierBadgeColor = '#52525b';
+		let tierPerks = [
+			'Live Interactive Masterclass Stream & Exploitation Demos',
+			'Active Q&A with Lead Cybersecurity Researcher',
+			'Curated OSINT Investigation Tool List & Cheatsheet',
+			'Official Community WhatsApp & Discord Access'
+		];
+
+		if (tierKey === 'all_access' || tierName.toLowerCase().includes('all-access') || tierName.toLowerCase().includes('vip')) {
+			tierName = 'All-Access VIP Pass';
+			tierBadge = 'BEST VALUE &bull; VIP';
+			tierBadgeColor = '#09090b';
+			tierPerks = [
+				'Everything in ₹299 Certified Pass',
+				'Official Progeta Certificate of Completion (with verification hash)',
+				'The 45-Page Enterprise Social Engineering Defense Playbook',
+				'Hardening Implementation Matrix & Verification Checklists',
+				'Executive Security Awareness Presentation Deck (Keynote/PPTX)',
+				'Official Community WhatsApp Group & Priority Q&A'
+			];
+		} else if (tierKey === 'certified' || tierName.toLowerCase().includes('certif')) {
+			tierName = 'Certified Pass';
+			tierBadge = 'RECOMMENDED &bull; CERTIFIED';
+			tierBadgeColor = '#dc2626';
+			tierPerks = [
+				'Everything in ₹99 Normal Attendee Pass',
+				'Curated OSINT Investigation Tool List & Cheatsheet',
+				'Official Progeta Certificate of Completion',
+				'Cryptographic Verification Hash for LinkedIn & CV',
+				'Priority Live Q&A Question Placement'
+			];
+		}
+
+		const perksHtml = tierPerks.map(p => `
+			<li style="margin-bottom: 8px; display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #27272a; line-height: 1.5;">
+				<span style="color: #16a34a; font-weight: bold; font-size: 14px; margin-right: 4px;">✓</span>
+				<span>${p}</span>
+			</li>
+		`).join('');
+
 		const html = `
-			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #18181b; background: #ffffff;">
-				<div style="margin-bottom: 24px;">
-					<span style="font-size: 16px; font-weight: 800; letter-spacing: -0.02em; color: #09090b; text-transform: uppercase;">PROGETA</span>
-				</div>
-
-				<h1 style="font-size: 22px; font-weight: 700; color: #09090b; margin: 0 0 12px 0;">You're registered for ${params.eventTitle}!</h1>
-				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
-					Hi ${params.userName}, your spot has been successfully confirmed.
-				</p>
-
-				<div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
-					<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; margin-bottom: 12px;">Session Details</div>
-					<div style="font-size: 14px; font-weight: 600; color: #09090b; margin-bottom: 6px;">📅 ${params.eventDate}</div>
-					<div style="font-size: 13px; color: #52525b; margin-bottom: 6px;">🕙 ${params.eventTime}</div>
-					<div style="font-size: 13px; color: #52525b; margin-bottom: 10px;">📍 ${params.venueDisplay}</div>
-					<div style="border-top: 1px solid #e4e4e7; padding-top: 10px; font-size: 12px; color: #71717a;">
-						Registration ID: <span style="font-family: monospace; color: #09090b;">${params.registrationId}</span> &bull; Payment: <strong style="color: #09090b;">${paymentDetails}</strong>
+			<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 32px 24px; color: #18181b; background: #ffffff;">
+				<!-- Brand Header -->
+				<div style="margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; justify-content: space-between;">
+					<div>
+						<span style="font-size: 15px; font-weight: 900; letter-spacing: -0.02em; color: #09090b; text-transform: uppercase;">PROGETA</span>
+						<span style="font-size: 11px; font-family: monospace; color: #dc2626; font-weight: 700; margin-left: 8px; text-transform: uppercase;">&bull; LIVE MASTERCLASS SERIES</span>
+					</div>
+					<div style="font-size: 11px; font-family: monospace; color: #71717a;">
+						TICKET CONFIRMATION
 					</div>
 				</div>
 
-				<div style="background: #09090b; color: #ffffff; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
-					<div style="font-size: 15px; font-weight: 600; margin-bottom: 8px;">Join the Official Community Group</div>
-					<p style="font-size: 13px; color: #a1a1aa; margin: 0 0 16px 0;">All meeting links, resources, and live announcements are shared inside this group.</p>
-					<a href="${whatsappUrl}" style="display: inline-block; background: #ffffff; color: #09090b; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; text-decoration: none;">Join WhatsApp Group &rarr;</a>
+				<!-- Main Headline -->
+				<h1 style="font-size: 24px; font-weight: 800; color: #09090b; margin: 0 0 10px 0; letter-spacing: -0.02em; line-height: 1.25;">
+					Your seat is reserved! We're looking forward to meeting you.
+				</h1>
+				<p style="font-size: 14px; color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
+					Hi <strong>${params.userName}</strong>, your registration for <strong>${params.eventTitle}</strong> is confirmed. Our team and lead instructor Anmol Madan are looking forward to hosting you for this intensive live session.
+				</p>
+
+				<!-- Confirmed Ticket Tier Card -->
+				<div style="background: #ffffff; border: 2px solid ${tierBadgeColor}; border-radius: 12px; padding: 22px; margin-bottom: 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.04);">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #f4f4f5; padding-bottom: 12px;">
+						<div>
+							<div style="font-size: 11px; font-family: monospace; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #71717a; margin-bottom: 2px;">
+								YOUR TICKET PASS
+							</div>
+							<div style="font-size: 18px; font-weight: 800; color: #09090b;">
+								${tierName}
+							</div>
+						</div>
+						<div style="text-align: right;">
+							<span style="display: inline-block; background: ${tierBadgeColor}; color: #ffffff; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 800; font-family: monospace; letter-spacing: 0.05em; text-transform: uppercase;">
+								${tierBadge}
+							</span>
+							<div style="font-size: 14px; font-weight: 800; color: #09090b; margin-top: 4px; font-family: monospace;">
+								${paymentDetails}
+							</div>
+						</div>
+					</div>
+
+					<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; margin-bottom: 10px;">
+						What's Included in Your Pass:
+					</div>
+					<ul style="list-style: none; padding: 0; margin: 0;">
+						${perksHtml}
+					</ul>
 				</div>
 
-				<div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 12px; color: #a1a1aa; text-align: center;">
-					&copy; ${new Date().getFullYear()} Progeta Technologies &bull; progetatechnologies@gmail.com
+				<!-- Session Logistics Box -->
+				<div style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px;">
+					<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; margin-bottom: 10px;">
+						Event Schedule & Details
+					</div>
+					<table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+						<tr>
+							<td style="padding: 6px 0; color: #71717a; width: 100px;">Date:</td>
+							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">📅 ${params.eventDate}</td>
+						</tr>
+						<tr>
+							<td style="padding: 6px 0; color: #71717a;">Time:</td>
+							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">🕙 ${params.eventTime}</td>
+						</tr>
+						<tr>
+							<td style="padding: 6px 0; color: #71717a;">Location:</td>
+							<td style="padding: 6px 0; color: #09090b; font-weight: 600;">📍 ${params.venueDisplay}</td>
+						</tr>
+						<tr>
+							<td style="padding: 6px 0; color: #71717a;">Order ID:</td>
+							<td style="padding: 6px 0; color: #09090b; font-family: monospace; font-size: 12px;">#${params.registrationId}</td>
+						</tr>
+					</table>
+				</div>
+
+				<!-- WhatsApp Community Action Box -->
+				<div style="background: #09090b; color: #ffffff; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);">
+					<div style="font-size: 16px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.01em;">
+						Join the Official WhatsApp Community Group
+					</div>
+					<p style="font-size: 13px; color: #d4d4d8; line-height: 1.5; margin: 0 0 18px 0; max-width: 440px; margin-inline: auto;">
+						All live stream joining links, tool download links, and live announcements are shared inside this private WhatsApp group.
+					</p>
+					<a href="${whatsappUrl}" style="display: inline-block; background: #22c55e; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);">
+						Join WhatsApp Group &rarr;
+					</a>
+				</div>
+
+				<!-- Warm Closing -->
+				<div style="font-size: 13px; color: #52525b; line-height: 1.6; margin-bottom: 24px; border-top: 1px solid #f4f4f5; padding-top: 20px;">
+					<p style="margin: 0 0 4px 0;">Looking forward to seeing you live in the session,</p>
+					<p style="margin: 0; font-weight: 700; color: #09090b;">Anmol Madan &amp; The Progeta Team</p>
+					<p style="margin: 0; font-size: 12px; color: #71717a;">Progeta Technologies &bull; lms.progeta.in</p>
+				</div>
+
+				<!-- Footer -->
+				<div style="border-top: 1px solid #e4e4e7; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">
+					&copy; ${new Date().getFullYear()} Progeta Technologies &bull; If you have any questions, reply directly to this email or reach us at progetatechnologies@gmail.com
 				</div>
 			</div>
 		`;
@@ -557,10 +672,10 @@ export const emailService = {
 			await resend.client.emails.send({
 				from: `${APP_NAME} <${fromEmail}>`,
 				to: params.to,
-				subject: `You're registered for ${params.eventTitle}!`,
+				subject: `[Pass Confirmed: ${tierName}] You're attending ${params.eventTitle}!`,
 				html
 			});
-			console.log(`[emailService] Registration email sent to ${params.to} for event ${params.eventTitle}`);
+			console.log(`[emailService] Registration email (${tierName}) sent to ${params.to} for event ${params.eventTitle}`);
 		} catch (error) {
 			console.error('[emailService] Error sending event registration email:', error);
 		}

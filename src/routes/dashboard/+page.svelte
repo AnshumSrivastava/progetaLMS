@@ -4544,10 +4544,9 @@
 		display: flex;
 		flex-direction: column;
 		height: 100vh;
-		position: fixed;
+		position: sticky;
 		top: 0;
-		left: 0;
-		bottom: 0;
+		align-self: start;
 		z-index: 30;
 		width: var(--dash-sidebar-w, 240px);
 		transition: width 0.2s cubic-bezier(0.2, 0, 0, 1);
@@ -4762,6 +4761,7 @@
 
 	/* ── Canvas ─────────────────────────────────────────────── */
 	.dash-canvas {
+		grid-column: 2;
 		padding: calc(var(--nav-h) + 2rem) 2rem 5rem;
 		max-width: 1360px;
 		min-width: 0;
@@ -4771,6 +4771,7 @@
 
 	@media (max-width: 1024px) {
 		.dash-canvas {
+			grid-column: 1;
 			padding: 1.5rem 1.25rem calc(76px + env(safe-area-inset-bottom));
 		}
 	}
